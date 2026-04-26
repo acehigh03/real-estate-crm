@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { classifyLeadMock } from "@/lib/ai/classify-lead";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { normalizePhone } from "@/lib/utils";
-import type { Database, LeadStatus } from "@/types/database";
+import type { Database, LeadClassification, LeadStatus } from "@/types/database";
 
 type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"];
 type LeadUpdate = Database["public"]["Tables"]["leads"]["Update"];
@@ -43,6 +44,19 @@ export async function saveLead(formData: FormData) {
   if (!user) redirect("/login");
 
   const id = String(formData.get("id") ?? "");
+  const status = String(formData.get("status") ?? "New") as LeadStatus;
+  const notesSummary = String(formData.get("notes_summary") ?? "") || null;
+  const nextFollowUpAt = String(formData.get("next_follow_up_at") ?? "") || null;
+  const selectedClassification = String(formData.get("classification") ?? "") as LeadClassification | "";
+  const mockClassification = classifyLeadMock({
+    status,
+    notesSummary,
+    nextFollowUpAt,
+  });
+  const classification =
+    selectedClassification ||
+    mockClassification.classification;
+
   const payload: LeadUpdate = {
     first_name: String(formData.get("first_name") ?? ""),
     last_name: String(formData.get("last_name") ?? ""),
@@ -52,10 +66,13 @@ export async function saveLead(formData: FormData) {
     phone_normalized: normalizePhone(String(formData.get("phone") ?? "")),
     email: String(formData.get("email") ?? "") || null,
     lead_source: String(formData.get("lead_source") ?? "") || null,
-    status: String(formData.get("status") ?? "New") as LeadStatus,
+    status,
+    classification,
+    motivation_score: selectedClassification ? payloadScoreForClassification(classification) : mockClassification.motivationScore,
+    next_follow_up_at: nextFollowUpAt,
     tag: String(formData.get("tag") ?? "") || null,
-    notes_summary: String(formData.get("notes_summary") ?? "") || null,
-    follow_up_date: String(formData.get("follow_up_date") ?? "") || null
+    notes_summary: notesSummary,
+    follow_up_date: nextFollowUpAt ? nextFollowUpAt.slice(0, 10) : null
   };
 
   const { error } = id
@@ -97,7 +114,24 @@ export async function updateLeadStatus(formData: FormData) {
 
   if (!user) redirect("/login");
 
-  const statusPayload: LeadUpdate = { status };
+  const { data: existingLead } = await supabaseAdmin
+    .from("leads")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+
+  const mockClassification = classifyLeadMock({
+    status,
+    notesSummary: existingLead?.notes_summary,
+    nextFollowUpAt: existingLead?.next_follow_up_at ?? existingLead?.follow_up_date,
+  });
+
+  const statusPayload: LeadUpdate = {
+    status,
+    classification: mockClassification.classification,
+    motivation_score: mockClassification.motivationScore,
+  };
   const { error } = await supabaseAdmin
     .from("leads")
     .update(statusPayload)
@@ -141,6 +175,7 @@ export async function setFollowup(formData: FormData) {
   const leadId = String(formData.get("lead_id") ?? "");
   const dueDate = String(formData.get("due_date") ?? "");
   const note = String(formData.get("note") ?? "") || null;
+  const nextFollowUpAt = String(formData.get("next_follow_up_at") ?? "");
 
   const supabase = await createClient();
   const supabaseAdmin = getSupabaseAdmin();
@@ -149,6 +184,13 @@ export async function setFollowup(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
+
+  const { data: existingLead } = await supabaseAdmin
+    .from("leads")
+    .select("*")
+    .eq("id", leadId)
+    .eq("user_id", user.id)
+    .single();
 
   const followupPayload: FollowupInsert = {
     lead_id: leadId,
@@ -161,7 +203,17 @@ export async function setFollowup(formData: FormData) {
 
   if (followupError) throw followupError;
 
-  const leadPayload: LeadUpdate = { follow_up_date: dueDate };
+  const mockClassification = classifyLeadMock({
+    status: existingLead?.status ?? "New",
+    notesSummary: existingLead?.notes_summary,
+    nextFollowUpAt: nextFollowUpAt || dueDate,
+  });
+  const leadPayload: LeadUpdate = {
+    follow_up_date: dueDate,
+    next_follow_up_at: nextFollowUpAt || dueDate,
+    classification: mockClassification.classification,
+    motivation_score: mockClassification.motivationScore,
+  };
   const { error: leadError } = await supabaseAdmin
     .from("leads")
     .update(leadPayload)
@@ -172,4 +224,21 @@ export async function setFollowup(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/leads");
+}
+
+function payloadScoreForClassification(classification: LeadClassification) {
+  switch (classification) {
+    case "HOT":
+      return 90;
+    case "WARM":
+      return 70;
+    case "COLD":
+      return 40;
+    case "DEAD":
+      return 5;
+    case "OPT_OUT":
+      return 0;
+    default:
+      return 25;
+  }
 }

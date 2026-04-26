@@ -3,14 +3,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getRouteUser } from "@/lib/route-user";
-import { classifyLeadMock } from "@/lib/ai/classify-lead";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { sendTelnyxMessage } from "@/lib/telnyx/send-sms";
-import { withStopLanguage } from "@/lib/utils";
+import { normalizePhone, withStopLanguage } from "@/lib/utils";
 
 const schema = z.object({
-  leadId: z.string().uuid(),
-  message: z.string().min(1)
+  to: z.string().min(1),
+  message: z.string().min(1),
+  lead_id: z.string().uuid(),
 });
 
 export async function POST(request: Request) {
@@ -25,12 +25,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { leadId, message } = parsed.data;
+  const { to, message, lead_id } = parsed.data;
 
+  // Verify the lead belongs to this user
   const { data: lead, error: leadError } = await supabaseAdmin
     .from("leads")
     .select("*")
-    .eq("id", leadId)
+    .eq("id", lead_id)
     .eq("user_id", user.id)
     .single();
 
@@ -42,45 +43,36 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Cannot send to DNC lead" }, { status: 400 });
   }
 
+  const toNormalized = normalizePhone(to);
   const body = withStopLanguage(message);
-  const telnyxMessage = await sendTelnyxMessage({
-    to: lead.phone_normalized,
-    text: body
-  });
+
+  const telnyxMessage = await sendTelnyxMessage({ to: toNormalized, text: body });
 
   const { error: messageError } = await supabaseAdmin.from("messages").insert({
     user_id: user.id,
     lead_id: lead.id,
     direction: "outbound",
     body,
-    to_number: lead.phone_normalized,
+    to_number: toNormalized,
     status: telnyxMessage?.to?.[0]?.status ?? "queued",
-    telnyx_message_id: telnyxMessage?.id ?? null
+    telnyx_message_id: telnyxMessage?.id ?? null,
   });
 
   if (messageError) {
     return NextResponse.json({ error: messageError.message }, { status: 500 });
   }
 
-  const mockClassification = classifyLeadMock({
-    status: lead.status === "New" ? "Contacted" : lead.status,
-    notesSummary: lead.notes_summary,
-    nextFollowUpAt: lead.next_follow_up_at ?? lead.follow_up_date,
-  });
-
   await supabaseAdmin
     .from("leads")
-    .update({
-      status: lead.status === "New" ? "Contacted" : lead.status,
-      classification: mockClassification.classification,
-      motivation_score: mockClassification.motivationScore,
-      last_contacted_at: new Date().toISOString(),
-    })
+    .update({ status: lead.status === "New" ? "Contacted" : lead.status })
     .eq("id", lead.id);
 
   revalidatePath("/dashboard");
   revalidatePath("/leads");
   revalidatePath("/inbox");
 
-  return NextResponse.json({ success: true, telnyxId: telnyxMessage?.id ?? null });
+  return NextResponse.json({
+    success: true,
+    message_id: telnyxMessage?.id ?? null,
+  });
 }

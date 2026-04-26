@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { parseLeadCsv } from "@/lib/csv/parse-leads";
+import { classifyLeadMock } from "@/lib/ai/classify-lead";
 import { getRouteUser } from "@/lib/route-user";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
@@ -24,6 +25,16 @@ export async function POST(request: Request) {
 
   const payload = parsedRows.map((row) => ({
     ...row,
+    classification: classifyLeadMock({
+      status: row.status,
+      notesSummary: row.notes_summary,
+      nextFollowUpAt: null,
+    }).classification,
+    motivation_score: classifyLeadMock({
+      status: row.status,
+      notesSummary: row.notes_summary,
+      nextFollowUpAt: null,
+    }).motivationScore,
     user_id: user.id
   }));
 

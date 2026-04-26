@@ -41,6 +41,10 @@ create table if not exists public.leads (
   email text,
   lead_source text,
   status text not null default 'New' check (status in ('New', 'Contacted', 'Replied', 'Hot', 'Dead', 'DNC')),
+  classification text not null default 'UNKNOWN' check (classification in ('HOT', 'WARM', 'COLD', 'DEAD', 'OPT_OUT', 'UNKNOWN')),
+  motivation_score integer not null default 25 check (motivation_score >= 0 and motivation_score <= 100),
+  last_contacted_at timestamptz,
+  next_follow_up_at timestamptz,
   tag text,
   notes_summary text,
   follow_up_date date,
@@ -56,6 +60,9 @@ create index if not exists leads_user_status_idx
 
 create index if not exists leads_follow_up_idx
   on public.leads (user_id, follow_up_date);
+
+create index if not exists leads_next_follow_up_idx
+  on public.leads (user_id, next_follow_up_at);
 
 create table if not exists public.messages (
   id uuid primary key default gen_random_uuid(),

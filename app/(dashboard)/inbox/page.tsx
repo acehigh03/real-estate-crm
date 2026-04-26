@@ -1,20 +1,20 @@
-import { ConversationList } from "@/components/inbox/conversation-list";
+import { createClient } from "@/lib/supabase/server";
 import { getInboxData } from "@/lib/data";
+import { InboxClient } from "@/components/inbox/inbox-client";
 
 export default async function InboxPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { leads, messages } = await getInboxData();
 
   return (
-    <div className="space-y-6">
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-accent">Messaging</p>
-        <h1 className="text-3xl font-semibold tracking-tight">Inbox</h1>
-        <p className="mt-2 text-sm text-muted">
-          View inbound replies matched to leads and continue one-to-one conversations through Telnyx.
-        </p>
-      </section>
-
-      <ConversationList leads={leads} messages={messages} />
-    </div>
+    <InboxClient
+      initialLeads={leads}
+      initialMessages={messages}
+      userId={user?.id ?? ""}
+    />
   );
 }

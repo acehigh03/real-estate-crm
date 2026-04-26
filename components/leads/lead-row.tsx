@@ -1,14 +1,16 @@
 import { format } from "date-fns";
 
+import { getClassificationLabel } from "@/lib/ai/classify-lead";
 import { addNote, deleteLead, saveLead, setFollowup, updateLeadStatus } from "@/app/actions";
-import { formatStatusColor } from "@/lib/utils";
-import type { Database } from "@/types/database";
+import { formatClassificationColor, formatStatusColor } from "@/lib/utils";
+import type { Database, LeadClassification } from "@/types/database";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type Note = Database["public"]["Tables"]["notes"]["Row"];
 type Followup = Database["public"]["Tables"]["followups"]["Row"];
 
 const statuses = ["New", "Contacted", "Replied", "Hot", "Dead", "DNC"] as const;
+const classifications: LeadClassification[] = ["HOT", "WARM", "COLD", "DEAD", "OPT_OUT", "UNKNOWN"];
 
 export function LeadRow({
   lead,
@@ -34,11 +36,18 @@ export function LeadRow({
         <p className="text-sm">{lead.property_address}</p>
         <p className="text-sm text-slate-600">{lead.mailing_address ?? "No mailing address"}</p>
         <p className="text-sm text-slate-600">{lead.lead_source ?? "Unknown source"}</p>
-        <span
-          className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${formatStatusColor(lead.status)}`}
-        >
-          {lead.status}
-        </span>
+        <div className="flex flex-wrap gap-2">
+          <span
+            className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${formatStatusColor(lead.status)}`}
+          >
+            {lead.status}
+          </span>
+          <span
+            className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${formatClassificationColor(lead.classification)}`}
+          >
+            {getClassificationLabel(lead.classification)}
+          </span>
+        </div>
         <p className="text-sm text-slate-600">{lead.tag ?? "No tag"}</p>
       </summary>
 
@@ -60,10 +69,17 @@ export function LeadRow({
               </option>
             ))}
           </select>
+          <select name="classification" defaultValue={lead.classification} className="rounded-2xl border border-border px-4 py-3 text-sm">
+            {classifications.map((classification) => (
+              <option key={classification} value={classification}>
+                {getClassificationLabel(classification)}
+              </option>
+            ))}
+          </select>
           <input
-            name="follow_up_date"
+            name="next_follow_up_at"
             type="date"
-            defaultValue={lead.follow_up_date ?? ""}
+            defaultValue={(lead.next_follow_up_at ?? lead.follow_up_date ?? "").slice(0, 10)}
             className="rounded-2xl border border-border px-4 py-3 text-sm"
           />
           <textarea
@@ -139,6 +155,7 @@ export function LeadRow({
             <form action={setFollowup} className="mt-3 space-y-3">
               <input type="hidden" name="lead_id" value={lead.id} />
               <input name="due_date" type="date" required className="w-full rounded-2xl border border-border px-4 py-3 text-sm" />
+              <input name="next_follow_up_at" type="datetime-local" className="w-full rounded-2xl border border-border px-4 py-3 text-sm" />
               <textarea name="note" rows={2} className="w-full rounded-2xl border border-border px-4 py-3 text-sm" placeholder="Follow-up note" />
               <button type="submit" className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white">
                 Set Follow-up

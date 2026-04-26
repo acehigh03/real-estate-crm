@@ -7,6 +7,7 @@ const serverSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   TELNYX_API_KEY: z.string().min(1).optional(),
   TELNYX_FROM_NUMBER: z.string().min(1).optional(),
+  TELNYX_PHONE_NUMBER: z.string().min(1).optional(),
   TELNYX_MESSAGING_PROFILE_ID: z.string().min(1).optional()
 });
 
@@ -24,6 +25,7 @@ export function getEnv() {
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     TELNYX_API_KEY: process.env.TELNYX_API_KEY,
     TELNYX_FROM_NUMBER: process.env.TELNYX_FROM_NUMBER,
+    TELNYX_PHONE_NUMBER: process.env.TELNYX_PHONE_NUMBER,
     TELNYX_MESSAGING_PROFILE_ID: process.env.TELNYX_MESSAGING_PROFILE_ID
   });
 }

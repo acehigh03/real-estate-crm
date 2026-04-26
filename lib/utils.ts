@@ -1,8 +1,8 @@
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs))
 }
 
 export function normalizePhone(phone: string) {
@@ -45,5 +45,20 @@ export function formatStatusColor(status: string) {
       return "bg-slate-200 text-slate-700";
     default:
       return "bg-slate-100 text-slate-700";
+  }
+}
+
+export function formatClassificationColor(classification: string) {
+  switch (classification) {
+    case "HOT":
+      return "bg-rose-100 text-rose-700";
+    case "WARM":
+      return "bg-amber-100 text-amber-800";
+    case "DEAD":
+      return "bg-zinc-200 text-zinc-700";
+    case "OPT_OUT":
+      return "bg-slate-200 text-slate-700";
+    default:
+      return "bg-sky-100 text-sky-700";
   }
 }

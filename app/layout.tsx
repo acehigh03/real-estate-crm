@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Real Estate SMS CRM",
-  description: "Manage seller leads, SMS outreach, and follow-up activity."
+  title: "Seller Pipeline",
+  description: "Real estate seller lead CRM with SMS outreach.",
 };
 
 export default function RootLayout({
-  children
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <TooltipProvider>{children}</TooltipProvider>
+      </body>
     </html>
   );
 }

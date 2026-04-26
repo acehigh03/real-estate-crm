@@ -1,4 +1,5 @@
 export type LeadStatus = "New" | "Contacted" | "Replied" | "Hot" | "Dead" | "DNC";
+export type LeadClassification = "HOT" | "WARM" | "COLD" | "DEAD" | "OPT_OUT" | "UNKNOWN";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -10,11 +11,15 @@ export interface Database {
           created_at: string;
           email: string | null;
           first_name: string;
+          classification: LeadClassification;
           follow_up_date: string | null;
           id: string;
           last_name: string;
+          last_contacted_at: string | null;
           lead_source: string | null;
           mailing_address: string | null;
+          motivation_score: number;
+          next_follow_up_at: string | null;
           notes_summary: string | null;
           phone: string;
           phone_normalized: string;
@@ -25,12 +30,16 @@ export interface Database {
           user_id: string;
         };
         Insert: {
+          classification?: LeadClassification;
           email?: string | null;
           first_name: string;
           follow_up_date?: string | null;
           last_name: string;
+          last_contacted_at?: string | null;
           lead_source?: string | null;
           mailing_address?: string | null;
+          motivation_score?: number;
+          next_follow_up_at?: string | null;
           notes_summary?: string | null;
           phone: string;
           phone_normalized: string;
