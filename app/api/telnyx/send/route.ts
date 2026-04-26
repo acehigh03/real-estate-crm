@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getRouteUser } from "@/lib/route-user";
+import { classifyLeadMock } from "@/lib/ai/classify-lead";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { sendTelnyxMessage } from "@/lib/telnyx/send-sms";
 import { normalizePhone, withStopLanguage } from "@/lib/utils";
@@ -62,13 +63,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: messageError.message }, { status: 500 });
   }
 
+  const mockClassification = classifyLeadMock({
+    status: lead.status === "New" ? "Contacted" : lead.status,
+    notesSummary: lead.notes_summary,
+    nextFollowUpAt: lead.next_follow_up_at,
+  });
+
   await supabaseAdmin
     .from("leads")
-    .update({ status: lead.status === "New" ? "Contacted" : lead.status })
+    .update({
+      status: lead.status === "New" ? "Contacted" : lead.status,
+      classification: mockClassification.classification,
+      motivation_score: mockClassification.motivationScore,
+      last_contacted_at: new Date().toISOString(),
+    })
     .eq("id", lead.id);
 
   revalidatePath("/dashboard");
   revalidatePath("/leads");
+  revalidatePath(`/leads/${lead.id}`);
   revalidatePath("/inbox");
 
   return NextResponse.json({

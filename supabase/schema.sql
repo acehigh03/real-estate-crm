@@ -47,7 +47,6 @@ create table if not exists public.leads (
   next_follow_up_at timestamptz,
   tag text,
   notes_summary text,
-  follow_up_date date,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
@@ -57,9 +56,6 @@ create unique index if not exists leads_user_phone_unique
 
 create index if not exists leads_user_status_idx
   on public.leads (user_id, status);
-
-create index if not exists leads_follow_up_idx
-  on public.leads (user_id, follow_up_date);
 
 create index if not exists leads_next_follow_up_idx
   on public.leads (user_id, next_follow_up_at);

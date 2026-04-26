@@ -109,8 +109,7 @@ async function main() {
       last_contacted_at: null,
       next_follow_up_at: `${daysFromToday(1)}T09:00:00`,
       tag: "demo",
-      notes_summary: "Inherited property. Open to a quick close.",
-      follow_up_date: daysFromToday(1)
+      notes_summary: "Inherited property. Open to a quick close."
     },
     {
       user_id: demoUser.id,
@@ -128,8 +127,7 @@ async function main() {
       last_contacted_at: `${daysFromToday(-1)}T14:30:00`,
       next_follow_up_at: `${daysFromToday(0)}T11:00:00`,
       tag: "demo",
-      notes_summary: "Vacant for 6 months. Wants cash offer.",
-      follow_up_date: daysFromToday(0)
+      notes_summary: "Vacant for 6 months. Wants cash offer."
     },
     {
       user_id: demoUser.id,
@@ -147,8 +145,7 @@ async function main() {
       last_contacted_at: `${daysFromToday(-1)}T10:15:00`,
       next_follow_up_at: `${daysFromToday(0)}T13:00:00`,
       tag: "demo",
-      notes_summary: "Asked for price range and timeline.",
-      follow_up_date: daysFromToday(0)
+      notes_summary: "Asked for price range and timeline."
     },
     {
       user_id: demoUser.id,
@@ -166,8 +163,7 @@ async function main() {
       last_contacted_at: `${daysFromToday(-1)}T16:45:00`,
       next_follow_up_at: `${daysFromToday(0)}T09:30:00`,
       tag: "demo",
-      notes_summary: "Motivated seller. Wants to close within 2 weeks.",
-      follow_up_date: daysFromToday(0)
+      notes_summary: "Motivated seller. Wants to close within 2 weeks."
     },
     {
       user_id: demoUser.id,
@@ -185,8 +181,7 @@ async function main() {
       last_contacted_at: `${daysFromToday(-3)}T12:00:00`,
       next_follow_up_at: null,
       tag: "demo",
-      notes_summary: "Opted out previously.",
-      follow_up_date: null
+      notes_summary: "Opted out previously."
     }
   ];
 

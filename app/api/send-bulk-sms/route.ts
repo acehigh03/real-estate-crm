@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       const mockClassification = classifyLeadMock({
         status: lead.status === "New" ? "Contacted" : lead.status,
         notesSummary: lead.notes_summary,
-        nextFollowUpAt: lead.next_follow_up_at ?? lead.follow_up_date,
+        nextFollowUpAt: lead.next_follow_up_at,
       });
 
       await supabaseAdmin

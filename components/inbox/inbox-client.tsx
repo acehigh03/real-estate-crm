@@ -723,8 +723,6 @@ export function InboxClient({
                           label: "Follow-up",
                           value: selectedConversation.lead.next_follow_up_at
                             ? format(new Date(selectedConversation.lead.next_follow_up_at), "PPPp")
-                            : selectedConversation.lead.follow_up_date
-                            ? format(new Date(selectedConversation.lead.follow_up_date), "PPP")
                             : "—",
                         },
                       ].map(({ label, value }) => (

@@ -12,7 +12,6 @@ export interface Database {
           email: string | null;
           first_name: string;
           classification: LeadClassification;
-          follow_up_date: string | null;
           id: string;
           last_name: string;
           last_contacted_at: string | null;
@@ -33,7 +32,6 @@ export interface Database {
           classification?: LeadClassification;
           email?: string | null;
           first_name: string;
-          follow_up_date?: string | null;
           last_name: string;
           last_contacted_at?: string | null;
           lead_source?: string | null;

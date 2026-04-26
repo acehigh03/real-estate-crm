@@ -86,7 +86,7 @@ export function DashboardClient({
                     </p>
                     <p className="mt-1 text-sm text-gray-500">{lead.property_address}</p>
                     <p className="mt-2 text-xs text-gray-400">
-                      Due {lead.next_follow_up_at ? format(new Date(lead.next_follow_up_at), "MMM d, yyyy h:mm a") : lead.follow_up_date ? format(new Date(lead.follow_up_date), "MMM d, yyyy") : "now"}
+                      Due {lead.next_follow_up_at ? format(new Date(lead.next_follow_up_at), "MMM d, yyyy h:mm a") : "now"}
                     </p>
                   </div>
                 ))

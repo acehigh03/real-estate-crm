@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     const mockClassification = classifyLeadMock({
       status: isStopReply ? "DNC" : "Replied",
       notesSummary: lead.notes_summary,
-      nextFollowUpAt: lead.next_follow_up_at ?? lead.follow_up_date,
+      nextFollowUpAt: lead.next_follow_up_at,
       inboundMessageCount: 1,
     });
 
@@ -85,6 +85,9 @@ export async function POST(request: Request) {
 
   revalidatePath("/dashboard");
   revalidatePath("/leads");
+  if (lead?.id) {
+    revalidatePath(`/leads/${lead.id}`);
+  }
   revalidatePath("/inbox");
 
   return NextResponse.json({ received: true, matched_lead_id: lead?.id ?? null });

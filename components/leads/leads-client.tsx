@@ -274,5 +274,5 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
   );
 }
 function nextFollowUpForLead(lead: Lead) {
-  return lead.next_follow_up_at ?? lead.follow_up_date;
+  return lead.next_follow_up_at;
 }

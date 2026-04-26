@@ -11,7 +11,7 @@ import { LeadRow } from "@/components/leads/lead-row";
 function getNextAction(lead: Awaited<ReturnType<typeof getLeadDetailData>>["lead"]) {
   if (lead.classification === "OPT_OUT") return "Do not contact";
   if (lead.classification === "HOT") return "Reach out today";
-  if (lead.next_follow_up_at || lead.follow_up_date) return "Complete scheduled follow-up";
+  if (lead.next_follow_up_at) return "Complete scheduled follow-up";
   if (lead.status === "New") return "Send first outreach";
   return "Review lead and update next step";
 }
@@ -85,9 +85,7 @@ export default async function LeadDetailPage({
                   <p className="mt-2 text-sm font-medium text-gray-900">
                     {lead.next_follow_up_at
                       ? format(new Date(lead.next_follow_up_at), "MMM d, yyyy h:mm a")
-                      : lead.follow_up_date
-                        ? format(new Date(lead.follow_up_date), "MMM d, yyyy")
-                        : "Not scheduled"}
+                      : "Not scheduled"}
                   </p>
                 </div>
                 <div className="rounded-xl bg-gray-50 px-4 py-3">

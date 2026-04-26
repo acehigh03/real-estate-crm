@@ -72,7 +72,6 @@ export async function saveLead(formData: FormData) {
     next_follow_up_at: nextFollowUpAt,
     tag: String(formData.get("tag") ?? "") || null,
     notes_summary: notesSummary,
-    follow_up_date: nextFollowUpAt ? nextFollowUpAt.slice(0, 10) : null
   };
 
   const { error } = id
@@ -124,7 +123,7 @@ export async function updateLeadStatus(formData: FormData) {
   const mockClassification = classifyLeadMock({
     status,
     notesSummary: existingLead?.notes_summary,
-    nextFollowUpAt: existingLead?.next_follow_up_at ?? existingLead?.follow_up_date,
+    nextFollowUpAt: existingLead?.next_follow_up_at,
   });
 
   const statusPayload: LeadUpdate = {
@@ -209,7 +208,6 @@ export async function setFollowup(formData: FormData) {
     nextFollowUpAt: nextFollowUpAt || dueDate,
   });
   const leadPayload: LeadUpdate = {
-    follow_up_date: dueDate,
     next_follow_up_at: nextFollowUpAt || dueDate,
     classification: mockClassification.classification,
     motivation_score: mockClassification.motivationScore,
@@ -224,6 +222,7 @@ export async function setFollowup(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/leads");
+  revalidatePath(`/leads/${leadId}`);
 }
 
 function payloadScoreForClassification(classification: LeadClassification) {

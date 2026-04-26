@@ -78,8 +78,8 @@ export function LeadRow({
           </select>
           <input
             name="next_follow_up_at"
-            type="date"
-            defaultValue={(lead.next_follow_up_at ?? lead.follow_up_date ?? "").slice(0, 10)}
+            type="datetime-local"
+            defaultValue={lead.next_follow_up_at ? lead.next_follow_up_at.slice(0, 16) : ""}
             className="rounded-2xl border border-border px-4 py-3 text-sm"
           />
           <textarea

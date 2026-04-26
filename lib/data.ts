@@ -21,47 +21,6 @@ export async function requireUser() {
   return { supabase, user };
 }
 
-export async function getDashboardData() {
-  const { supabase, user } = await requireUser();
-
-  const [leadResponse, messageResponse, followupResponse] = await Promise.all([
-    supabase.from("leads").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-    supabase
-      .from("messages")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("direction", "inbound")
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("followups")
-      .select("*")
-      .eq("user_id", user.id)
-      .is("completed_at", null)
-      .eq("due_date", format(new Date(), "yyyy-MM-dd"))
-      .order("due_date", { ascending: true })
-  ]);
-
-  if (leadResponse.error) throw leadResponse.error;
-  if (messageResponse.error) throw messageResponse.error;
-  if (followupResponse.error) throw followupResponse.error;
-
-  const leads = (leadResponse.data ?? []) as Lead[];
-  const messages = (messageResponse.data ?? []) as Message[];
-  const followups = (followupResponse.data ?? []) as Followup[];
-
-  return {
-    leads,
-    stats: {
-      total: leads.length,
-      contacted: leads.filter((lead) => lead.status === "Contacted").length,
-      replied: messages.length,
-      hot: leads.filter((lead) => lead.status === "Hot").length,
-      followUpsToday: followups.length
-    },
-    followups
-  };
-}
-
 export async function getLeadsPageData() {
   const { supabase, user } = await requireUser();
 
@@ -125,32 +84,27 @@ export async function getDashboardStats() {
   const { supabase, user } = await requireUser();
   const today = format(new Date(), "yyyy-MM-dd");
 
-  const [leadsResponse, messagesResponse, followupsResponse] = await Promise.all([
+  const [leadsResponse, messagesResponse] = await Promise.all([
     supabase.from("leads").select("*").eq("user_id", user.id).order("updated_at", { ascending: false }),
     supabase.from("messages").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-    supabase
-      .from("followups")
-      .select("*")
-      .eq("user_id", user.id)
-      .is("completed_at", null)
-      .eq("due_date", today)
-      .order("due_date", { ascending: true }),
   ]);
 
   if (leadsResponse.error) throw leadsResponse.error;
   if (messagesResponse.error) throw messagesResponse.error;
-  if (followupsResponse.error) throw followupsResponse.error;
 
   const leads = (leadsResponse.data ?? []) as Lead[];
   const messages = (messagesResponse.data ?? []) as Message[];
-  const dueFollowups = (followupsResponse.data ?? []) as Followup[];
+  const allDueLeads = leads.filter(
+    (lead) => lead.next_follow_up_at && format(new Date(lead.next_follow_up_at), "yyyy-MM-dd") === today
+  );
+  const dueLeads = allDueLeads.slice(0, 6);
 
   const counts = {
     totalLeads: leads.length,
     contactedLeads: leads.filter((lead) => Boolean(lead.last_contacted_at) || messages.some((message) => message.lead_id === lead.id && message.direction === "outbound")).length,
     repliesReceived: messages.filter((message) => message.direction === "inbound").length,
     hotLeads: leads.filter((lead) => lead.classification === "HOT").length,
-    dueToday: dueFollowups.length,
+    dueToday: allDueLeads.length,
   };
 
   const leadsById = new Map(leads.map((lead) => [lead.id, lead]));
@@ -162,9 +116,6 @@ export async function getDashboardStats() {
       lead: leadsById.get(message.lead_id ?? ""),
     }))
     .filter((entry): entry is { message: Message; lead: Lead } => Boolean(entry.lead));
-
-  const dueLeadIds = new Set(dueFollowups.map((followup) => followup.lead_id));
-  const dueLeads = leads.filter((lead) => dueLeadIds.has(lead.id)).slice(0, 6);
 
   return { counts, dueLeads, recentReplies };
 }

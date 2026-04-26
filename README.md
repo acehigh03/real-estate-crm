@@ -186,18 +186,18 @@ In Telnyx:
 3. Add your inbound webhook URL:
 
 ```text
-https://your-domain.com/api/telnyx-webhook
+https://your-domain.com/api/telnyx/inbound
 ```
 
 For local testing with ngrok:
 
 ```text
-https://your-ngrok-subdomain.ngrok-free.app/api/telnyx-webhook
+https://your-ngrok-subdomain.ngrok-free.app/api/telnyx/inbound
 ```
 
 Use the app route already built in this repo:
 
-- [app/api/telnyx-webhook/route.ts](/Users/acehigh/Documents/Codex/2026-04-24-build-a-full-stack-real-estate/app/api/telnyx-webhook/route.ts)
+- [app/api/telnyx/inbound/route.ts](/Users/acehigh/Documents/Codex/2026-04-24-build-a-full-stack-real-estate/app/api/telnyx/inbound/route.ts)
 
 ## 8. Local Testing with ngrok
 
@@ -219,7 +219,7 @@ ngrok http 3000
 4. In Telnyx, set the webhook URL to:
 
 ```text
-https://YOUR-NGROK-URL/api/telnyx-webhook
+https://YOUR-NGROK-URL/api/telnyx/inbound
 ```
 
 5. Save the Telnyx profile settings.
@@ -304,9 +304,9 @@ This app currently enforces:
 
 Relevant files:
 
-- [app/api/send-sms/route.ts](/Users/acehigh/Documents/Codex/2026-04-24-build-a-full-stack-real-estate/app/api/send-sms/route.ts)
+- [app/api/telnyx/send/route.ts](/Users/acehigh/Documents/Codex/2026-04-24-build-a-full-stack-real-estate/app/api/telnyx/send/route.ts)
 - [app/api/send-bulk-sms/route.ts](/Users/acehigh/Documents/Codex/2026-04-24-build-a-full-stack-real-estate/app/api/send-bulk-sms/route.ts)
-- [app/api/telnyx-webhook/route.ts](/Users/acehigh/Documents/Codex/2026-04-24-build-a-full-stack-real-estate/app/api/telnyx-webhook/route.ts)
+- [app/api/telnyx/inbound/route.ts](/Users/acehigh/Documents/Codex/2026-04-24-build-a-full-stack-real-estate/app/api/telnyx/inbound/route.ts)
 
 ## 13. Deploy to Vercel
 
@@ -327,7 +327,7 @@ Relevant files:
 6. After deployment, update your Telnyx webhook URL to:
 
 ```text
-https://your-vercel-domain.vercel.app/api/telnyx-webhook
+https://your-vercel-domain.vercel.app/api/telnyx/inbound
 ```
 
 7. Test:
@@ -402,7 +402,7 @@ Cause:
 
 Fix:
 
-- confirm the webhook ends with `/api/telnyx-webhook`
+- confirm the webhook ends with `/api/telnyx/inbound`
 - confirm ngrok is running
 - update Telnyx with the latest ngrok or Vercel URL
 
@@ -442,9 +442,9 @@ Fix:
 ## 15. Useful Project Files
 
 - [supabase/schema.sql](/Users/acehigh/Documents/Codex/2026-04-24-build-a-full-stack-real-estate/supabase/schema.sql)
-- [app/api/send-sms/route.ts](/Users/acehigh/Documents/Codex/2026-04-24-build-a-full-stack-real-estate/app/api/send-sms/route.ts)
+- [app/api/telnyx/send/route.ts](/Users/acehigh/Documents/Codex/2026-04-24-build-a-full-stack-real-estate/app/api/telnyx/send/route.ts)
 - [app/api/send-bulk-sms/route.ts](/Users/acehigh/Documents/Codex/2026-04-24-build-a-full-stack-real-estate/app/api/send-bulk-sms/route.ts)
-- [app/api/telnyx-webhook/route.ts](/Users/acehigh/Documents/Codex/2026-04-24-build-a-full-stack-real-estate/app/api/telnyx-webhook/route.ts)
+- [app/api/telnyx/inbound/route.ts](/Users/acehigh/Documents/Codex/2026-04-24-build-a-full-stack-real-estate/app/api/telnyx/inbound/route.ts)
 - [app/api/upload-csv/route.ts](/Users/acehigh/Documents/Codex/2026-04-24-build-a-full-stack-real-estate/app/api/upload-csv/route.ts)
 - [scripts/seed-demo-data.mjs](/Users/acehigh/Documents/Codex/2026-04-24-build-a-full-stack-real-estate/scripts/seed-demo-data.mjs)
 

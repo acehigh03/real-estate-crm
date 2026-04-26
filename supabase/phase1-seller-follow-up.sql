@@ -41,3 +41,8 @@ end;
 update public.leads
 set next_follow_up_at = coalesce(next_follow_up_at, follow_up_date::timestamptz)
 where follow_up_date is not null;
+
+drop index if exists leads_follow_up_idx;
+
+alter table public.leads
+  drop column if exists follow_up_date;
