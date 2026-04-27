@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { differenceInCalendarDays, format, isToday } from "date-fns";
-import { CalendarClock, Clock3, FileText, Flame, Phone, Skull, User } from "lucide-react";
+import { format } from "date-fns";
 
-import { setFollowup, updateLeadStatus, updatePipelineStage } from "@/app/actions";
 import type { PipelineLeadCard, PipelineStage } from "@/lib/data";
 
 const STAGE_STYLES: Record<PipelineStage, { accent: string; chip: string }> = {
@@ -14,18 +12,30 @@ const STAGE_STYLES: Record<PipelineStage, { accent: string; chip: string }> = {
   Dead: { accent: "bg-slate-500", chip: "bg-slate-100 text-slate-700" },
 };
 
+function formatPhoneTitle(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("1")) {
+    const national = digits.slice(1);
+    return `(${national.slice(0, 3)}) ${national.slice(3, 6)}-${national.slice(6, 10)}`;
+  }
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+  }
+  return phone;
+}
+
 function displayLeadName(lead: PipelineLeadCard["lead"]) {
   const fullName = `${lead.first_name ?? ""} ${lead.last_name ?? ""}`.trim();
   if (fullName && fullName.toLowerCase() !== "new lead") return fullName;
-  return lead.phone;
+  return formatPhoneTitle(lead.phone);
 }
 
-function propertyLabel(address: string | null) {
+function propertyLabel(address: string | null, campaignName: string | null) {
   const value = (address ?? "").trim();
-  if (!value || value.toLowerCase() === "inbox conversation") {
-    return null;
+  if (value && value.toLowerCase() !== "inbox conversation") {
+    return value.split(",")[0]?.trim() || value;
   }
-  return value;
+  return campaignName?.trim() || null;
 }
 
 function priorityBadge(classification: string) {
@@ -38,19 +48,13 @@ function priorityBadge(classification: string) {
   return { label: "COLD", classes: "bg-[#ede9fe] text-[#5b21b6]" };
 }
 
-function contactAge(lead: PipelineLeadCard["lead"]) {
-  if (!lead.last_contacted_at) {
-    return {
-      label: "Never contacted",
-      classes: "text-slate-500",
-    };
+function lastMessageSnippet(text: string | null) {
+  if (!text?.trim()) {
+    return "Last: No messages yet";
   }
-
-  const days = differenceInCalendarDays(new Date(), new Date(lead.last_contacted_at));
-  return {
-    label: `⏱ ${days}d since contact`,
-    classes: days <= 1 ? "text-emerald-600" : days <= 3 ? "text-amber-600" : "text-rose-600",
-  };
+  const cleaned = text.trim().replace(/\s+/g, " ");
+  const truncated = cleaned.length > 60 ? `${cleaned.slice(0, 60).trimEnd()}...` : cleaned;
+  return `Last: ${truncated}`;
 }
 
 export function PipelineBoard({
@@ -145,27 +149,21 @@ export function PipelineBoard({
 
                 <div className="flex-1 space-y-2.5 overflow-y-auto p-3">
                   {stageCards.length ? (
-                    stageCards.map(({ lead, messageCount, callCount, followupCount, daysInPipeline, lastMessagePreview, stage, campaignName }) => {
-                      const followUpDate = lead.next_follow_up_at ? new Date(lead.next_follow_up_at) : null;
-                      const isDueToday = followUpDate ? isToday(followUpDate) : false;
+                    stageCards.map(({ lead, lastMessagePreview, campaignName }) => {
                       const priority = priorityBadge(lead.classification);
-                      const contact = contactAge(lead);
                       const leadName = displayLeadName(lead);
-                      const address = propertyLabel(lead.property_address);
+                      const address = propertyLabel(lead.property_address, campaignName);
 
                       return (
                       <article
                         key={lead.id}
                         className="rounded-[10px] border border-[#eaecf0] bg-white p-3"
                       >
-                        <div className="mb-2.5 flex items-start justify-between gap-2">
+                        <div className="mb-2 flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="truncate text-[14px] font-semibold leading-5 text-slate-900">{leadName}</p>
+                            <p className="truncate text-sm font-semibold leading-5 text-slate-900">{leadName}</p>
                             {address ? (
-                              <p className="mt-0.5 truncate text-[12px] text-slate-500">{address}</p>
-                            ) : null}
-                            {campaignName ? (
-                              <p className="mt-1 truncate text-[11px] font-medium text-slate-400">{campaignName}</p>
+                              <p className="mt-0.5 truncate text-xs text-slate-500">{address}</p>
                             ) : null}
                           </div>
                           <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-medium ${priority.classes}`}>
@@ -174,109 +172,15 @@ export function PipelineBoard({
                         </div>
 
                         <div className="space-y-2 text-xs text-slate-500">
-                          <div className="flex items-center gap-2">
-                            <Phone size={13} className="text-gray-400" />
-                            <span>{lead.phone}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock3 size={13} className="text-gray-400" />
-                            <span>Created {format(new Date(lead.created_at), "MMM d, yyyy")}</span>
-                          </div>
-                          <div className={`flex items-center gap-2 font-medium ${contact.classes}`}>
-                            <CalendarClock size={13} />
-                            <span>{contact.label}</span>
-                          </div>
-                          <div className="rounded-[8px] bg-[#f8f9fb] px-2.5 py-2 text-[11px] leading-5 text-gray-600">
-                            {lastMessagePreview ? lastMessagePreview : "No messages yet"}
-                          </div>
+                          <p className="text-xs text-slate-500">
+                            Created {format(new Date(lead.created_at), "MMM d, yyyy")}
+                          </p>
+                          <p className="line-clamp-1 text-xs text-slate-500">
+                            {lastMessageSnippet(lastMessagePreview)}
+                          </p>
                         </div>
 
-                        <div className="mt-3 grid grid-cols-2 gap-2">
-                          <div className="rounded-[8px] bg-[#f8f9fb] px-2.5 py-2">
-                            <p className="text-[10px] uppercase tracking-wide text-gray-400">Days</p>
-                            <p className="mt-1 text-sm font-semibold text-gray-900">{daysInPipeline}</p>
-                          </div>
-                          <div className="rounded-[8px] bg-[#f8f9fb] px-2.5 py-2">
-                            <p className="text-[10px] uppercase tracking-wide text-gray-400">Messages</p>
-                            <p className="mt-1 text-sm font-semibold text-gray-900">{messageCount}</p>
-                          </div>
-                          <div className="rounded-[8px] bg-[#f8f9fb] px-2.5 py-2">
-                            <p className="text-[10px] uppercase tracking-wide text-gray-400">Calls</p>
-                            <p className="mt-1 text-sm font-semibold text-gray-900">{callCount}</p>
-                          </div>
-                          <div className="rounded-[8px] bg-[#f8f9fb] px-2.5 py-2">
-                            <p className="text-[10px] uppercase tracking-wide text-gray-400">Tasks</p>
-                            <p className="mt-1 text-sm font-semibold text-gray-900">{followupCount}</p>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 flex items-center justify-between">
-                          <div className={`inline-flex items-center gap-1 text-[11px] ${isDueToday ? "font-medium text-rose-600" : "text-gray-500"}`}>
-                            <FileText size={12} />
-                            Next follow-up{" "}
-                            {followUpDate ? format(followUpDate, "MMM d, h:mm a") : "not set"}
-                          </div>
-                        </div>
-
-                        <div className="mt-3 grid gap-2">
-                          <form action={updatePipelineStage} className="flex items-center gap-2">
-                            <input type="hidden" name="id" value={lead.id} />
-                            <select
-                              name="stage"
-                              defaultValue={stage}
-                              className="min-w-0 flex-1 rounded-[6px] border border-[#e8edf2] bg-[#f7f8fa] px-2 py-2 text-[11px] font-medium text-[#1a1f36] outline-none"
-                            >
-                              <option>New Leads</option>
-                              <option>Contacted</option>
-                              <option>Replied</option>
-                              <option>Qualified</option>
-                              <option>Offer Sent</option>
-                              <option>Dead</option>
-                            </select>
-                            <button className="rounded-[6px] border border-[#eaecf0] bg-white px-3 py-2 text-[11px] font-medium text-gray-700">
-                              Update
-                            </button>
-                          </form>
-
-                          <div className="grid grid-cols-3 gap-2">
-                          <form action={updateLeadStatus}>
-                            <input type="hidden" name="id" value={lead.id} />
-                            <input type="hidden" name="status" value="Hot" />
-                            <button className="flex w-full items-center justify-center gap-1 rounded-[8px] border border-amber-200 bg-white px-2 py-2 text-[11px] font-medium text-amber-700">
-                              <Flame size={12} />
-                              Mark Hot
-                            </button>
-                          </form>
-
-                          <form action={setFollowup}>
-                            <input type="hidden" name="lead_id" value={lead.id} />
-                            <input
-                              type="hidden"
-                              name="due_date"
-                              value={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
-                            />
-                            <input
-                              type="hidden"
-                              name="next_follow_up_at"
-                              value={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
-                            />
-                            <input type="hidden" name="note" value="Follow up tomorrow from pipeline board." />
-                            <button className="flex w-full items-center justify-center gap-1 rounded-[8px] border border-teal-200 bg-white px-2 py-2 text-[11px] font-medium text-teal-700">
-                              <CalendarClock size={12} />
-                              Tomorrow
-                            </button>
-                          </form>
-
-                          <form action={updateLeadStatus}>
-                            <input type="hidden" name="id" value={lead.id} />
-                            <input type="hidden" name="status" value="Dead" />
-                            <button className="flex w-full items-center justify-center gap-1 rounded-[8px] border border-slate-200 bg-white px-2 py-2 text-[11px] font-medium text-slate-500">
-                              <Skull size={12} />
-                              Mark Dead
-                            </button>
-                          </form>
-                          </div>
-
+                        <div className="mt-3">
                           <Link
                             href={`/leads/${lead.id}`}
                             className="flex w-full items-center justify-center rounded-[6px] bg-[#1a1f36] px-3 py-2 text-[11px] font-medium text-white"
