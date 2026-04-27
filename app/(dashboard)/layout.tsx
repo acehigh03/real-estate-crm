@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { redirect } from "next/navigation";
 
 import { AppSidebar } from "@/components/app-sidebar";
@@ -18,7 +19,14 @@ export default async function DashboardLayout({
   const inboxBadgeCount = await getInboxBadgeCount();
 
   return (
-    <SidebarProvider>
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "13rem",
+          "--sidebar-width-icon": "3.25rem",
+        } as CSSProperties
+      }
+    >
       <AppSidebar
         inboxBadgeCount={inboxBadgeCount}
         userEmail={user.email ?? ""}

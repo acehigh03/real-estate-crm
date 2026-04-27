@@ -25,13 +25,12 @@ import {
 import { cn } from "@/lib/utils";
 import { signOut } from "@/app/actions";
 
-// CSS variable overrides for the dark sidebar
 const sidebarStyle = {
-  "--sidebar": "215 14% 13%",
-  "--sidebar-foreground": "215 18% 82%",
-  "--sidebar-border": "215 16% 19%",
-  "--sidebar-accent": "160 35% 18%",
-  "--sidebar-accent-foreground": "160 58% 73%",
+  "--sidebar": "220 14% 10%",
+  "--sidebar-foreground": "215 12% 68%",
+  "--sidebar-border": "220 14% 17%",
+  "--sidebar-accent": "220 14% 15%",
+  "--sidebar-accent-foreground": "215 12% 90%",
   "--sidebar-ring": "162 44% 55%",
 } as React.CSSProperties;
 
@@ -64,32 +63,24 @@ export function AppSidebar({
     : "SP";
 
   return (
-    <Sidebar collapsible="icon" style={sidebarStyle}>
-      {/* ── Logo ──────────────────────────────────────────────── */}
-      <SidebarHeader className="px-4 py-5">
-        <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#16a37f] text-[10px] font-bold text-white shadow-sm">
+    <Sidebar collapsible="icon" style={sidebarStyle} className="border-r border-[#1e2230]">
+      {/* Logo */}
+      <SidebarHeader className="px-3 py-4">
+        <div className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#16a37f] text-[10px] font-bold text-white">
             SP
           </div>
-          <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
-            <span
-              className="text-[10px] font-medium uppercase tracking-[0.18em]"
-              style={{ color: "rgba(255,255,255,.3)", fontFamily: "var(--font-mono)" }}
-            >
-              CRM
-            </span>
-            <span className="text-[14px] font-semibold text-white/95">
-              Seller Pipeline
-            </span>
-          </div>
+          <span className="text-[13px] font-semibold text-white/85 group-data-[collapsible=icon]:hidden">
+            Seller Pipeline
+          </span>
         </div>
       </SidebarHeader>
 
-      <SidebarSeparator className="bg-[rgba(255,255,255,.06)]" />
+      <SidebarSeparator className="bg-[#1e2230]" />
 
-      {/* ── Navigation ────────────────────────────────────────── */}
+      {/* Navigation */}
       <SidebarContent>
-        <SidebarGroup className="px-2 py-3">
+        <SidebarGroup className="px-2 py-2">
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map(({ href, label, icon: Icon }) => {
@@ -105,13 +96,13 @@ export function AppSidebar({
                       isActive={isActive}
                       tooltip={label}
                       className={cn(
-                        "rounded-xl border border-transparent transition-all duration-[120ms]",
+                        "rounded-md border border-transparent px-2.5 py-1 transition-colors duration-100",
                         isActive
-                          ? "!border-[rgba(94,234,212,.16)] !bg-[linear-gradient(180deg,rgba(22,163,127,.24),rgba(22,163,127,.12))] !text-[#ccfbf1] shadow-[inset_0_1px_0_rgba(255,255,255,.04)] hover:!bg-[linear-gradient(180deg,rgba(22,163,127,.28),rgba(22,163,127,.14))]"
-                          : "!text-[rgba(255,255,255,.56)] hover:!border-[rgba(255,255,255,.05)] hover:!bg-[rgba(255,255,255,.045)] hover:!text-[rgba(255,255,255,.88)]"
+                          ? "!border-[rgba(22,163,127,.15)] !bg-[rgba(255,255,255,.07)] !text-white"
+                          : "!text-[rgba(255,255,255,.48)] hover:!bg-[rgba(255,255,255,.04)] hover:!text-[rgba(255,255,255,.78)]"
                       )}
                     >
-                      <Icon size={14} strokeWidth={1.7} className="shrink-0" />
+                      <Icon size={14} strokeWidth={1.6} className="shrink-0" />
                       <span className="flex-1 text-[13px]">{label}</span>
                       {showBadge && (
                         <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold leading-none text-white group-data-[collapsible=icon]:hidden">
@@ -127,38 +118,28 @@ export function AppSidebar({
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarSeparator className="bg-[rgba(255,255,255,.06)]" />
+      <SidebarSeparator className="bg-[#1e2230]" />
 
-      {/* ── Footer: user + sign out ────────────────────────────── */}
+      {/* Footer */}
       <SidebarFooter className="px-2 py-3">
-        {/* User avatar row */}
-        <div className="mb-1 flex items-center gap-2.5 rounded-xl px-2 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#16a37f] text-[10px] font-bold text-white shadow-sm">
+        <div className="mb-1 flex items-center gap-2 px-2.5 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#16a37f] text-[9px] font-bold text-white">
             {initials}
           </div>
-          <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
-            <span className="text-[12px] font-medium text-[rgba(255,255,255,.75)] truncate max-w-[120px]">
-              {userEmail || "User"}
-            </span>
-            <span
-              className="text-[10px]"
-              style={{ color: "rgba(255,255,255,.3)" }}
-            >
-              Real Estate CRM
-            </span>
-          </div>
+          <span className="truncate max-w-[110px] text-[11px] text-[rgba(255,255,255,.42)] group-data-[collapsible=icon]:hidden">
+            {userEmail || "User"}
+          </span>
         </div>
 
-        {/* Sign out */}
         <SidebarMenu>
           <SidebarMenuItem>
             <form action={signOut} className="w-full">
               <SidebarMenuButton
                 render={<button type="submit" className="w-full" />}
                 tooltip="Sign out"
-                className="rounded-xl !text-[rgba(255,255,255,.56)] transition-all duration-[120ms] hover:!bg-[rgba(255,255,255,.045)] hover:!text-[rgba(255,255,255,.88)]"
+                className="rounded-md px-2.5 py-1 !text-[rgba(255,255,255,.38)] transition-colors duration-100 hover:!bg-[rgba(255,255,255,.04)] hover:!text-[rgba(255,255,255,.68)]"
               >
-                <LogOut size={14} strokeWidth={1.7} />
+                <LogOut size={13} strokeWidth={1.6} />
                 <span className="text-[13px]">Sign out</span>
               </SidebarMenuButton>
             </form>

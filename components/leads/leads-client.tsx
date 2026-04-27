@@ -16,7 +16,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getClassificationLabel } from "@/lib/ai/classify-lead";
-import { formatClassificationColor } from "@/lib/utils";
 import type { Database, LeadClassification, LeadStatus } from "@/types/database";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
@@ -34,51 +33,11 @@ const STATUS_OPTIONS: Array<"all" | LeadStatus> = [
 ];
 
 function statusTag(status: LeadStatus) {
-  switch (status) {
-    case "Hot":
-      return (
-        <span className="inline-flex items-center rounded-full px-2 py-0.5 font-mono text-[8px] font-medium uppercase tracking-wider"
-          style={{ background: "#fff0eb", color: "#b84a1e" }}>
-          Hot
-        </span>
-      );
-    case "New":
-      return (
-        <span className="inline-flex items-center rounded-full px-2 py-0.5 font-mono text-[8px] font-medium uppercase tracking-wider"
-          style={{ background: "#eff5ff", color: "#2c5fbd" }}>
-          New
-        </span>
-      );
-    case "Contacted":
-      return (
-        <span className="inline-flex items-center rounded-full px-2 py-0.5 font-mono text-[8px] font-medium uppercase tracking-wider"
-          style={{ background: "#edfaf3", color: "#166b47" }}>
-          Contacted
-        </span>
-      );
-    case "Replied":
-      return (
-        <span className="inline-flex items-center rounded-full px-2 py-0.5 font-mono text-[8px] font-medium uppercase tracking-wider"
-          style={{ background: "#edfaf3", color: "#166b47" }}>
-          Replied
-        </span>
-      );
-    case "Dead":
-    case "DNC":
-      return (
-        <span className="inline-flex items-center rounded-full px-2 py-0.5 font-mono text-[8px] font-medium uppercase tracking-wider"
-          style={{ background: "#f4f4f4", color: "#888" }}>
-          {status}
-        </span>
-      );
-    default:
-      return (
-        <span className="inline-flex items-center rounded-full px-2 py-0.5 font-mono text-[8px] font-medium uppercase tracking-wider"
-          style={{ background: "#f4f4f4", color: "#888" }}>
-          {status}
-        </span>
-      );
-  }
+  return (
+    <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+      {status}
+    </span>
+  );
 }
 
 function scoreFromClassification(classification: LeadClassification): number {
@@ -100,10 +59,8 @@ function scoreFromClassification(classification: LeadClassification): number {
 
 function ScoreCell({ classification }: { classification: LeadClassification }) {
   const score = scoreFromClassification(classification);
-  const color =
-    score >= 85 ? "text-rose-600" : score >= 60 ? "text-amber-600" : "text-muted-foreground";
   return (
-    <span className={`font-mono text-sm font-medium ${color}`}>{score}</span>
+    <span className="font-mono text-sm font-medium text-slate-700">{score}</span>
   );
 }
 
@@ -135,8 +92,7 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
     <div className="crm-page flex flex-1 flex-col overflow-hidden">
       <div className="crm-page-header flex shrink-0 items-center justify-between gap-4 px-6 py-6">
         <div>
-          <p className="crm-section-kicker">Lead workspace</p>
-          <h1 className="mt-2 text-[1.625rem] font-bold tracking-tight text-slate-900">Leads</h1>
+          <h1 className="text-[1.75rem] font-bold tracking-tight text-slate-900">Leads</h1>
           <p className="mt-1 text-sm text-slate-500">
             Review seller records, classifications, and next follow-up dates.
           </p>
@@ -163,7 +119,7 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
           </select>
           <Button
             size="sm"
-            className="h-9 gap-1.5 rounded-xl border-none bg-[#16a37f] px-4 text-white shadow-sm hover:bg-[#0d7a5f]"
+            className="h-9 gap-1.5 rounded-md border-none bg-[#0f766e] px-4 text-white hover:bg-[#115e59]"
             onClick={() => setCsvDialogOpen(true)}
           >
             <Upload size={13} />
@@ -207,7 +163,6 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
         {filtered.length === 0 ? (
           <div className="crm-card flex h-full items-center justify-center px-6 py-16">
             <div className="text-center">
-              <p className="crm-section-kicker">No results</p>
               <p className="mt-2 text-sm text-muted-foreground">
                 {leads.length === 0
                   ? "Import a CSV to get started."
@@ -216,53 +171,53 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
             </div>
           </div>
         ) : (
-          <div className="crm-card overflow-hidden">
+          <div className="crm-panel overflow-hidden">
             <Table>
-            <TableHeader className="bg-slate-50/90">
+            <TableHeader className="bg-white">
               <TableRow className="border-slate-200/80">
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Name</TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Address</TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Phone</TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Score</TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Status</TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Class</TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Follow-up</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="px-5 py-3 text-xs font-medium tracking-[0.01em] text-gray-500">Name</TableHead>
+                <TableHead className="px-5 py-3 text-xs font-medium tracking-[0.01em] text-gray-500">Address</TableHead>
+                <TableHead className="px-5 py-3 text-xs font-medium tracking-[0.01em] text-gray-500">Phone</TableHead>
+                <TableHead className="px-5 py-3 text-xs font-medium tracking-[0.01em] text-gray-500 text-right">Score</TableHead>
+                <TableHead className="px-5 py-3 text-xs font-medium tracking-[0.01em] text-gray-500">Status</TableHead>
+                <TableHead className="px-5 py-3 text-xs font-medium tracking-[0.01em] text-gray-500">Class</TableHead>
+                <TableHead className="px-5 py-3 text-xs font-medium tracking-[0.01em] text-gray-500">Follow-up</TableHead>
+                <TableHead className="px-5 py-3 text-right text-xs font-medium tracking-[0.01em] text-gray-500">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((lead) => (
-                  <TableRow key={lead.id} className="group border-slate-100/90 transition hover:bg-slate-50/70">
-                    <TableCell className="text-sm font-semibold text-slate-800">
+                  <TableRow key={lead.id} className="group border-slate-100/90 transition hover:bg-gray-50">
+                    <TableCell className="px-5 py-4 text-sm font-semibold text-slate-800">
                       <Link href={`/leads/${lead.id}`} className="transition hover:text-[#16a37f]">
                         {lead.first_name} {lead.last_name}
                       </Link>
                     </TableCell>
-                    <TableCell className="max-w-[180px] truncate text-sm text-slate-500">
+                    <TableCell className="max-w-[220px] px-5 py-4 truncate text-sm text-slate-500">
                       <Link href={`/leads/${lead.id}`} className="transition hover:text-[#16a37f]">
                         {lead.property_address}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-sm font-mono text-slate-500">
+                    <TableCell className="px-5 py-4 text-sm font-mono text-slate-500">
                       {lead.phone}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-5 py-4 text-right">
                       <ScoreCell classification={lead.classification} />
                     </TableCell>
-                    <TableCell>{statusTag(lead.status)}</TableCell>
-                    <TableCell>
+                    <TableCell className="px-5 py-4">{statusTag(lead.status)}</TableCell>
+                    <TableCell className="px-5 py-4">
                       <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${formatClassificationColor(lead.classification)}`}
+                        className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
                       >
                         {getClassificationLabel(lead.classification)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="px-5 py-4 text-sm text-muted-foreground">
                       {nextFollowUpForLead(lead)
                         ? format(new Date(nextFollowUpForLead(lead)!), "MMM d")
                         : "—"}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="px-5 py-4 text-right">
                       <Link
                         href={`/leads/${lead.id}`}
                         className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-sm text-muted-foreground transition hover:bg-slate-100 hover:text-foreground"

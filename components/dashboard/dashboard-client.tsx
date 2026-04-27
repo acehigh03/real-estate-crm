@@ -1,7 +1,7 @@
 "use client";
 
 import { format } from "date-fns";
-import { Bell } from "lucide-react";
+import { Bell, Flame, Inbox, MessageCircleReply, Users, CalendarClock } from "lucide-react";
 
 import type { Database } from "@/types/database";
 
@@ -30,23 +30,22 @@ export function DashboardClient({
   recentReplies,
 }: Props) {
   const cards = [
-    { label: "Total Leads", value: counts.totalLeads, tone: "text-gray-900" },
-    { label: "Contacted Leads", value: counts.contactedLeads, tone: "text-[#16a37f]" },
-    { label: "Replies Received", value: counts.repliesReceived, tone: "text-sky-600" },
-    { label: "Hot Leads", value: counts.hotLeads, tone: "text-rose-600" },
-    { label: "Follow-ups Due Today", value: counts.dueToday, tone: "text-amber-600" },
+    { label: "Total leads", value: counts.totalLeads, icon: Users },
+    { label: "Contacted", value: counts.contactedLeads, icon: Inbox },
+    { label: "Replies", value: counts.repliesReceived, icon: MessageCircleReply },
+    { label: "Hot leads", value: counts.hotLeads, icon: Flame },
+    { label: "Due today", value: counts.dueToday, icon: CalendarClock },
   ];
 
   return (
     <div className="crm-page flex flex-1 flex-col overflow-auto">
       <div className="crm-page-header flex shrink-0 items-center justify-between px-8 py-6">
         <div>
-          <p className="crm-section-kicker">Daily overview</p>
-          <h1 className="crm-header-title mt-2">Seller follow-up</h1>
+          <h1 className="crm-header-title">Seller follow-up</h1>
           <p className="crm-header-copy">Welcome back, {userName}</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="crm-card-soft rounded-full p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition">
+          <button className="rounded-md border border-slate-200 bg-white p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition">
             <Bell size={18} />
           </button>
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#16a37f] text-[13px] font-semibold text-white">
@@ -56,16 +55,21 @@ export function DashboardClient({
       </div>
 
       <div className="flex-1 space-y-8 overflow-auto px-8 py-8">
-        <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
           {cards.map((card) => (
             <div
               key={card.label}
-              className="crm-card p-5"
+              className="rounded-lg border border-slate-200 bg-white p-4"
             >
-              <p className="crm-section-kicker">
-                {card.label}
-              </p>
-              <p className={`mt-3 text-3xl font-bold ${card.tone}`}>{card.value}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs tracking-wide text-slate-400">
+                  {card.label}
+                </p>
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-50 text-slate-400">
+                  <card.icon size={14} strokeWidth={1.6} />
+                </div>
+              </div>
+              <p className="mt-3 text-[2rem] font-bold leading-none text-slate-900">{card.value}</p>
             </div>
           ))}
         </div>
@@ -74,8 +78,7 @@ export function DashboardClient({
           <div className="crm-panel p-6">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <p className="crm-section-kicker">Priority queue</p>
-                <p className="crm-section-title mt-1">Follow-ups Due</p>
+                <p className="crm-section-title">Follow-ups Due</p>
               </div>
               <span className="text-xs text-gray-400">{counts.dueToday} due today</span>
             </div>
@@ -101,8 +104,7 @@ export function DashboardClient({
           <div className="crm-panel p-6">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <p className="crm-section-kicker">Live activity</p>
-                <p className="crm-section-title mt-1">Recent Replies</p>
+                <p className="crm-section-title">Recent Replies</p>
               </div>
               <span className="text-xs text-gray-400">{counts.repliesReceived} replies received</span>
             </div>
