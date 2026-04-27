@@ -14,6 +14,20 @@ const STAGE_STYLES: Record<PipelineStage, { accent: string; chip: string }> = {
   Dead: { accent: "bg-slate-500", chip: "bg-slate-100 text-slate-700" },
 };
 
+function displayLeadName(lead: PipelineLeadCard["lead"]) {
+  const fullName = `${lead.first_name ?? ""} ${lead.last_name ?? ""}`.trim();
+  if (fullName && fullName.toLowerCase() !== "new lead") return fullName;
+  return lead.phone;
+}
+
+function propertyLabel(address: string | null) {
+  const value = (address ?? "").trim();
+  if (!value || value.toLowerCase() === "inbox conversation") {
+    return null;
+  }
+  return value;
+}
+
 function priorityBadge(classification: string) {
   if (classification === "HOT") {
     return { label: "HOT", classes: "bg-[#eaf9f5] text-[#00c08b]" };
@@ -120,7 +134,7 @@ export function PipelineBoard({
               >
                 <div className="border-b border-[#e8edf2] px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
-                    <h2 className="text-[12px] font-medium uppercase tracking-wide text-[#6b7c93]">
+                    <h2 className="text-sm font-semibold text-[#0f1117]">
                       {stage}
                     </h2>
                     <span className="rounded-full bg-[#e8edf2] px-2 py-0.5 text-[11px] font-medium text-[#6b7c93]">
@@ -129,33 +143,37 @@ export function PipelineBoard({
                   </div>
                 </div>
 
-                <div className="flex-1 space-y-3 overflow-y-auto p-3">
+                <div className="flex-1 space-y-2.5 overflow-y-auto p-3">
                   {stageCards.length ? (
-                    stageCards.map(({ lead, messageCount, callCount, followupCount, daysInPipeline, lastMessagePreview, stage }) => {
+                    stageCards.map(({ lead, messageCount, callCount, followupCount, daysInPipeline, lastMessagePreview, stage, campaignName }) => {
                       const followUpDate = lead.next_follow_up_at ? new Date(lead.next_follow_up_at) : null;
                       const isDueToday = followUpDate ? isToday(followUpDate) : false;
                       const priority = priorityBadge(lead.classification);
                       const contact = contactAge(lead);
+                      const leadName = displayLeadName(lead);
+                      const address = propertyLabel(lead.property_address);
 
                       return (
                       <article
                         key={lead.id}
-                        className="rounded-[10px] border border-[#eaecf0] bg-white p-4"
+                        className="rounded-[10px] border border-[#eaecf0] bg-white p-3"
                       >
-                        <div className="mb-3 flex items-start justify-between gap-2">
-                          <p className="text-sm font-semibold leading-5 text-slate-900">{lead.property_address}</p>
+                        <div className="mb-2.5 flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-[14px] font-semibold leading-5 text-slate-900">{leadName}</p>
+                            {address ? (
+                              <p className="mt-0.5 truncate text-[12px] text-slate-500">{address}</p>
+                            ) : null}
+                            {campaignName ? (
+                              <p className="mt-1 truncate text-[11px] font-medium text-slate-400">{campaignName}</p>
+                            ) : null}
+                          </div>
                           <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-medium ${priority.classes}`}>
                             {priority.label}
                           </span>
                         </div>
 
-                        <div className="mt-3 space-y-2.5 text-xs text-slate-500">
-                          <div className="flex items-center gap-2">
-                            <User size={13} className="text-gray-400" />
-                            <span>
-                              {lead.first_name} {lead.last_name || "Seller"}
-                            </span>
-                          </div>
+                        <div className="space-y-2 text-xs text-slate-500">
                           <div className="flex items-center gap-2">
                             <Phone size={13} className="text-gray-400" />
                             <span>{lead.phone}</span>
@@ -168,31 +186,31 @@ export function PipelineBoard({
                             <CalendarClock size={13} />
                             <span>{contact.label}</span>
                           </div>
-                          <div className="rounded-[10px] bg-[#f8f9fb] px-3 py-2 text-[11px] leading-5 text-gray-600">
-                            {lastMessagePreview ? `Last message: ${lastMessagePreview}` : "No messages yet"}
+                          <div className="rounded-[8px] bg-[#f8f9fb] px-2.5 py-2 text-[11px] leading-5 text-gray-600">
+                            {lastMessagePreview ? lastMessagePreview : "No messages yet"}
                           </div>
                         </div>
 
-                        <div className="mt-4 grid grid-cols-2 gap-2">
-                          <div className="rounded-[10px] bg-[#f8f9fb] px-3 py-2">
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <div className="rounded-[8px] bg-[#f8f9fb] px-2.5 py-2">
                             <p className="text-[10px] uppercase tracking-wide text-gray-400">Days</p>
                             <p className="mt-1 text-sm font-semibold text-gray-900">{daysInPipeline}</p>
                           </div>
-                          <div className="rounded-[10px] bg-[#f8f9fb] px-3 py-2">
+                          <div className="rounded-[8px] bg-[#f8f9fb] px-2.5 py-2">
                             <p className="text-[10px] uppercase tracking-wide text-gray-400">Messages</p>
                             <p className="mt-1 text-sm font-semibold text-gray-900">{messageCount}</p>
                           </div>
-                          <div className="rounded-[10px] bg-[#f8f9fb] px-3 py-2">
+                          <div className="rounded-[8px] bg-[#f8f9fb] px-2.5 py-2">
                             <p className="text-[10px] uppercase tracking-wide text-gray-400">Calls</p>
                             <p className="mt-1 text-sm font-semibold text-gray-900">{callCount}</p>
                           </div>
-                          <div className="rounded-[10px] bg-[#f8f9fb] px-3 py-2">
+                          <div className="rounded-[8px] bg-[#f8f9fb] px-2.5 py-2">
                             <p className="text-[10px] uppercase tracking-wide text-gray-400">Tasks</p>
                             <p className="mt-1 text-sm font-semibold text-gray-900">{followupCount}</p>
                           </div>
                         </div>
 
-                        <div className="mt-4 flex items-center justify-between">
+                        <div className="mt-3 flex items-center justify-between">
                           <div className={`inline-flex items-center gap-1 text-[11px] ${isDueToday ? "font-medium text-rose-600" : "text-gray-500"}`}>
                             <FileText size={12} />
                             Next follow-up{" "}
@@ -220,22 +238,13 @@ export function PipelineBoard({
                             </button>
                           </form>
 
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-3 gap-2">
                           <form action={updateLeadStatus}>
                             <input type="hidden" name="id" value={lead.id} />
                             <input type="hidden" name="status" value="Hot" />
-                            <button className="flex w-full items-center justify-center gap-1 rounded-xl border border-amber-200 bg-white px-2 py-2 text-[11px] font-medium text-amber-700">
+                            <button className="flex w-full items-center justify-center gap-1 rounded-[8px] border border-amber-200 bg-white px-2 py-2 text-[11px] font-medium text-amber-700">
                               <Flame size={12} />
                               Mark Hot
-                            </button>
-                          </form>
-
-                          <form action={updateLeadStatus}>
-                            <input type="hidden" name="id" value={lead.id} />
-                            <input type="hidden" name="status" value="Dead" />
-                            <button className="flex w-full items-center justify-center gap-1 rounded-xl border border-rose-200 bg-white px-2 py-2 text-[11px] font-medium text-rose-700">
-                              <Skull size={12} />
-                              Mark Dead
                             </button>
                           </form>
 
@@ -252,9 +261,18 @@ export function PipelineBoard({
                               value={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
                             />
                             <input type="hidden" name="note" value="Follow up tomorrow from pipeline board." />
-                            <button className="flex w-full items-center justify-center gap-1 rounded-xl border border-teal-200 bg-white px-2 py-2 text-[11px] font-medium text-teal-700">
+                            <button className="flex w-full items-center justify-center gap-1 rounded-[8px] border border-teal-200 bg-white px-2 py-2 text-[11px] font-medium text-teal-700">
                               <CalendarClock size={12} />
                               Tomorrow
+                            </button>
+                          </form>
+
+                          <form action={updateLeadStatus}>
+                            <input type="hidden" name="id" value={lead.id} />
+                            <input type="hidden" name="status" value="Dead" />
+                            <button className="flex w-full items-center justify-center gap-1 rounded-[8px] border border-slate-200 bg-white px-2 py-2 text-[11px] font-medium text-slate-500">
+                              <Skull size={12} />
+                              Mark Dead
                             </button>
                           </form>
                           </div>

@@ -26,6 +26,7 @@ export interface PipelineLeadCard {
   followupCount: number;
   daysInPipeline: number;
   lastMessagePreview: string | null;
+  campaignName: string | null;
 }
 
 function derivePipelineStage(lead: Lead): PipelineStage {
@@ -198,36 +199,45 @@ export async function getDashboardStats() {
 export async function getInboxData() {
   const { supabase, user } = await requireUser();
 
-  const [leadResponse, messageResponse] = await Promise.all([
+  const [leadResponse, messageResponse, campaignResponse] = await Promise.all([
     supabase.from("leads").select("*").eq("user_id", user.id).order("updated_at", { ascending: false }),
-    supabase.from("messages").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+    supabase.from("messages").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+    supabase.from("campaigns").select("id, campaign_type").eq("user_id", user.id),
   ]);
 
   if (leadResponse.error) throw leadResponse.error;
   if (messageResponse.error) throw messageResponse.error;
+  if (campaignResponse.error) throw campaignResponse.error;
 
   return {
     leads: (leadResponse.data ?? []) as Lead[],
-    messages: (messageResponse.data ?? []) as Message[]
+    messages: (messageResponse.data ?? []) as Message[],
+    campaigns: (campaignResponse.data ?? []) as Pick<Campaign, "id" | "campaign_type">[],
   };
 }
 
 export async function getPipelineData() {
   const { supabase, user } = await requireUser();
 
-  const [leadResponse, messageResponse, followupResponse] = await Promise.all([
+  const [leadResponse, messageResponse, followupResponse, campaignResponse] = await Promise.all([
     supabase.from("leads").select("*").eq("user_id", user.id).order("updated_at", { ascending: false }),
     supabase.from("messages").select("*").eq("user_id", user.id),
     supabase.from("followups").select("*").eq("user_id", user.id),
+    supabase.from("campaigns").select("id, name").eq("user_id", user.id),
   ]);
 
   if (leadResponse.error) throw leadResponse.error;
   if (messageResponse.error) throw messageResponse.error;
   if (followupResponse.error) throw followupResponse.error;
+  if (campaignResponse.error) throw campaignResponse.error;
 
   const leads = (leadResponse.data ?? []) as Lead[];
   const messages = (messageResponse.data ?? []) as Message[];
   const followups = (followupResponse.data ?? []) as Followup[];
+  const campaigns = (campaignResponse.data ?? []) as Array<Pick<Campaign, "id" | "name">>;
+  const campaignNameById = new Map(
+    campaigns.map((campaign) => [campaign.id, campaign.name])
+  );
 
   const messageCountByLead = new Map<string, number>();
   const latestMessageByLead = new Map<string, Message>();
@@ -253,6 +263,7 @@ export async function getPipelineData() {
     followupCount: followupCountByLead.get(lead.id) ?? 0,
     daysInPipeline: Math.max(0, Math.floor((Date.now() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60 * 24))),
     lastMessagePreview: latestMessageByLead.get(lead.id)?.body ?? null,
+    campaignName: lead.campaign_id ? campaignNameById.get(lead.campaign_id) ?? null : null,
   }));
 
   const stageOrder: PipelineStage[] = [
