@@ -8,7 +8,7 @@ import { CalendarClock, Flame, MessageSquare, Plus, Search, Send, Skull, Snowfla
 import { saveLead, setFollowup, updateLeadStatus } from "@/app/actions";
 import { getClassificationLabel } from "@/lib/ai/classify-lead";
 import { createClient } from "@/lib/supabase/browser";
-import { formatClassificationColor, formatStatusColor } from "@/lib/utils";
+import { formatClassificationColor, formatStatusColor, normalizePhone } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Database, LeadClassification, LeadStatus } from "@/types/database";
 
@@ -94,6 +94,7 @@ function HiddenLeadFields({
 }
 
 export function InboxClient({ initialLeads, initialMessages, userId }: InboxClientProps) {
+  const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [messagesByLead, setMessagesByLead] = useState<Record<string, Message[]>>(() => {
     const grouped: Record<string, Message[]> = {};
     for (const message of initialMessages) {
@@ -118,6 +119,13 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
   const [error, setError] = useState<string | null>(null);
   const [notesDraft, setNotesDraft] = useState("");
   const [followUpDraft, setFollowUpDraft] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"existing" | "manual">("existing");
+  const [existingLeadSelection, setExistingLeadSelection] = useState<string>("");
+  const [manualPhone, setManualPhone] = useState("");
+  const [manualName, setManualName] = useState("");
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [isCreatingLead, setIsCreatingLead] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -155,7 +163,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
   }, []);
 
   const conversations = useMemo<ConversationData[]>(() => {
-    return initialLeads
+    return leads
       .map((lead) => {
         const messages = messagesByLead[lead.id] ?? [];
         const lastMessage = messages.at(-1) ?? null;
@@ -166,13 +174,12 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
           unread: lastMessage?.direction === "inbound",
         };
       })
-      .filter((conversation) => conversation.messages.length > 0)
       .sort((left, right) => {
         const leftTime = left.lastMessage?.created_at ?? "";
         const rightTime = right.lastMessage?.created_at ?? "";
         return rightTime.localeCompare(leftTime);
       });
-  }, [initialLeads, messagesByLead]);
+  }, [leads, messagesByLead]);
 
   const filteredConversations = useMemo(() => {
     if (!search.trim()) return conversations;
@@ -192,6 +199,12 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
     );
   }, [filteredConversations, selectedLeadId]);
 
+  const selectableLeads = useMemo(() => {
+    return [...leads].sort((left, right) =>
+      `${left.first_name} ${left.last_name}`.localeCompare(`${right.first_name} ${right.last_name}`)
+    );
+  }, [leads]);
+
   useEffect(() => {
     if (!selectedConversation) return;
     setNotesDraft(selectedConversation.lead.notes_summary ?? "");
@@ -205,6 +218,114 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [selectedConversation?.lead.id, selectedConversation?.messages.length]);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    setModalError(null);
+    setExistingLeadSelection(selectedLeadId ?? selectableLeads[0]?.id ?? "");
+  }, [isModalOpen, selectedLeadId, selectableLeads]);
+
+  const closeModal = useCallback(() => {
+    setIsModalOpen(false);
+    setModalError(null);
+    setManualPhone("");
+    setManualName("");
+    setModalMode("existing");
+  }, []);
+
+  const openExistingLead = useCallback(() => {
+    if (!existingLeadSelection) {
+      setModalError("Select a lead first.");
+      return;
+    }
+    setSelectedLeadId(existingLeadSelection);
+    closeModal();
+  }, [closeModal, existingLeadSelection]);
+
+  const createOrOpenManualLead = useCallback(async () => {
+    const normalizedPhone = normalizePhone(manualPhone);
+    if (!normalizedPhone) {
+      setModalError("Enter a valid phone number.");
+      return;
+    }
+
+    setIsCreatingLead(true);
+    setModalError(null);
+
+    const supabase = createClient();
+    const { data: existingLead, error: existingLeadError } = await supabase
+      .from("leads")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("phone_normalized", normalizedPhone)
+      .maybeSingle();
+
+    if (existingLeadError) {
+      setModalError(existingLeadError.message);
+      setIsCreatingLead(false);
+      return;
+    }
+
+    const existingLeadRecord = existingLead as Lead | null;
+
+    if (existingLeadRecord) {
+      setSelectedLeadId(existingLeadRecord.id);
+      setLeads((current) => {
+        if (current.some((lead) => lead.id === existingLeadRecord.id)) return current;
+        return [existingLeadRecord, ...current];
+      });
+      closeModal();
+      setIsCreatingLead(false);
+      return;
+    }
+
+    const trimmedName = manualName.trim();
+    const [firstNameRaw, ...restName] = trimmedName ? trimmedName.split(/\s+/) : [];
+    const firstName = firstNameRaw || "Manual";
+    const lastName = restName.join(" ");
+    const newLead = {
+      user_id: userId,
+      first_name: firstName,
+      last_name: lastName,
+      phone: manualPhone.trim(),
+      phone_normalized: normalizedPhone,
+      property_address: "Manual inbox contact",
+      mailing_address: null,
+      email: null,
+      lead_source: "Manual Inbox",
+      status: "New",
+      classification: "UNKNOWN",
+      motivation_score: 25,
+      notes_summary: null,
+      next_follow_up_at: null,
+      tag: null,
+      last_contacted_at: null,
+    } satisfies Database["public"]["Tables"]["leads"]["Insert"];
+
+    const leadInsertQuery = supabase.from("leads") as unknown as {
+      insert: (values: Database["public"]["Tables"]["leads"]["Insert"]) => {
+        select: (columns: string) => {
+          single: () => Promise<{ data: Lead | null; error: { message: string } | null }>;
+        };
+      };
+    };
+
+    const { data: insertedLead, error: insertError } = await leadInsertQuery
+      .insert(newLead)
+      .select("*")
+      .single();
+
+    if (insertError || !insertedLead) {
+      setModalError(insertError?.message ?? "Failed to create lead.");
+      setIsCreatingLead(false);
+      return;
+    }
+
+    setLeads((current) => [insertedLead, ...current]);
+    setSelectedLeadId(insertedLead.id);
+    closeModal();
+    setIsCreatingLead(false);
+  }, [closeModal, manualName, manualPhone, userId]);
 
   const sendMessage = useCallback(async () => {
     if (!composeText.trim() || !selectedConversation || isSending) return;
@@ -306,6 +427,97 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
         <p className="mt-1 text-sm text-gray-500">Manage seller conversations and lead follow-up in one place.</p>
       </div>
 
+      {isModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b px-5 py-4">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">Start conversation</h2>
+                <p className="mt-1 text-sm text-gray-500">Open an existing lead or add a number manually.</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="rounded-full px-2 py-1 text-sm text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4 px-5 py-5">
+              <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1">
+                <button
+                  type="button"
+                  onClick={() => setModalMode("existing")}
+                  className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                    modalMode === "existing" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
+                  }`}
+                >
+                  Select existing lead
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalMode("manual")}
+                  className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                    modalMode === "manual" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
+                  }`}
+                >
+                  Enter phone manually
+                </button>
+              </div>
+
+              {modalMode === "existing" ? (
+                <div className="space-y-3">
+                  <select
+                    value={existingLeadSelection}
+                    onChange={(event) => setExistingLeadSelection(event.target.value)}
+                    className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+                  >
+                    {selectableLeads.map((leadOption) => (
+                      <option key={leadOption.id} value={leadOption.id}>
+                        {leadOption.first_name} {leadOption.last_name} • {leadOption.phone}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={openExistingLead}
+                    className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
+                  >
+                    Open conversation
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <input
+                    value={manualPhone}
+                    onChange={(event) => setManualPhone(event.target.value)}
+                    placeholder="Phone number"
+                    className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+                  />
+                  <input
+                    value={manualName}
+                    onChange={(event) => setManualName(event.target.value)}
+                    placeholder="Name (optional)"
+                    className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={createOrOpenManualLead}
+                    disabled={isCreatingLead}
+                    className="w-full rounded-lg bg-[#16a37f] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#128765] disabled:cursor-not-allowed disabled:bg-[#7dcfbc]"
+                  >
+                    {isCreatingLead ? "Opening..." : "Open conversation"}
+                  </button>
+                </div>
+              )}
+
+              {modalError ? <p className="text-sm text-rose-600">{modalError}</p> : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid min-h-0 flex-1 gap-0 xl:grid-cols-[320px_minmax(0,1fr)_340px]">
         <aside className="flex min-h-0 flex-col border-r bg-white">
           <div className="flex items-center justify-between border-b px-4 py-4">
@@ -314,9 +526,13 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
               <p className="mt-1 text-xs text-gray-500">{filteredConversations.length} active threads</p>
             </div>
             <Link
-              href="/leads"
+              href="#"
+              onClick={(event) => {
+                event.preventDefault();
+                setIsModalOpen(true);
+              }}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-[#16a37f] text-white transition hover:bg-[#128765]"
-              title="Go to leads"
+              title="Start conversation"
             >
               <Plus size={16} />
             </Link>
