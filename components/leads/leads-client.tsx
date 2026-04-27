@@ -98,10 +98,19 @@ interface LeadsClientProps {
   followups: Followup[];
 }
 
+interface ImportResult {
+  imported: number;
+  messaged: number;
+  skipped: number;
+}
+
 export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | LeadStatus>("all");
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     return leads.filter((l) => {
@@ -154,32 +163,114 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
       </div>
 
       {csvDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="crm-panel relative w-full max-w-md p-6">
             <button
-              onClick={() => setCsvDialogOpen(false)}
-              className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                setCsvDialogOpen(false);
+                setImportResult(null);
+                setImportError(null);
+              }}
+              className="absolute right-4 top-4 text-[#6b7c93] hover:text-[#1a1f36]"
             >
               ✕
             </button>
-            <h2 className="mb-4 text-base font-semibold">Import CSV</h2>
-            <form
-              action="/api/upload-csv"
-              method="POST"
-              encType="multipart/form-data"
-              onSubmit={() => setCsvDialogOpen(false)}
-            >
-              <input
-                type="file"
-                name="file"
-                accept=".csv"
-                required
-                className="mb-4 block w-full text-sm"
-              />
-              <Button type="submit" className="w-full bg-[#16a37f] hover:bg-[#0d7a5f] text-white">
-                Upload
-              </Button>
-            </form>
+
+            {importResult ? (
+              /* Summary view */
+              <div>
+                <h2 className="text-[15px] font-semibold text-[#1a1f36]">Import complete</h2>
+                <div className="mt-4 grid grid-cols-3 gap-3">
+                  {[
+                    { label: "Imported", value: importResult.imported, color: "text-[#1a1f36]" },
+                    { label: "Messaged", value: importResult.messaged, color: "text-[#00c08b]" },
+                    { label: "Skipped", value: importResult.skipped, color: "text-[#6b7c93]" },
+                  ].map((s) => (
+                    <div key={s.label} className="rounded-lg border border-[#e8edf2] px-4 py-3 text-center">
+                      <p className={`text-[24px] font-semibold ${s.color}`}>{s.value}</p>
+                      <p className="mt-0.5 text-[11px] uppercase tracking-wide text-[#6b7c93]">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-[12px] text-[#6b7c93]">
+                  {importResult.messaged > 0
+                    ? `First SMS sent to ${importResult.messaged} new lead${importResult.messaged !== 1 ? "s" : ""}.`
+                    : importResult.imported > 0
+                      ? "Leads imported. Telnyx not configured — no SMS sent."
+                      : "No new leads were found in the CSV."}
+                  {importResult.skipped > 0 ? ` ${importResult.skipped} already existed.` : ""}
+                </p>
+                <Button
+                  className="mt-4 w-full bg-[#00c08b] text-white hover:opacity-90"
+                  onClick={() => {
+                    setCsvDialogOpen(false);
+                    setImportResult(null);
+                  }}
+                >
+                  Done
+                </Button>
+              </div>
+            ) : (
+              /* Upload view */
+              <div>
+                <h2 className="mb-1 text-[15px] font-semibold text-[#1a1f36]">Import CSV</h2>
+                <p className="mb-4 text-[12px] text-[#6b7c93]">
+                  New leads will be imported and sent a first SMS automatically.
+                </p>
+                {importError && (
+                  <p className="mb-3 rounded-md bg-[#fef2f2] px-3 py-2 text-[12px] text-[#e5484d]">
+                    {importError}
+                  </p>
+                )}
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const form = e.currentTarget;
+                    const fileInput = form.elements.namedItem("file") as HTMLInputElement;
+                    if (!fileInput.files?.[0]) return;
+
+                    setIsImporting(true);
+                    setImportError(null);
+
+                    const fd = new FormData();
+                    fd.append("file", fileInput.files[0]);
+
+                    try {
+                      const res = await fetch("/api/upload-csv", { method: "POST", body: fd });
+                      const json = await res.json() as { error?: string; imported?: number; messaged?: number; skipped?: number };
+                      if (!res.ok) {
+                        setImportError(json.error ?? "Import failed.");
+                      } else {
+                        setImportResult({
+                          imported: json.imported ?? 0,
+                          messaged: json.messaged ?? 0,
+                          skipped: json.skipped ?? 0,
+                        });
+                      }
+                    } catch {
+                      setImportError("Network error. Please try again.");
+                    } finally {
+                      setIsImporting(false);
+                    }
+                  }}
+                >
+                  <input
+                    type="file"
+                    name="file"
+                    accept=".csv"
+                    required
+                    className="mb-4 block w-full text-[13px] text-[#1a1f36]"
+                  />
+                  <Button
+                    type="submit"
+                    disabled={isImporting}
+                    className="w-full bg-[#00c08b] text-white hover:opacity-90 disabled:opacity-60"
+                  >
+                    {isImporting ? "Importing…" : "Upload & Send"}
+                  </Button>
+                </form>
+              </div>
+            )}
           </div>
         </div>
       )}
