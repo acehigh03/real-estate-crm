@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
-import { CalendarClock, Flame, MessageSquare, Search, Send, Skull, Snowflake } from "lucide-react";
+import { CalendarClock, Flame, MessageSquare, Plus, Search, Send, Skull, Snowflake } from "lucide-react";
 
 import { saveLead, setFollowup, updateLeadStatus } from "@/app/actions";
 import { getClassificationLabel } from "@/lib/ai/classify-lead";
@@ -269,10 +270,27 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
 
   if (!selectedConversation) {
     return (
-      <div className="flex h-full items-center justify-center bg-white">
-        <div className="text-center">
-          <MessageSquare className="mx-auto mb-3 h-8 w-8 text-gray-300" />
-          <p className="text-sm text-gray-500">No conversations yet.</p>
+      <div className="flex h-full items-center justify-center bg-white px-6">
+        <div className="max-w-md rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm">
+          <MessageSquare className="mx-auto mb-4 h-9 w-9 text-gray-300" />
+          <h2 className="text-base font-semibold text-gray-900">No conversations yet</h2>
+          <p className="mt-2 text-sm text-gray-500">
+            No conversations yet. Import leads or open a lead to start messaging.
+          </p>
+          <div className="mt-5 flex items-center justify-center gap-3">
+            <Link
+              href="/leads"
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+            >
+              Go to Leads
+            </Link>
+            <Link
+              href="/leads"
+              className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            >
+              Import CSV
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -290,6 +308,19 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
 
       <div className="grid min-h-0 flex-1 gap-0 xl:grid-cols-[320px_minmax(0,1fr)_340px]">
         <aside className="flex min-h-0 flex-col border-r bg-white">
+          <div className="flex items-center justify-between border-b px-4 py-4">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900">Conversations</h2>
+              <p className="mt-1 text-xs text-gray-500">{filteredConversations.length} active threads</p>
+            </div>
+            <Link
+              href="/leads"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#16a37f] text-white transition hover:bg-[#128765]"
+              title="Go to leads"
+            >
+              <Plus size={16} />
+            </Link>
+          </div>
           <div className="border-b px-4 py-4">
             <div className="flex items-center gap-2 rounded-lg border bg-gray-50 px-3 py-2">
               <Search size={14} className="text-gray-400" />
