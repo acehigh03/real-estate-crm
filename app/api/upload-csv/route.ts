@@ -48,6 +48,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "CSV contains no valid rows" }, { status: 400 });
   }
 
+  // Deduplicate by phone_normalized — keep first occurrence
+  const seenPhones = new Set<string>();
+  const dedupedRows: typeof parsedRows = [];
+  for (const row of parsedRows) {
+    if (seenPhones.has(row.phone_normalized)) {
+      csvSkippedCount++;
+    } else {
+      seenPhones.add(row.phone_normalized);
+      dedupedRows.push(row);
+    }
+  }
+  parsedRows = dedupedRows;
+
   // 1. Find which phones already exist for this user
   const incomingPhones = parsedRows.map((r) => r.phone_normalized);
 
