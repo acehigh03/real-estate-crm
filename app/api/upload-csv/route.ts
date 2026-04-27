@@ -7,6 +7,8 @@ import { getRouteUser } from "@/lib/route-user";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { sendTelnyxMessage, TelnyxSendError } from "@/lib/telnyx/send-sms";
 import { withStopLanguage } from "@/lib/utils";
+import { isInsideWindow, nextWindowOpenUTC } from "@/lib/send-window";
+import type { LeadPriority, LeadStage } from "@/types/database";
 
 function buildFirstSms(firstName: string, address: string): string {
   const intro = address
@@ -86,6 +88,27 @@ export async function POST(request: Request) {
       ...row,
       classification: classify.classification,
       motivation_score: classify.motivationScore,
+      lead_score: classify.motivationScore,
+      stage: (
+        row.status === "Hot"
+          ? "Hot Lead"
+          : row.status === "Replied"
+            ? "Replied"
+            : row.status === "Contacted"
+              ? "Contacted"
+              : row.status === "Dead" || row.status === "DNC"
+                ? "Closed"
+                : "New"
+      ) as LeadStage,
+      is_dnc: row.status === "DNC",
+      dnc_reason: row.status === "DNC" ? "Imported as DNC" : null,
+      priority: (
+        classify.classification === "HOT"
+          ? "high"
+          : classify.classification === "WARM"
+            ? "medium"
+            : "low"
+      ) as LeadPriority,
       user_id: user.id,
     };
   });
@@ -120,8 +143,26 @@ export async function POST(request: Request) {
     }
   }
 
-  // 4. Send first SMS to every new, non-DNC lead
+  // 4. Fetch SMS settings for this user
+  const { data: smsSettings } = await supabaseAdmin
+    .from("sms_settings")
+    .select("auto_send_enabled, send_window_start, send_window_end, timezone")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const autoSendEnabled = smsSettings?.auto_send_enabled ?? false;
+  const insideWindow =
+    autoSendEnabled &&
+    smsSettings &&
+    isInsideWindow(
+      smsSettings.send_window_start,
+      smsSettings.send_window_end,
+      smsSettings.timezone
+    );
+
+  // 5. Send first SMS to every new, non-DNC lead (or queue if outside window)
   let messagedCount = 0;
+  let queuedCount = 0;
 
   if (newRows.length > 0) {
     const newPhones = newRows.map((r) => r.phone_normalized);
@@ -138,19 +179,39 @@ export async function POST(request: Request) {
 
       const text = buildFirstSms(lead.first_name, lead.property_address);
 
+      // Queue the message if auto-send is on but we're outside the window
+      if (autoSendEnabled && !insideWindow && smsSettings) {
+        const scheduledFor = nextWindowOpenUTC(
+          smsSettings.send_window_start,
+          smsSettings.timezone
+        ).toISOString();
+
+        await supabaseAdmin.from("sms_queue").insert({
+          lead_id: lead.id,
+          message: text,
+          status: "pending",
+          scheduled_for: scheduledFor,
+        });
+
+        queuedCount++;
+        continue;
+      }
+
+      // Send immediately (auto-send off = send right away; inside window = send right away)
       try {
         const telnyxResult = await sendTelnyxMessage({
           to: lead.phone_normalized,
           text,
         });
 
-        await supabaseAdmin.from("messages").insert({
-          user_id: user.id,
-          lead_id: lead.id,
-          direction: "outbound",
-          body: text,
-          to_number: lead.phone_normalized,
-          status: telnyxResult?.to?.[0]?.status ?? "queued",
+      await supabaseAdmin.from("messages").insert({
+        user_id: user.id,
+        lead_id: lead.id,
+        phone: lead.phone_normalized,
+        direction: "outbound",
+        body: text,
+        to_number: lead.phone_normalized,
+        status: telnyxResult?.to?.[0]?.status ?? "queued",
           telnyx_message_id: telnyxResult?.id ?? null,
         });
 
@@ -158,6 +219,7 @@ export async function POST(request: Request) {
           .from("leads")
           .update({
             status: "Contacted",
+            stage: "Contacted",
             last_contacted_at: now,
           })
           .eq("id", lead.id);
@@ -176,10 +238,26 @@ export async function POST(request: Request) {
   revalidatePath("/leads");
   revalidatePath("/inbox");
 
+  // Best-effort import log — table may not exist in all environments
+  await supabaseAdmin
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .from("import_logs" as any)
+    .insert({
+      user_id: user.id,
+      file_name: (file as File).name || "upload.csv",
+      total_rows: parsedRows.length + skippedCount,
+      imported_count: newRows.length,
+      messaged_count: messagedCount,
+      skipped_count: skippedCount,
+      failed_count: Math.max(0, newRows.length - messagedCount),
+    })
+    .then(() => {}, () => {});
+
   return NextResponse.json({
     success: true,
     imported: newRows.length,
     messaged: messagedCount,
+    queued: queuedCount,
     skipped: skippedCount,
   });
 }

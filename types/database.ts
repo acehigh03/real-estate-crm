@@ -1,5 +1,8 @@
 export type LeadStatus = "New" | "Contacted" | "Replied" | "Hot" | "Dead" | "DNC";
 export type LeadClassification = "HOT" | "WARM" | "COLD" | "DEAD" | "OPT_OUT" | "UNKNOWN";
+export type LeadStage = "New" | "Contacted" | "Replied" | "Hot Lead" | "Follow Up" | "Closed" | "DNC";
+export type LeadPriority = "high" | "medium" | "low";
+export type MessageClassification = "HOT" | "WARM" | "NOT_INTERESTED" | "STOP_DNC" | "NEEDS_REVIEW";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -8,13 +11,18 @@ export interface Database {
     Tables: {
       leads: {
         Row: {
+          city: string | null;
           created_at: string;
+          dnc_reason: string | null;
           email: string | null;
           first_name: string;
           classification: LeadClassification;
           id: string;
+          is_dnc: boolean;
           last_name: string;
           last_contacted_at: string | null;
+          last_replied_at: string | null;
+          lead_score: number | null;
           lead_source: string | null;
           mailing_address: string | null;
           motivation_score: number;
@@ -22,18 +30,27 @@ export interface Database {
           notes_summary: string | null;
           phone: string;
           phone_normalized: string;
+          priority: LeadPriority | null;
           property_address: string;
+          stage: LeadStage | null;
+          state: string | null;
           status: LeadStatus;
           tag: string | null;
           updated_at: string;
           user_id: string;
+          zip: string | null;
         };
         Insert: {
+          city?: string | null;
           classification?: LeadClassification;
+          dnc_reason?: string | null;
           email?: string | null;
           first_name: string;
+          is_dnc?: boolean;
           last_name: string;
           last_contacted_at?: string | null;
+          last_replied_at?: string | null;
+          lead_score?: number | null;
           lead_source?: string | null;
           mailing_address?: string | null;
           motivation_score?: number;
@@ -41,10 +58,14 @@ export interface Database {
           notes_summary?: string | null;
           phone: string;
           phone_normalized: string;
+          priority?: LeadPriority | null;
           property_address: string;
+          stage?: LeadStage | null;
+          state?: string | null;
           status?: LeadStatus;
           tag?: string | null;
           user_id: string;
+          zip?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["leads"]["Insert"]>;
         Relationships: [];
@@ -52,10 +73,12 @@ export interface Database {
       messages: {
         Row: {
           body: string;
+          classification: MessageClassification | null;
           created_at: string;
           direction: "inbound" | "outbound";
           id: string;
           lead_id: string | null;
+          phone: string | null;
           status: string | null;
           telnyx_message_id: string | null;
           to_number: string;
@@ -63,8 +86,10 @@ export interface Database {
         };
         Insert: {
           body: string;
+          classification?: MessageClassification | null;
           direction: "inbound" | "outbound";
           lead_id?: string | null;
+          phone?: string | null;
           status?: string | null;
           telnyx_message_id?: string | null;
           to_number: string;
@@ -111,6 +136,30 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["followups"]["Insert"]>;
         Relationships: [];
       };
+      import_logs: {
+        Row: {
+          created_at: string;
+          failed_count: number;
+          file_name: string;
+          id: string;
+          imported_count: number;
+          messaged_count: number;
+          skipped_count: number;
+          total_rows: number;
+          user_id: string;
+        };
+        Insert: {
+          failed_count?: number;
+          file_name: string;
+          imported_count?: number;
+          messaged_count?: number;
+          skipped_count?: number;
+          total_rows?: number;
+          user_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["import_logs"]["Insert"]>;
+        Relationships: [];
+      };
       profiles: {
         Row: {
           created_at: string;
@@ -123,6 +172,58 @@ export interface Database {
         };
         Update: {
           email?: string;
+        };
+        Relationships: [];
+      };
+      sms_settings: {
+        Row: {
+          id: string;
+          user_id: string;
+          auto_send_enabled: boolean;
+          send_window_start: string; // "HH:MM:SS" (Postgres time)
+          send_window_end: string;
+          timezone: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          auto_send_enabled?: boolean;
+          send_window_start?: string;
+          send_window_end?: string;
+          timezone?: string;
+        };
+        Update: {
+          auto_send_enabled?: boolean;
+          send_window_start?: string;
+          send_window_end?: string;
+          timezone?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      sms_queue: {
+        Row: {
+          id: string;
+          lead_id: string;
+          message: string;
+          status: string;
+          scheduled_for: string | null;
+          sent_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          lead_id: string;
+          message: string;
+          status?: string;
+          scheduled_for?: string | null;
+          sent_at?: string | null;
+        };
+        Update: {
+          status?: string;
+          sent_at?: string | null;
         };
         Relationships: [];
       };

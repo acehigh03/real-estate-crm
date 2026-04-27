@@ -275,6 +275,8 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
         status: "sending",
         telnyx_message_id: null,
         to_number: leadRecord.phone_normalized,
+        classification: null,
+        phone: null,
       };
 
       setSelectedLeadId(leadRecord.id);
@@ -373,6 +375,8 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
       status: "sending",
       telnyx_message_id: null,
       to_number: insertedLead.phone_normalized,
+      classification: null,
+      phone: null,
     };
 
     setSelectedLeadId(insertedLead.id);
@@ -484,6 +488,8 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
       status: "sending",
       telnyx_message_id: null,
       to_number: selectedConversation.lead.phone_normalized,
+      classification: null,
+      phone: null,
     };
 
     setComposeText("");

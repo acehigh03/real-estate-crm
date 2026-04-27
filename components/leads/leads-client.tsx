@@ -101,6 +101,7 @@ interface LeadsClientProps {
 interface ImportResult {
   imported: number;
   messaged: number;
+  queued: number;
   skipped: number;
 }
 
@@ -180,24 +181,27 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
               /* Summary view */
               <div>
                 <h2 className="text-[15px] font-semibold text-[#1a1f36]">Import complete</h2>
-                <div className="mt-4 grid grid-cols-3 gap-3">
+                <div className="mt-4 grid grid-cols-4 gap-2">
                   {[
                     { label: "Imported", value: importResult.imported, color: "text-[#1a1f36]" },
                     { label: "Messaged", value: importResult.messaged, color: "text-[#00c08b]" },
+                    { label: "Queued", value: importResult.queued, color: "text-[#1d4ed8]" },
                     { label: "Skipped", value: importResult.skipped, color: "text-[#6b7c93]" },
                   ].map((s) => (
-                    <div key={s.label} className="rounded-lg border border-[#e8edf2] px-4 py-3 text-center">
-                      <p className={`text-[24px] font-semibold ${s.color}`}>{s.value}</p>
-                      <p className="mt-0.5 text-[11px] uppercase tracking-wide text-[#6b7c93]">{s.label}</p>
+                    <div key={s.label} className="rounded-lg border border-[#e8edf2] px-3 py-3 text-center">
+                      <p className={`text-[22px] font-semibold ${s.color}`}>{s.value}</p>
+                      <p className="mt-0.5 text-[10px] uppercase tracking-wide text-[#6b7c93]">{s.label}</p>
                     </div>
                   ))}
                 </div>
                 <p className="mt-3 text-[12px] text-[#6b7c93]">
                   {importResult.messaged > 0
                     ? `First SMS sent to ${importResult.messaged} new lead${importResult.messaged !== 1 ? "s" : ""}.`
-                    : importResult.imported > 0
-                      ? "Leads imported. Telnyx not configured — no SMS sent."
-                      : "No new leads were found in the CSV."}
+                    : importResult.queued > 0
+                      ? `${importResult.queued} SMS queued for next send window.`
+                      : importResult.imported > 0
+                        ? "Leads imported. Telnyx not configured — no SMS sent."
+                        : "No new leads were found in the CSV."}
                   {importResult.skipped > 0 ? ` ${importResult.skipped} already existed.` : ""}
                 </p>
                 <Button
@@ -237,13 +241,14 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
 
                     try {
                       const res = await fetch("/api/upload-csv", { method: "POST", body: fd });
-                      const json = await res.json() as { error?: string; imported?: number; messaged?: number; skipped?: number };
+                      const json = await res.json() as { error?: string; imported?: number; messaged?: number; queued?: number; skipped?: number };
                       if (!res.ok) {
                         setImportError(json.error ?? "Import failed.");
                       } else {
                         setImportResult({
                           imported: json.imported ?? 0,
                           messaged: json.messaged ?? 0,
+                          queued: json.queued ?? 0,
                           skipped: json.skipped ?? 0,
                         });
                       }

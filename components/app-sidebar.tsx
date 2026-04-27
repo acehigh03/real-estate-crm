@@ -7,6 +7,7 @@ import {
   PanelsTopLeft,
   Users,
   MessageSquare,
+  Settings,
   LogOut,
 } from "lucide-react";
 
@@ -38,6 +39,7 @@ const navItems = [
   { href: "/pipeline", label: "Pipeline", icon: PanelsTopLeft },
   { href: "/leads", label: "Leads", icon: Users },
   { href: "/inbox", label: "Inbox", icon: MessageSquare },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 interface AppSidebarProps {
