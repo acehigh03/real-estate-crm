@@ -9,7 +9,10 @@ import { sendTelnyxMessage, TelnyxSendError } from "@/lib/telnyx/send-sms";
 import { withStopLanguage } from "@/lib/utils";
 
 function buildFirstSms(firstName: string, address: string): string {
-  const text = `Hi ${firstName}, this is Senay with Texas Relief Group. I came across your property at ${address} and wanted to reach out. Are you open to a cash offer? Reply YES or NO.`;
+  const intro = address
+    ? `I came across your property at ${address} and wanted to reach out.`
+    : `I wanted to reach out about a potential cash offer.`;
+  const text = `Hi ${firstName}, this is Senay with Texas Relief Group. ${intro} Are you open to a cash offer? Reply YES or NO.`;
   return withStopLanguage(text);
 }
 
@@ -27,10 +30,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "CSV file is required" }, { status: 400 });
   }
 
-  let parsedRows: ReturnType<typeof parseLeadCsv>;
+  let parsedRows: ReturnType<typeof parseLeadCsv>["rows"];
+  let csvSkippedCount = 0;
   try {
     const csvText = await file.text();
-    parsedRows = parseLeadCsv(csvText);
+    const parsed = parseLeadCsv(csvText);
+    parsedRows = parsed.rows;
+    csvSkippedCount = parsed.skippedCount;
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "CSV parsing failed" },
@@ -54,7 +60,7 @@ export async function POST(request: Request) {
   const existingPhoneSet = new Set((existingLeads ?? []).map((l) => l.phone_normalized));
 
   const newRows = parsedRows.filter((r) => !existingPhoneSet.has(r.phone_normalized));
-  const skippedCount = parsedRows.length - newRows.length;
+  const skippedCount = csvSkippedCount + (parsedRows.length - newRows.length);
 
   // 2. Upsert all rows (preserves existing-lead data for re-imports)
   const payload = parsedRows.map((row) => {

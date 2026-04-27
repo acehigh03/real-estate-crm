@@ -26,7 +26,7 @@ export interface CsvLeadRow {
   tag: string | null;
 }
 
-export function parseLeadCsv(csvText: string) {
+export function parseLeadCsv(csvText: string): { rows: CsvLeadRow[]; skippedCount: number } {
   const result = Papa.parse<Record<string, string>>(csvText, {
     header: true,
     skipEmptyLines: true,
@@ -37,22 +37,24 @@ export function parseLeadCsv(csvText: string) {
     throw new Error(result.errors[0]?.message ?? "CSV parsing failed");
   }
 
-  return result.data.map((row, index) => {
-    const firstName = row.first_name?.trim();
-    const lastName = row.last_name?.trim();
-    const propertyAddress = row.property_address?.trim();
+  const rows: CsvLeadRow[] = [];
+  let skippedCount = 0;
+
+  for (const row of result.data) {
     const phone = row.phone?.trim();
 
-    if (!firstName || !lastName || !propertyAddress || !phone) {
-      throw new Error(`Row ${index + 2} is missing one of: first_name, last_name, property_address, phone.`);
+    // Phone is required to send SMS — skip rows without it
+    if (!phone) {
+      skippedCount++;
+      continue;
     }
 
     const status = (row.status?.trim() || "New") as LeadStatus;
 
-    return {
-      first_name: firstName,
-      last_name: lastName,
-      property_address: propertyAddress,
+    rows.push({
+      first_name: row.first_name?.trim() || "there",
+      last_name: row.last_name?.trim() || "",
+      property_address: row.property_address?.trim() || "",
       mailing_address: row.mailing_address?.trim() || null,
       phone,
       phone_normalized: normalizePhone(phone),
@@ -60,7 +62,9 @@ export function parseLeadCsv(csvText: string) {
       lead_source: row.lead_source?.trim() || null,
       status: allowedStatuses.has(status) ? status : "New",
       tag: row.tag?.trim() || null,
-      notes_summary: row.notes?.trim() || null
-    } satisfies CsvLeadRow;
-  });
+      notes_summary: row.notes?.trim() || null,
+    });
+  }
+
+  return { rows, skippedCount };
 }
