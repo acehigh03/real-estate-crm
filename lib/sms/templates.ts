@@ -1,6 +1,6 @@
 import { withStopLanguage } from "@/lib/utils";
 
-export type SmsCampaignType = "cash_offer" | "foreclosure_help";
+export type SmsCampaignType = "cash_offer" | "foreclosure_help" | "probate" | "tax_sale";
 
 interface TemplateLead {
   id?: string | null;
@@ -12,6 +12,12 @@ interface TemplateLead {
 }
 
 const TEMPLATE_LIBRARY: Record<SmsCampaignType, string[]> = {
+  probate: [
+    "Hi [[first_name]], this is Senay with Texas Relief Group. I work with families managing inherited properties. Would you be open to a quick cash offer on [[address]]? Reply YES or NO.",
+  ],
+  tax_sale: [
+    "Hi [[first_name]], this is Senay with Texas Relief Group. I saw your property at [[address]] may have tax issues. I can help — interested in a cash offer? Reply YES or NO.",
+  ],
   cash_offer: [
     "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Senay with Texas Relief Group. {{Quick question -|Just checking -|Wanted to ask -}} is [[address]] still yours? {{I came across it|I saw it}} and wanted to see if you'd be open to {{a cash offer|an as-is cash offer}}. {{Reply YES or NO.|Would you consider it? Reply YES or NO.}}",
     "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Senay with Texas Relief Group. {{Quick question -|Just checking -|Wanted to ask -}} I was looking at [[address]] and wanted to see if you'd consider {{a cash offer|an as-is cash offer}}. {{Reply YES or NO.|Would you be open to that? Reply YES or NO.}}",

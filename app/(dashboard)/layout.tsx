@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { createClient } from "@/lib/supabase/server";
-import { getInboxBadgeCount } from "@/lib/data";
+import { getInboxBadgeCount, getCampaignCount } from "@/lib/data";
 
 export default async function DashboardLayout({
   children,
@@ -16,7 +16,10 @@ export default async function DashboardLayout({
 
   if (!user) redirect("/login");
 
-  const inboxBadgeCount = await getInboxBadgeCount();
+  const [inboxBadgeCount, campaignCount] = await Promise.all([
+    getInboxBadgeCount(),
+    getCampaignCount(),
+  ]);
 
   return (
     <SidebarProvider
@@ -29,6 +32,7 @@ export default async function DashboardLayout({
     >
       <AppSidebar
         inboxBadgeCount={inboxBadgeCount}
+        campaignCount={campaignCount}
         userEmail={user.email ?? ""}
       />
       <SidebarInset className="overflow-hidden">

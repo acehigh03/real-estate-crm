@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  Layers,
   PanelsTopLeft,
   Users,
   MessageSquare,
@@ -37,6 +38,7 @@ const sidebarStyle = {
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/pipeline", label: "Pipeline", icon: PanelsTopLeft },
+  { href: "/campaigns", label: "Campaigns", icon: Layers },
   { href: "/leads", label: "Leads", icon: Users },
   { href: "/inbox", label: "Inbox", icon: MessageSquare },
   { href: "/settings", label: "Settings", icon: Settings },
@@ -44,11 +46,13 @@ const navItems = [
 
 interface AppSidebarProps {
   inboxBadgeCount?: number;
+  campaignCount?: number;
   userEmail?: string;
 }
 
 export function AppSidebar({
   inboxBadgeCount = 0,
+  campaignCount = 0,
   userEmail = "",
 }: AppSidebarProps) {
   const pathname = usePathname();
@@ -75,7 +79,10 @@ export function AppSidebar({
             <SidebarMenu className="gap-0.5">
               {navItems.map(({ href, label, icon: Icon }) => {
                 const isActive = pathname === href || pathname.startsWith(`${href}/`);
-                const showBadge = label === "Inbox" && inboxBadgeCount > 0;
+                const showBadge =
+                  (label === "Inbox" && inboxBadgeCount > 0) ||
+                  (label === "Campaigns" && campaignCount > 0);
+                const badgeCount = label === "Inbox" ? inboxBadgeCount : campaignCount;
 
                 return (
                   <SidebarMenuItem key={href}>
@@ -94,7 +101,7 @@ export function AppSidebar({
                       <span className="flex-1">{label}</span>
                       {showBadge && (
                         <span className="rounded-full bg-[#e8edf2] px-1.5 py-0.5 text-[10px] font-medium text-[#6b7c93] group-data-[collapsible=icon]:hidden">
-                          {inboxBadgeCount > 99 ? "99+" : inboxBadgeCount}
+                          {badgeCount > 99 ? "99+" : badgeCount}
                         </span>
                       )}
                     </SidebarMenuButton>

@@ -8,7 +8,14 @@ import { buildFirstSmsForLead } from "@/lib/sms/templates";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { sendTelnyxMessage, TelnyxSendError } from "@/lib/telnyx/send-sms";
 import { isInsideWindow, nextWindowOpenUTC } from "@/lib/send-window";
-import type { LeadPriority, LeadStage } from "@/types/database";
+import type { LeadPriority, LeadStage, CampaignType } from "@/types/database";
+
+const VALID_CAMPAIGN_TYPES = new Set<CampaignType>([
+  "cash_offer",
+  "foreclosure_help",
+  "probate",
+  "tax_sale",
+]);
 
 export async function POST(request: Request) {
   const supabaseAdmin = getSupabaseAdmin();
@@ -23,6 +30,14 @@ export async function POST(request: Request) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "CSV file is required" }, { status: 400 });
   }
+
+  // Optional campaign context from the import modal
+  const campaignId = (formData.get("campaign_id") as string | null) || null;
+  const rawCampaignType = formData.get("campaign_type") as string | null;
+  const campaignType: CampaignType | null =
+    rawCampaignType && VALID_CAMPAIGN_TYPES.has(rawCampaignType as CampaignType)
+      ? (rawCampaignType as CampaignType)
+      : null;
 
   let parsedRows: ReturnType<typeof parseLeadCsv>["rows"];
   let csvSkippedCount = 0;
@@ -81,6 +96,7 @@ export async function POST(request: Request) {
       classification: classify.classification,
       motivation_score: classify.motivationScore,
       lead_score: classify.motivationScore,
+      campaign_id: campaignId,
       stage: (
         row.status === "Hot"
           ? "Hot Lead"
@@ -169,14 +185,17 @@ export async function POST(request: Request) {
     for (const lead of smsTargets ?? []) {
       if (lead.status === "DNC" || lead.is_dnc) continue;
 
-      const rendered = buildFirstSmsForLead({
-        id: lead.id,
-        phone_normalized: lead.phone_normalized,
-        first_name: lead.first_name,
-        property_address: lead.property_address,
-        tag: lead.tag,
-        lead_source: lead.lead_source,
-      });
+      const rendered = buildFirstSmsForLead(
+        {
+          id: lead.id,
+          phone_normalized: lead.phone_normalized,
+          first_name: lead.first_name,
+          property_address: lead.property_address,
+          tag: lead.tag,
+          lead_source: lead.lead_source,
+        },
+        campaignType ?? undefined
+      );
       const text = rendered.message;
 
       // Queue the message if auto-send is on but we're outside the window
@@ -234,9 +253,22 @@ export async function POST(request: Request) {
     }
   }
 
+  // Update campaign totals if this import was tied to a campaign
+  if (campaignId) {
+    await supabaseAdmin
+      .from("campaigns")
+      .update({
+        total_leads: newRows.length,
+        messaged_count: messagedCount,
+      })
+      .eq("id", campaignId)
+      .eq("user_id", user.id);
+  }
+
   revalidatePath("/dashboard");
   revalidatePath("/leads");
   revalidatePath("/inbox");
+  revalidatePath("/campaigns");
 
   // Best-effort import log — table may not exist in all environments
   await supabaseAdmin

@@ -3,6 +3,8 @@ import { format } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
+type Campaign = Database["public"]["Tables"]["campaigns"]["Row"];
+
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type Note = Database["public"]["Tables"]["notes"]["Row"];
 type Message = Database["public"]["Tables"]["messages"]["Row"];
@@ -77,14 +79,11 @@ export async function requireUser() {
 export async function getLeadsPageData() {
   const { supabase, user } = await requireUser();
 
-  const [leadResponse, noteResponse, followupResponse] = await Promise.all([
+  const [leadResponse, noteResponse, followupResponse, campaignResponse] = await Promise.all([
     supabase.from("leads").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
     supabase.from("notes").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-    supabase
-      .from("followups")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("due_date", { ascending: true })
+    supabase.from("followups").select("*").eq("user_id", user.id).order("due_date", { ascending: true }),
+    supabase.from("campaigns").select("id, name, campaign_type").eq("user_id", user.id).order("created_at", { ascending: false }),
   ]);
 
   if (leadResponse.error) throw leadResponse.error;
@@ -94,8 +93,31 @@ export async function getLeadsPageData() {
   return {
     leads: (leadResponse.data ?? []) as Lead[],
     notes: (noteResponse.data ?? []) as Note[],
-    followups: (followupResponse.data ?? []) as Followup[]
+    followups: (followupResponse.data ?? []) as Followup[],
+    campaigns: (campaignResponse.data ?? []) as Pick<Campaign, "id" | "name" | "campaign_type">[],
   };
+}
+
+export async function getCampaignsData() {
+  const { supabase, user } = await requireUser();
+
+  const { data, error } = await supabase
+    .from("campaigns")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as Campaign[];
+}
+
+export async function getCampaignCount(): Promise<number> {
+  const { supabase, user } = await requireUser();
+  const { count } = await supabase
+    .from("campaigns")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id);
+  return count ?? 0;
 }
 
 export async function getLeadDetailData(leadId: string) {
