@@ -23,6 +23,7 @@ export interface PipelineLeadCard {
   callCount: number;
   followupCount: number;
   daysInPipeline: number;
+  lastMessagePreview: string | null;
 }
 
 function derivePipelineStage(lead: Lead): PipelineStage {
@@ -200,9 +201,14 @@ export async function getPipelineData() {
   const followups = (followupResponse.data ?? []) as Followup[];
 
   const messageCountByLead = new Map<string, number>();
+  const latestMessageByLead = new Map<string, Message>();
   for (const message of messages) {
     if (!message.lead_id) continue;
     messageCountByLead.set(message.lead_id, (messageCountByLead.get(message.lead_id) ?? 0) + 1);
+    const currentLatest = latestMessageByLead.get(message.lead_id);
+    if (!currentLatest || currentLatest.created_at < message.created_at) {
+      latestMessageByLead.set(message.lead_id, message);
+    }
   }
 
   const followupCountByLead = new Map<string, number>();
@@ -217,6 +223,7 @@ export async function getPipelineData() {
     callCount: 0,
     followupCount: followupCountByLead.get(lead.id) ?? 0,
     daysInPipeline: Math.max(0, Math.floor((Date.now() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60 * 24))),
+    lastMessagePreview: latestMessageByLead.get(lead.id)?.body ?? null,
   }));
 
   const stageOrder: PipelineStage[] = [

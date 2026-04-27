@@ -230,6 +230,95 @@ export async function setFollowup(formData: FormData) {
   revalidatePath("/pipeline");
 }
 
+export async function updatePipelineStage(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const stage = String(formData.get("stage") ?? "") as
+    | "New Leads"
+    | "Contacted"
+    | "Replied"
+    | "Qualified"
+    | "Offer Sent"
+    | "Dead";
+
+  const supabase = await createClient();
+  const supabaseAdmin = getSupabaseAdmin();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
+
+  const { data: existingLead, error: leadError } = await supabaseAdmin
+    .from("leads")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (leadError || !existingLead) {
+    throw leadError ?? new Error("Lead not found");
+  }
+
+  const stageToStatus: Record<typeof stage, LeadStatus> = {
+    "New Leads": "New",
+    Contacted: "Contacted",
+    Replied: "Replied",
+    Qualified: "Hot",
+    "Offer Sent": existingLead.status === "Dead" || existingLead.status === "DNC" ? "Contacted" : existingLead.status,
+    Dead: "Dead",
+  };
+
+  const nextStatus = stageToStatus[stage];
+  const nextTag =
+    stage === "Offer Sent"
+      ? "offer-sent"
+      : (existingLead.tag ?? "").toLowerCase() === "offer-sent"
+        ? null
+        : existingLead.tag;
+  const nextClassification =
+    stage === "Qualified"
+      ? "HOT"
+      : stage === "Dead"
+        ? "DEAD"
+        : existingLead.classification;
+
+  const mockClassification = classifyLeadMock({
+    status: nextStatus,
+    notesSummary:
+      stage === "Offer Sent"
+        ? `${existingLead.notes_summary ?? ""} offer sent`.trim()
+        : existingLead.notes_summary,
+    nextFollowUpAt: existingLead.next_follow_up_at,
+  });
+
+  const payload: LeadUpdate = {
+    status: nextStatus,
+    tag: nextTag,
+    classification: stage === "Offer Sent" ? existingLead.classification : nextClassification || mockClassification.classification,
+    motivation_score:
+      stage === "Qualified"
+        ? 90
+        : stage === "Dead"
+          ? 5
+          : stage === "Offer Sent"
+            ? Math.max(existingLead.motivation_score, 70)
+            : mockClassification.motivationScore,
+  };
+
+  const { error } = await supabaseAdmin
+    .from("leads")
+    .update(payload)
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) throw error;
+
+  revalidatePath("/dashboard");
+  revalidatePath("/leads");
+  revalidatePath("/inbox");
+  revalidatePath("/pipeline");
+}
+
 function payloadScoreForClassification(classification: LeadClassification) {
   switch (classification) {
     case "HOT":
