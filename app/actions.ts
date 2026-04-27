@@ -223,6 +223,7 @@ export async function setFollowup(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/leads");
   revalidatePath(`/leads/${leadId}`);
+  revalidatePath("/inbox");
 }
 
 function payloadScoreForClassification(classification: LeadClassification) {
