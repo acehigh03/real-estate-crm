@@ -17,7 +17,7 @@
   --blue-glow: rgba(37, 99, 235, 0.22);
 
   /* Sidebar */
-  --sidebar-bg: #141414;
+  --sidebar-bg: #191c20;
   --sidebar-border-custom: rgba(255, 255, 255, 0.06);
 
   /* shadcn base */
@@ -90,6 +90,8 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans), "Avenir Next", "Segoe UI", sans-serif;
+    font-weight: 400;
+    color: #334155;
   }
   input,
   textarea,
@@ -100,53 +102,75 @@
 
 @layer components {
   .crm-page {
-    @apply bg-[#f5f7f9];
+    @apply bg-[#f6f8fb];
   }
 
   .crm-page-header {
-    @apply border-b border-white/70 bg-gradient-to-b from-white to-[#f7faf9];
+    @apply border-b border-slate-200/70 bg-gradient-to-b from-white via-white to-[#f8fbfa];
     box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
   }
 
   .crm-header-title {
-    @apply text-[1.75rem] font-semibold tracking-tight text-slate-900;
+    @apply text-[1.875rem] font-bold tracking-tight text-slate-900;
   }
 
   .crm-header-copy {
-    @apply mt-1 text-sm text-slate-500;
+    @apply mt-1 text-sm font-normal text-slate-500;
   }
 
   .crm-section-kicker {
     @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400;
   }
 
+  .crm-section-title {
+    @apply text-[1.125rem] font-semibold tracking-tight text-slate-900;
+  }
+
   .crm-card {
-    @apply rounded-[24px] border border-slate-200/70 bg-white;
+    @apply rounded-[26px] border border-slate-200/80 bg-gradient-to-b from-white to-slate-50/30;
     box-shadow:
       0 1px 2px rgba(15, 23, 42, 0.03),
-      0 10px 30px rgba(15, 23, 42, 0.05);
+      0 12px 32px rgba(15, 23, 42, 0.05);
   }
 
   .crm-card-soft {
-    @apply rounded-[20px] border border-slate-200/70 bg-white;
+    @apply rounded-[22px] border border-slate-200/80 bg-gradient-to-b from-white to-slate-50/35;
     box-shadow:
       0 1px 2px rgba(15, 23, 42, 0.025),
-      0 8px 24px rgba(15, 23, 42, 0.04);
+      0 8px 26px rgba(15, 23, 42, 0.04);
   }
 
   .crm-panel {
-    @apply rounded-[28px] border border-white/80 bg-gradient-to-b from-white to-[#fbfcfb];
+    @apply rounded-[30px] border border-slate-200/75 bg-gradient-to-b from-white to-[#fbfcfd];
     box-shadow:
       0 1px 2px rgba(15, 23, 42, 0.03),
       0 18px 40px rgba(15, 23, 42, 0.06);
   }
 
   .crm-muted-surface {
-    @apply rounded-[18px] border border-slate-200/80 bg-slate-50/80;
+    @apply rounded-[18px] border border-slate-200/80 bg-gradient-to-b from-slate-50/95 to-white;
   }
 
   .crm-button-secondary {
-    @apply rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50;
+    @apply rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50;
+  }
+
+  .crm-button-primary {
+    @apply rounded-xl bg-[#16a37f] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#128765];
+  }
+
+  .crm-chat-bubble-inbound {
+    @apply rounded-[20px] rounded-bl-md border border-slate-200 bg-white px-4 py-2.5 text-sm leading-5 text-slate-700;
+    box-shadow:
+      0 1px 1px rgba(15, 23, 42, 0.03),
+      0 8px 18px rgba(15, 23, 42, 0.05);
+  }
+
+  .crm-chat-bubble-outbound {
+    @apply rounded-[20px] rounded-br-md border border-blue-500/10 bg-blue-600 px-4 py-2.5 text-sm leading-5 text-white;
+    box-shadow:
+      0 1px 1px rgba(37, 99, 235, 0.15),
+      0 10px 22px rgba(37, 99, 235, 0.18);
   }
 }
 

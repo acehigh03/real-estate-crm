@@ -27,11 +27,11 @@ import { signOut } from "@/app/actions";
 
 // CSS variable overrides for the dark sidebar
 const sidebarStyle = {
-  "--sidebar": "0 0% 8%",
-  "--sidebar-foreground": "0 0% 45%",
-  "--sidebar-border": "0 0% 11%",
-  "--sidebar-accent": "162 30% 13%",
-  "--sidebar-accent-foreground": "162 44% 55%",
+  "--sidebar": "215 14% 13%",
+  "--sidebar-foreground": "215 18% 82%",
+  "--sidebar-border": "215 16% 19%",
+  "--sidebar-accent": "160 35% 18%",
+  "--sidebar-accent-foreground": "160 58% 73%",
   "--sidebar-ring": "162 44% 55%",
 } as React.CSSProperties;
 
@@ -68,7 +68,7 @@ export function AppSidebar({
       {/* ── Logo ──────────────────────────────────────────────── */}
       <SidebarHeader className="px-4 py-5">
         <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#16a37f] text-[10px] font-bold text-white">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#16a37f] text-[10px] font-bold text-white shadow-sm">
             SP
           </div>
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
@@ -78,7 +78,7 @@ export function AppSidebar({
             >
               CRM
             </span>
-            <span className="text-[14px] font-semibold text-white">
+            <span className="text-[14px] font-semibold text-white/95">
               Seller Pipeline
             </span>
           </div>
@@ -105,10 +105,10 @@ export function AppSidebar({
                       isActive={isActive}
                       tooltip={label}
                       className={cn(
-                        "rounded-[9px] transition-all duration-[120ms]",
+                        "rounded-xl border border-transparent transition-all duration-[120ms]",
                         isActive
-                          ? "!bg-[rgba(22,163,127,.15)] !text-[#4ecba8] hover:!bg-[rgba(22,163,127,.18)]"
-                          : "!text-[rgba(255,255,255,.42)] hover:!bg-[rgba(255,255,255,.04)] hover:!text-[rgba(255,255,255,.75)]"
+                          ? "!border-[rgba(94,234,212,.16)] !bg-[linear-gradient(180deg,rgba(22,163,127,.24),rgba(22,163,127,.12))] !text-[#ccfbf1] shadow-[inset_0_1px_0_rgba(255,255,255,.04)] hover:!bg-[linear-gradient(180deg,rgba(22,163,127,.28),rgba(22,163,127,.14))]"
+                          : "!text-[rgba(255,255,255,.56)] hover:!border-[rgba(255,255,255,.05)] hover:!bg-[rgba(255,255,255,.045)] hover:!text-[rgba(255,255,255,.88)]"
                       )}
                     >
                       <Icon size={14} strokeWidth={1.7} className="shrink-0" />
@@ -132,8 +132,8 @@ export function AppSidebar({
       {/* ── Footer: user + sign out ────────────────────────────── */}
       <SidebarFooter className="px-2 py-3">
         {/* User avatar row */}
-        <div className="mb-1 flex items-center gap-2.5 rounded-[9px] px-2 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#16a37f] text-[10px] font-bold text-white">
+        <div className="mb-1 flex items-center gap-2.5 rounded-xl px-2 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#16a37f] text-[10px] font-bold text-white shadow-sm">
             {initials}
           </div>
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
@@ -156,7 +156,7 @@ export function AppSidebar({
               <SidebarMenuButton
                 render={<button type="submit" className="w-full" />}
                 tooltip="Sign out"
-                className="!text-[rgba(255,255,255,.42)] hover:!bg-[rgba(255,255,255,.04)] hover:!text-[rgba(255,255,255,.75)] rounded-[9px] transition-all duration-[120ms]"
+                className="rounded-xl !text-[rgba(255,255,255,.56)] transition-all duration-[120ms] hover:!bg-[rgba(255,255,255,.045)] hover:!text-[rgba(255,255,255,.88)]"
               >
                 <LogOut size={14} strokeWidth={1.7} />
                 <span className="text-[13px]">Sign out</span>

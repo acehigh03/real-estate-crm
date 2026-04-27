@@ -133,10 +133,10 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
 
   return (
     <div className="crm-page flex flex-1 flex-col overflow-hidden">
-      <div className="crm-page-header flex shrink-0 items-center justify-between gap-4 px-6 py-5">
+      <div className="crm-page-header flex shrink-0 items-center justify-between gap-4 px-6 py-6">
         <div>
           <p className="crm-section-kicker">Lead workspace</p>
-          <h1 className="mt-2 text-xl font-semibold tracking-tight text-slate-900">Leads</h1>
+          <h1 className="mt-2 text-[1.625rem] font-bold tracking-tight text-slate-900">Leads</h1>
           <p className="mt-1 text-sm text-slate-500">
             Review seller records, classifications, and next follow-up dates.
           </p>
@@ -203,7 +203,7 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
         </div>
       )}
 
-      <div className="flex-1 overflow-auto px-6 py-6">
+      <div className="flex-1 overflow-auto px-6 py-8">
         {filtered.length === 0 ? (
           <div className="crm-card flex h-full items-center justify-center px-6 py-16">
             <div className="text-center">
@@ -218,32 +218,32 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
         ) : (
           <div className="crm-card overflow-hidden">
             <Table>
-            <TableHeader className="bg-slate-50/80">
+            <TableHeader className="bg-slate-50/90">
               <TableRow className="border-slate-200/80">
-                <TableHead>Name</TableHead>
-                <TableHead>Address</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Score</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Class</TableHead>
-                <TableHead>Follow-up</TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Name</TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Address</TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Phone</TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Score</TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Status</TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Class</TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Follow-up</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((lead) => (
                   <TableRow key={lead.id} className="group border-slate-100/90 transition hover:bg-slate-50/70">
-                    <TableCell className="font-medium text-sm">
+                    <TableCell className="text-sm font-semibold text-slate-800">
                       <Link href={`/leads/${lead.id}`} className="transition hover:text-[#16a37f]">
                         {lead.first_name} {lead.last_name}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-[180px] truncate">
+                    <TableCell className="max-w-[180px] truncate text-sm text-slate-500">
                       <Link href={`/leads/${lead.id}`} className="transition hover:text-[#16a37f]">
                         {lead.property_address}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-sm font-mono text-muted-foreground">
+                    <TableCell className="text-sm font-mono text-slate-500">
                       {lead.phone}
                     </TableCell>
                     <TableCell>

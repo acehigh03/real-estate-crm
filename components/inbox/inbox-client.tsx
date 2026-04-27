@@ -541,7 +541,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
               <button
                 type="button"
                 onClick={() => setIsModalOpen(true)}
-                className="rounded-xl bg-[#16a37f] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#128765]"
+                className="crm-button-primary py-2.5"
               >
                 Start Conversation
               </button>
@@ -570,9 +570,9 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
 
   return (
     <div className="crm-page flex h-full flex-col overflow-hidden">
-      <div className="crm-page-header px-6 py-5">
+      <div className="crm-page-header px-6 py-6">
         <p className="crm-section-kicker">Messaging workspace</p>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight text-gray-900">Inbox</h1>
+        <h1 className="mt-2 text-[1.625rem] font-bold tracking-tight text-gray-900">Inbox</h1>
         <p className="mt-1 text-sm text-gray-500">Manage seller conversations and lead follow-up in one place.</p>
       </div>
 
@@ -592,7 +592,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                 event.preventDefault();
                 setIsModalOpen(true);
               }}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#16a37f] text-white transition hover:bg-[#128765]"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#16a37f] text-white shadow-sm transition hover:bg-[#128765]"
               title="Start conversation"
             >
               <Plus size={16} />
@@ -621,7 +621,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                     type="button"
                     onClick={() => setSelectedLeadId(conversation.lead.id)}
                     className={`w-full px-4 py-3 text-left transition ${
-                      isActive ? "bg-[#eef8f4]" : conversation.unread ? "bg-[#fafdfb]" : "bg-white hover:bg-slate-50/80"
+                      isActive ? "border-l-2 border-[#16a37f] bg-[#eef8f4]" : conversation.unread ? "bg-[#fafdfb]" : "bg-white hover:bg-slate-50/80"
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -679,8 +679,8 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
             </div>
           </div>
 
-          <ScrollArea className="min-h-0 flex-1 px-5 py-4">
-            <div className="space-y-2">
+          <ScrollArea className="min-h-0 flex-1 px-5 py-5">
+            <div className="space-y-3">
               {leadMessages.map((message) => (
                 <div
                   key={message.id}
@@ -688,10 +688,10 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                 >
                   <div className="max-w-[78%]">
                     <div
-                      className={`rounded-2xl px-4 py-2.5 text-sm leading-5 ${
+                      className={`${
                         message.direction === "outbound"
-                          ? "rounded-br-md bg-blue-600 text-white"
-                          : "rounded-bl-md bg-gray-200 text-gray-900"
+                          ? "crm-chat-bubble-outbound"
+                          : "crm-chat-bubble-inbound"
                       }`}
                     >
                       {message.body}
@@ -805,7 +805,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                   <form action={updateLeadStatus}>
                     <input type="hidden" name="id" value={lead.id} />
                     <input type="hidden" name="status" value="Hot" />
-                    <button className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-white">
+                  <button className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-700 shadow-sm">
                       <Flame size={14} />
                       Mark hot
                     </button>
@@ -827,7 +827,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                   <form action={updateLeadStatus}>
                     <input type="hidden" name="id" value={lead.id} />
                     <input type="hidden" name="status" value="Dead" />
-                    <button className="flex w-full items-center justify-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
+                  <button className="flex w-full items-center justify-center gap-2 rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm font-medium text-rose-700 shadow-sm">
                       <Skull size={14} />
                       Mark dead
                     </button>
@@ -853,7 +853,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                     placeholder="Optional follow-up note"
                     className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
                   />
-                  <button className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white">
+                  <button className="crm-button-primary flex w-full items-center justify-center gap-2 bg-slate-900 px-3 py-2 text-sm">
                     <CalendarClock size={14} />
                     Schedule follow-up
                   </button>

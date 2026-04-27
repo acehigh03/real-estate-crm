@@ -55,7 +55,7 @@ export function DashboardClient({
         </div>
       </div>
 
-      <div className="flex-1 space-y-6 overflow-auto px-8 py-7">
+      <div className="flex-1 space-y-8 overflow-auto px-8 py-8">
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
           {cards.map((card) => (
             <div
@@ -65,24 +65,24 @@ export function DashboardClient({
               <p className="crm-section-kicker">
                 {card.label}
               </p>
-              <p className={`mt-2 text-3xl font-semibold ${card.tone}`}>{card.value}</p>
+              <p className={`mt-3 text-3xl font-bold ${card.tone}`}>{card.value}</p>
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="crm-panel p-5">
-            <div className="mb-4 flex items-center justify-between">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="crm-panel p-6">
+            <div className="mb-5 flex items-center justify-between">
               <div>
                 <p className="crm-section-kicker">Priority queue</p>
-                <p className="mt-1 text-[15px] font-semibold text-gray-900">Follow-ups Due</p>
+                <p className="crm-section-title mt-1">Follow-ups Due</p>
               </div>
               <span className="text-xs text-gray-400">{counts.dueToday} due today</span>
             </div>
             <div className="space-y-3">
               {dueLeads.length ? (
                 dueLeads.map((lead) => (
-                  <div key={lead.id} className="crm-muted-surface px-4 py-3">
+                  <div key={lead.id} className="crm-muted-surface px-4 py-4">
                     <p className="text-sm font-semibold text-gray-900">
                       {lead.first_name} {lead.last_name}
                     </p>
@@ -98,11 +98,11 @@ export function DashboardClient({
             </div>
           </div>
 
-          <div className="crm-panel p-5">
-            <div className="mb-4 flex items-center justify-between">
+          <div className="crm-panel p-6">
+            <div className="mb-5 flex items-center justify-between">
               <div>
                 <p className="crm-section-kicker">Live activity</p>
-                <p className="mt-1 text-[15px] font-semibold text-gray-900">Recent Replies</p>
+                <p className="crm-section-title mt-1">Recent Replies</p>
               </div>
               <span className="text-xs text-gray-400">{counts.repliesReceived} replies received</span>
             </div>

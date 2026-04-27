@@ -73,21 +73,18 @@ export function PipelineBoard({
             >
               Add Lead
             </Link>
-            <Link
-              href="/inbox"
-              className="rounded-xl bg-[#16a37f] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#128765]"
-            >
+            <Link href="/inbox" className="crm-button-primary">
               Start Conversation
             </Link>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-x-auto overflow-y-hidden px-6 py-6">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden px-6 py-8">
         {!hasAnyLeads ? (
           <div className="flex h-full items-center justify-center">
             <div className="crm-panel max-w-md p-10 text-center">
-              <h2 className="text-xl font-semibold text-gray-900">No leads yet</h2>
+                  <h2 className="text-xl font-bold text-gray-900">No leads yet</h2>
               <p className="mt-2 text-sm text-gray-500">
                 Add leads to start tracking and closing deals.
               </p>
@@ -106,7 +103,7 @@ export function PipelineBoard({
                 </Link>
                 <Link
                   href="/inbox"
-                  className="rounded-xl bg-[#16a37f] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#128765]"
+                  className="crm-button-primary py-2.5"
                 >
                   Start Conversation
                 </Link>
@@ -128,7 +125,7 @@ export function PipelineBoard({
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <span className={`h-2.5 w-2.5 rounded-full ${styles.accent}`} />
-                      <h2 className="text-sm font-semibold text-gray-900">
+                      <h2 className="text-[15px] font-semibold text-gray-900">
                         {stage} <span className="text-gray-400">({stageCards.length})</span>
                       </h2>
                     </div>
@@ -149,13 +146,13 @@ export function PipelineBoard({
                         className="crm-card-soft p-4 transition hover:border-teal-200 hover:shadow-md"
                       >
                         <div className="mb-3 flex items-start justify-between gap-2">
-                          <p className="text-sm font-semibold leading-5 text-gray-900">{lead.property_address}</p>
+                          <p className="text-sm font-semibold leading-5 text-slate-900">{lead.property_address}</p>
                           <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-medium uppercase tracking-wide ${priority.classes}`}>
                             {priority.label}
                           </span>
                         </div>
 
-                        <div className="mt-3 space-y-2 text-xs text-gray-500">
+                        <div className="mt-3 space-y-2.5 text-xs text-slate-500">
                           <div className="flex items-center gap-2">
                             <User size={13} className="text-gray-400" />
                             <span>
@@ -230,7 +227,7 @@ export function PipelineBoard({
                           <form action={updateLeadStatus}>
                             <input type="hidden" name="id" value={lead.id} />
                             <input type="hidden" name="status" value="Hot" />
-                            <button className="flex w-full items-center justify-center gap-1 rounded-xl border border-amber-200 bg-amber-50 px-2 py-2 text-[11px] font-medium text-amber-700">
+                            <button className="flex w-full items-center justify-center gap-1 rounded-xl border border-amber-200 bg-white px-2 py-2 text-[11px] font-medium text-amber-700">
                               <Flame size={12} />
                               Mark Hot
                             </button>
@@ -239,7 +236,7 @@ export function PipelineBoard({
                           <form action={updateLeadStatus}>
                             <input type="hidden" name="id" value={lead.id} />
                             <input type="hidden" name="status" value="Dead" />
-                            <button className="flex w-full items-center justify-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-2 py-2 text-[11px] font-medium text-rose-700">
+                            <button className="flex w-full items-center justify-center gap-1 rounded-xl border border-rose-200 bg-white px-2 py-2 text-[11px] font-medium text-rose-700">
                               <Skull size={12} />
                               Mark Dead
                             </button>
@@ -258,7 +255,7 @@ export function PipelineBoard({
                               value={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
                             />
                             <input type="hidden" name="note" value="Follow up tomorrow from pipeline board." />
-                            <button className="flex w-full items-center justify-center gap-1 rounded-xl border border-teal-200 bg-teal-50 px-2 py-2 text-[11px] font-medium text-teal-700">
+                            <button className="flex w-full items-center justify-center gap-1 rounded-xl border border-teal-200 bg-white px-2 py-2 text-[11px] font-medium text-teal-700">
                               <CalendarClock size={12} />
                               Tomorrow
                             </button>
@@ -267,7 +264,7 @@ export function PipelineBoard({
 
                           <Link
                             href={`/leads/${lead.id}`}
-                            className="flex w-full items-center justify-center rounded-xl bg-[#16a37f] px-3 py-2 text-[11px] font-medium text-white transition hover:bg-[#128765]"
+                            className="crm-button-primary flex w-full items-center justify-center px-3 py-2 text-[11px]"
                           >
                             Open Lead
                           </Link>
