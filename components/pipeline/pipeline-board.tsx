@@ -2,6 +2,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 
 import type { PipelineLeadCard, PipelineStage } from "@/lib/data";
+import { fallbackCampaignName, fallbackAddress, leadDisplayName, messageSnippet } from "@/lib/utils";
 
 const STAGE_STYLES: Record<PipelineStage, { accent: string; chip: string }> = {
   "New Leads": { accent: "bg-sky-500", chip: "bg-sky-50 text-sky-700" },
@@ -12,30 +13,12 @@ const STAGE_STYLES: Record<PipelineStage, { accent: string; chip: string }> = {
   Dead: { accent: "bg-slate-500", chip: "bg-slate-100 text-slate-700" },
 };
 
-function formatPhoneTitle(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length === 11 && digits.startsWith("1")) {
-    const national = digits.slice(1);
-    return `(${national.slice(0, 3)}) ${national.slice(3, 6)}-${national.slice(6, 10)}`;
-  }
-  if (digits.length === 10) {
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
-  }
-  return phone;
-}
-
 function displayLeadName(lead: PipelineLeadCard["lead"]) {
-  const fullName = `${lead.first_name ?? ""} ${lead.last_name ?? ""}`.trim();
-  if (fullName && fullName.toLowerCase() !== "new lead") return fullName;
-  return formatPhoneTitle(lead.phone);
+  return leadDisplayName(lead);
 }
 
 function propertyLabel(address: string | null, campaignName: string | null) {
-  const value = (address ?? "").trim();
-  if (value && value.toLowerCase() !== "inbox conversation") {
-    return value.split(",")[0]?.trim() || value;
-  }
-  return campaignName?.trim() || null;
+  return address?.trim() ? fallbackAddress(address) : fallbackCampaignName(campaignName);
 }
 
 function priorityBadge(classification: string) {
@@ -49,12 +32,7 @@ function priorityBadge(classification: string) {
 }
 
 function lastMessageSnippet(text: string | null) {
-  if (!text?.trim()) {
-    return "Last: No messages yet";
-  }
-  const cleaned = text.trim().replace(/\s+/g, " ");
-  const truncated = cleaned.length > 60 ? `${cleaned.slice(0, 60).trimEnd()}...` : cleaned;
-  return `Last: ${truncated}`;
+  return `Last: ${messageSnippet(text, 60)}`;
 }
 
 export function PipelineBoard({
@@ -96,7 +74,7 @@ export function PipelineBoard({
         </div>
       </div>
 
-      <div className="flex-1 overflow-x-auto overflow-y-hidden px-6 py-8">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden px-6 py-4">
         {!hasAnyLeads ? (
           <div className="flex h-full items-center justify-center">
             <div className="crm-panel max-w-md p-10 text-center">
@@ -165,6 +143,9 @@ export function PipelineBoard({
                             {address ? (
                               <p className="mt-0.5 truncate text-xs text-slate-500">{address}</p>
                             ) : null}
+                            <p className="mt-1 truncate text-[11px] text-slate-400">
+                              {fallbackCampaignName(campaignName)}
+                            </p>
                           </div>
                           <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-medium ${priority.classes}`}>
                             {priority.label}

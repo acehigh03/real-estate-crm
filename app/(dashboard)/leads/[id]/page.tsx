@@ -5,15 +5,17 @@ import { ArrowLeft, CalendarClock, Mail, MapPin, MessageSquare, Phone } from "lu
 
 import { getClassificationLabel } from "@/lib/ai/classify-lead";
 import { getLeadDetailData } from "@/lib/data";
-import { formatClassificationColor, formatStatusColor } from "@/lib/utils";
+import { fallbackAddress, fallbackCampaignName, fallbackCampaignType, formatClassificationColor, formatPhoneDisplay, formatStatusColor, leadDisplayName } from "@/lib/utils";
 import { LeadRow } from "@/components/leads/lead-row";
 
 function getNextAction(lead: Awaited<ReturnType<typeof getLeadDetailData>>["lead"]) {
   if (lead.classification === "OPT_OUT") return "Do not contact";
-  if (lead.classification === "HOT") return "Reach out today";
+  if (lead.classification === "HOT") return "Call now and qualify the offer";
+  if (lead.classification === "WARM" || lead.status === "Replied") return "Follow up today";
+  if (lead.classification === "DEAD") return "Close out this lead";
   if (lead.next_follow_up_at) return "Complete scheduled follow-up";
   if (lead.status === "New") return "Send first outreach";
-  return "Review lead and update next step";
+  return "Gather missing info and qualify the lead";
 }
 
 export default async function LeadDetailPage({
@@ -24,21 +26,24 @@ export default async function LeadDetailPage({
   const { id } = await params;
 
   try {
-    const { lead, notes, followups, messages } = await getLeadDetailData(id);
+    const { lead, notes, followups, messages, campaign, lastInboundMessage } = await getLeadDetailData(id);
+    const isLowInfo =
+      ((!lead.property_address?.trim() && !lead.mailing_address?.trim()) ||
+        ((lastInboundMessage?.body?.trim().length ?? 0) > 0 && (lastInboundMessage?.body?.trim().length ?? 0) < 10));
 
     return (
       <div className="flex flex-1 flex-col overflow-auto bg-white">
-        <div className="border-b px-8 py-5">
+        <div className="border-b px-6 py-4">
           <Link href="/leads" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
             <ArrowLeft size={15} />
             Back to leads
           </Link>
-          <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-                {lead.first_name} {lead.last_name}
+                {leadDisplayName(lead)}
               </h1>
-              <p className="mt-1 text-sm text-gray-500">{lead.property_address}</p>
+              <p className="mt-1 text-sm text-gray-500">{fallbackAddress(lead.property_address)}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${formatStatusColor(lead.status)}`}>
@@ -47,35 +52,49 @@ export default async function LeadDetailPage({
               <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${formatClassificationColor(lead.classification)}`}>
                 {getClassificationLabel(lead.classification)}
               </span>
+              {isLowInfo ? (
+                <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+                  LOW INFO — NEEDS QUALIFICATION
+                </span>
+              ) : null}
             </div>
           </div>
         </div>
 
-        <div className="grid flex-1 gap-6 overflow-auto px-8 py-6 xl:grid-cols-[1.15fr_0.85fr]">
-          <div className="space-y-6">
-            <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="grid flex-1 gap-4 overflow-auto px-6 py-4 xl:grid-cols-[1.15fr_0.85fr]">
+          <div className="space-y-4">
+            <section className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
               <h2 className="text-sm font-semibold text-gray-900">Lead profile</h2>
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <div className="rounded-xl bg-gray-50 px-4 py-3">
                   <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-gray-400">
                     <Phone size={13} />
                     Phone
                   </div>
-                  <p className="mt-2 text-sm font-medium text-gray-900">{lead.phone}</p>
+                  <p className="mt-2 text-sm font-medium text-gray-900">{formatPhoneDisplay(lead.phone)}</p>
                 </div>
                 <div className="rounded-xl bg-gray-50 px-4 py-3">
                   <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-gray-400">
                     <Mail size={13} />
                     Email
                   </div>
-                  <p className="mt-2 text-sm font-medium text-gray-900">{lead.email ?? "No email"}</p>
+                  <p className="mt-2 text-sm font-medium text-gray-900">{lead.email ?? "No email on file"}</p>
                 </div>
                 <div className="rounded-xl bg-gray-50 px-4 py-3">
                   <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-gray-400">
                     <MapPin size={13} />
-                    Mailing address
+                    Property address
                   </div>
-                  <p className="mt-2 text-sm font-medium text-gray-900">{lead.mailing_address ?? "No mailing address"}</p>
+                  <p className="mt-2 text-sm font-medium text-gray-900">{fallbackAddress(lead.property_address)}</p>
+                </div>
+                <div className="rounded-xl bg-gray-50 px-4 py-3">
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-gray-400">
+                    <MapPin size={13} />
+                    Campaign
+                  </div>
+                  <p className="mt-2 text-sm font-medium text-gray-900">
+                    {fallbackCampaignName(campaign?.name)} · {fallbackCampaignType(campaign?.campaign_type)}
+                  </p>
                 </div>
                 <div className="rounded-xl bg-gray-50 px-4 py-3">
                   <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-gray-400">
@@ -99,12 +118,12 @@ export default async function LeadDetailPage({
                 </div>
               </div>
 
-              <div className="mt-4 rounded-xl bg-gray-50 px-4 py-3">
+              <div className="mt-3 rounded-xl bg-gray-50 px-4 py-3">
                 <p className="text-xs uppercase tracking-wide text-gray-400">Summary</p>
-                <p className="mt-2 text-sm text-gray-700">{lead.notes_summary ?? "No summary saved yet."}</p>
+                <p className="mt-2 text-sm text-gray-700">{lead.notes_summary ?? "No summary yet — waiting for more info"}</p>
               </div>
 
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <div className="rounded-xl bg-gray-50 px-4 py-3">
                   <p className="text-xs uppercase tracking-wide text-gray-400">Motivation score</p>
                   <p className="mt-2 text-2xl font-semibold text-gray-900">{lead.motivation_score}</p>
@@ -116,12 +135,12 @@ export default async function LeadDetailPage({
               </div>
             </section>
 
-            <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <section className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2">
                 <MessageSquare size={15} className="text-gray-400" />
                 <h2 className="text-sm font-semibold text-gray-900">Message history</h2>
               </div>
-              <div className="mt-4 space-y-3">
+              <div className="mt-3 space-y-3">
                 {messages.length ? (
                   messages.map((message) => (
                     <div
@@ -145,8 +164,8 @@ export default async function LeadDetailPage({
             </section>
           </div>
 
-          <div className="space-y-6">
-            <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="space-y-4">
+            <section className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
               <h2 className="text-sm font-semibold text-gray-900">Lead actions</h2>
               <p className="mt-2 text-sm text-gray-500">
                 Update status, mock AI classification, notes, and follow-up details in one place.

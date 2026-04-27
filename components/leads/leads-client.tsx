@@ -17,6 +17,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getClassificationLabel } from "@/lib/ai/classify-lead";
+import { DEFAULT_FIRST_SMS_TEMPLATES } from "@/lib/sms/templates";
+import { fallbackAddress, formatPhoneDisplay, leadDisplayName } from "@/lib/utils";
 import type { Database, LeadClassification, LeadStatus, CampaignType } from "@/types/database";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
@@ -39,6 +41,7 @@ const CAMPAIGN_TYPE_OPTIONS: Array<{ value: CampaignType; label: string }> = [
   { value: "foreclosure_help", label: "Foreclosure Help" },
   { value: "probate", label: "Probate" },
   { value: "tax_sale", label: "Tax Sale" },
+  { value: "custom", label: "Custom" },
 ];
 
 function statusTag(status: LeadStatus) {
@@ -125,6 +128,7 @@ export function LeadsClient({ leads, notes, followups, campaigns }: LeadsClientP
   // Import modal state
   const [campaignName, setCampaignName] = useState("");
   const [campaignType, setCampaignType] = useState<CampaignType>("cash_offer");
+  const [firstSmsTemplate, setFirstSmsTemplate] = useState(DEFAULT_FIRST_SMS_TEMPLATES.cash_offer);
   // Selection + delete state
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleteConfirm, setDeleteConfirm] = useState<string[] | null>(null);
@@ -155,6 +159,7 @@ export function LeadsClient({ leads, notes, followups, campaigns }: LeadsClientP
     setImportError(null);
     setCampaignName("");
     setCampaignType("cash_offer");
+    setFirstSmsTemplate(DEFAULT_FIRST_SMS_TEMPLATES.cash_offer);
   }
 
   function toggleRow(id: string) {
@@ -358,6 +363,10 @@ export function LeadsClient({ leads, notes, followups, campaigns }: LeadsClientP
                       setImportError("Campaign name is required.");
                       return;
                     }
+                    if (!firstSmsTemplate.trim()) {
+                      setImportError("Please choose a campaign message before sending.");
+                      return;
+                    }
 
                     setIsImporting(true);
                     setImportError(null);
@@ -367,7 +376,11 @@ export function LeadsClient({ leads, notes, followups, campaigns }: LeadsClientP
                       const campaignRes = await fetch("/api/campaigns", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ name: campaignName.trim(), campaign_type: campaignType }),
+                        body: JSON.stringify({
+                          name: campaignName.trim(),
+                          campaign_type: campaignType,
+                          first_sms_template: firstSmsTemplate.trim(),
+                        }),
                       });
                       const campaignJson = await campaignRes.json() as { error?: string; campaign?: { id: string } };
                       if (!campaignRes.ok) {
@@ -427,7 +440,11 @@ export function LeadsClient({ leads, notes, followups, campaigns }: LeadsClientP
                     </label>
                     <select
                       value={campaignType}
-                      onChange={(e) => setCampaignType(e.target.value as CampaignType)}
+                      onChange={(e) => {
+                        const nextType = e.target.value as CampaignType;
+                        setCampaignType(nextType);
+                        setFirstSmsTemplate(DEFAULT_FIRST_SMS_TEMPLATES[nextType]);
+                      }}
                       className="crm-input h-9 w-full px-3"
                     >
                       {CAMPAIGN_TYPE_OPTIONS.map((opt) => (
@@ -436,6 +453,22 @@ export function LeadsClient({ leads, notes, followups, campaigns }: LeadsClientP
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div className="mb-4">
+                    <label className="mb-1.5 block text-[12px] font-medium text-[#6b7c93] uppercase tracking-wide">
+                      First SMS Template <span className="text-[#e5484d]">*</span>
+                    </label>
+                    <textarea
+                      value={firstSmsTemplate}
+                      onChange={(e) => setFirstSmsTemplate(e.target.value)}
+                      placeholder="Write the first message for this campaign"
+                      required
+                      rows={6}
+                      className="crm-input min-h-[132px] w-full resize-y px-3 py-2 text-[13px]"
+                    />
+                    <p className="mt-1.5 text-[11px] text-[#6b7c93]">
+                      Supports spintax like <code>{"{{Hi|Hey|Hello}}"}</code> and merge fields like <code>[[first_name]]</code>, <code>[[address]]</code>.
+                    </p>
                   </div>
                   <div className="mb-4">
                     <label className="mb-1.5 block text-[12px] font-medium text-[#6b7c93] uppercase tracking-wide">
@@ -463,7 +496,7 @@ export function LeadsClient({ leads, notes, followups, campaigns }: LeadsClientP
         </div>
       )}
 
-      <div className="flex-1 overflow-auto px-6 py-8">
+      <div className="flex-1 overflow-auto px-6 py-4">
         {filtered.length === 0 ? (
           <div className="crm-card flex h-full items-center justify-center px-6 py-16">
             <div className="text-center">
@@ -508,32 +541,32 @@ export function LeadsClient({ leads, notes, followups, campaigns }: LeadsClientP
                         className="h-4 w-4 rounded border-[#d1d5db] accent-[#00c08b]"
                       />
                     </TableCell>
-                    <TableCell className="px-5 py-4 text-sm font-semibold text-slate-800">
+                    <TableCell className="px-5 py-3 text-sm font-semibold text-slate-800">
                       <Link href={`/leads/${lead.id}`} className="transition hover:text-[#16a37f]">
-                        {lead.first_name} {lead.last_name}
+                        {leadDisplayName(lead)}
                       </Link>
                     </TableCell>
-                    <TableCell className="max-w-[220px] px-5 py-4 truncate text-sm text-slate-500">
+                    <TableCell className="max-w-[220px] px-5 py-3 truncate text-sm text-slate-500">
                       <Link href={`/leads/${lead.id}`} className="transition hover:text-[#16a37f]">
-                        {lead.property_address}
+                        {fallbackAddress(lead.property_address)}
                       </Link>
                     </TableCell>
-                    <TableCell className="px-5 py-4 text-sm font-mono text-slate-500">
-                      {lead.phone}
+                    <TableCell className="px-5 py-3 text-sm font-mono text-slate-500">
+                      {formatPhoneDisplay(lead.phone)}
                     </TableCell>
-                    <TableCell className="px-5 py-4 text-right">
+                    <TableCell className="px-5 py-3 text-right">
                       <ScoreCell classification={lead.classification} />
                     </TableCell>
-                    <TableCell className="px-5 py-4">{statusTag(lead.status)}</TableCell>
-                    <TableCell className="px-5 py-4">
+                    <TableCell className="px-5 py-3">{statusTag(lead.status)}</TableCell>
+                    <TableCell className="px-5 py-3">
                       {classTag(lead.classification)}
                     </TableCell>
-                    <TableCell className="px-5 py-4 text-sm text-muted-foreground">
+                    <TableCell className="px-5 py-3 text-sm text-muted-foreground">
                       {lead.next_follow_up_at
                         ? format(new Date(lead.next_follow_up_at), "MMM d")
-                        : "—"}
+                        : "Not scheduled"}
                     </TableCell>
-                    <TableCell className="px-5 py-4 text-right">
+                    <TableCell className="px-5 py-3 text-right">
                       <div className="inline-flex items-center gap-1">
                         <Link
                           href={`/leads/${lead.id}`}

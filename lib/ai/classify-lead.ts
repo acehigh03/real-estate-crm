@@ -30,6 +30,12 @@ export interface InboundSmsClassificationResult {
   shouldAlert: boolean;
 }
 
+interface DraftReplyInput {
+  propertyAddress: string | null;
+  lastInboundBody: string | null;
+  classification: MessageClassification | LeadClassification | null;
+}
+
 // This is intentionally simple for Phase 1 so the call sites can stay stable
 // when we later replace the internals with a real model provider.
 export function classifyLeadMock({
@@ -78,7 +84,7 @@ export function getClassificationLabel(classification: LeadClassification) {
     case "OPT_OUT":
       return "Opt-out";
     case "UNKNOWN":
-      return "Unknown";
+      return "Needs qualification";
   }
 }
 
@@ -126,17 +132,17 @@ export function classifyInboundSms(text: string): InboundSmsClassificationResult
   const hotSignals = [
     "yes",
     "interested",
-    "call me",
     "let's talk",
     "lets talk",
     "make an offer",
     "cash offer",
     "how much",
+    "how much?",
     "available today",
     "i'm ready",
     "ready to sell",
   ];
-  if (hotSignals.some((signal) => normalized.includes(signal))) {
+  if (normalized === "yes" || hotSignals.some((signal) => normalized.includes(signal))) {
     return {
       messageClassification: "HOT",
       leadClassification: "HOT",
@@ -151,6 +157,7 @@ export function classifyInboundSms(text: string): InboundSmsClassificationResult
   }
 
   const warmSignals = [
+    "call me",
     "maybe",
     "later",
     "next week",
@@ -185,4 +192,25 @@ export function classifyInboundSms(text: string): InboundSmsClassificationResult
     dncReason: null,
     shouldAlert: false,
   };
+}
+
+export function generateInboxDraftReply({
+  propertyAddress,
+  lastInboundBody,
+}: DraftReplyInput) {
+  const inbound = lastInboundBody?.trim();
+  const address = propertyAddress?.trim();
+  const hasRealAddress =
+    Boolean(address) &&
+    address?.toLowerCase() !== "inbox conversation";
+
+  if (!inbound) {
+    return "Thanks for your message — can you confirm the property you're referring to?";
+  }
+
+  if (hasRealAddress) {
+    return `Thanks for replying — is this regarding ${address}, and would you be open to discussing a cash offer if it made sense?`;
+  }
+
+  return "Thanks for replying — are you the owner of the property, and would you be open to discussing a cash offer if it made sense?";
 }

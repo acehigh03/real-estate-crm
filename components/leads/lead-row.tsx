@@ -2,7 +2,7 @@ import { format } from "date-fns";
 
 import { getClassificationLabel } from "@/lib/ai/classify-lead";
 import { addNote, deleteLead, saveLead, setFollowup, updateLeadStatus } from "@/app/actions";
-import { formatClassificationColor, formatStatusColor } from "@/lib/utils";
+import { fallbackAddress, formatClassificationColor, formatPhoneDisplay, formatStatusColor, leadDisplayName } from "@/lib/utils";
 import type { Database, LeadClassification } from "@/types/database";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
@@ -29,13 +29,13 @@ export function LeadRow({
       <summary className="grid cursor-pointer grid-cols-1 gap-3 px-5 py-4 md:grid-cols-[1.2fr_1.6fr_1fr_1fr_0.8fr_0.8fr] md:items-center">
         <div>
           <p className="font-semibold">
-            {lead.first_name} {lead.last_name}
+            {leadDisplayName(lead)}
           </p>
-          <p className="text-sm text-muted">{lead.phone}</p>
+          <p className="text-sm text-muted">{formatPhoneDisplay(lead.phone)}</p>
         </div>
-        <p className="text-sm">{lead.property_address}</p>
+        <p className="text-sm">{fallbackAddress(lead.property_address)}</p>
         <p className="text-sm text-slate-600">{lead.mailing_address ?? "No mailing address"}</p>
-        <p className="text-sm text-slate-600">{lead.lead_source ?? "Unknown source"}</p>
+        <p className="text-sm text-slate-600">{lead.lead_source ?? "No source on file"}</p>
         <div className="flex flex-wrap gap-2">
           <span
             className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${formatStatusColor(lead.status)}`}

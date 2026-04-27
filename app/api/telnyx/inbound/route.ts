@@ -7,12 +7,12 @@ import { classifyInboundSms } from "@/lib/ai/classify-lead";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { normalizePhone } from "@/lib/utils";
 
-const stopKeywords = new Set(["STOP", "UNSUBSCRIBE", "CANCEL", "END", "QUIT", "STOPALL"]);
-
 export async function POST(request: Request) {
   const supabaseAdmin = getSupabaseAdmin();
+  console.log("Inbound webhook hit");
 
   const rawBody = await request.text();
+  console.log("raw payload", rawBody);
 
   const publicKeyB64 = process.env.TELNYX_PUBLIC_KEY;
   if (publicKeyB64) {
@@ -69,7 +69,9 @@ export async function POST(request: Request) {
   const fromRaw = String(
     ((msg?.from as Record<string, unknown>)?.phone_number as string) ?? ""
   );
+  console.log("extracted phone", fromRaw);
   const from = normalizePhone(fromRaw);
+  console.log("normalized phone", from);
   const telnyxMessageId = String((msg?.id as string) ?? "");
 
   if (!from || !inboundText) {
@@ -81,12 +83,13 @@ export async function POST(request: Request) {
     .select("*")
     .eq("phone_normalized", from)
     .maybeSingle();
+  console.log("lead match result", lead ? { id: lead.id, user_id: lead.user_id, campaign_id: lead.campaign_id } : null);
 
-  const isStopReply = stopKeywords.has(inboundText.toUpperCase());
   const inboundClassification = classifyInboundSms(inboundText);
+  console.log("classification result", inboundClassification);
   const receivedAt = new Date().toISOString();
 
-  await supabaseAdmin.from("messages").upsert(
+  const insertResult = await supabaseAdmin.from("messages").upsert(
     {
       user_id: lead?.user_id ?? null,
       lead_id: lead?.id ?? null,
@@ -100,9 +103,13 @@ export async function POST(request: Request) {
     },
     { onConflict: "telnyx_message_id" }
   );
+  console.log("DB insert result", {
+    error: insertResult.error?.message ?? null,
+    inserted_telnyx_message_id: telnyxMessageId,
+  });
 
   if (lead) {
-    await supabaseAdmin
+    const updateResult = await supabaseAdmin
       .from("leads")
       .update({
         status: inboundClassification.leadStatus,
@@ -116,8 +123,16 @@ export async function POST(request: Request) {
         last_replied_at: receivedAt,
       })
       .eq("id", lead.id);
+    console.log("DB update result", {
+      error: updateResult.error?.message ?? null,
+      lead_id: lead.id,
+      status: inboundClassification.leadStatus,
+      stage: inboundClassification.leadStage,
+      classification: inboundClassification.leadClassification,
+      is_dnc: inboundClassification.isDnc,
+    });
 
-    if (isStopReply) {
+    if (inboundClassification.messageClassification === "STOP_DNC") {
       await supabaseAdmin.from("notes").insert({
         user_id: lead.user_id,
         lead_id: lead.id,

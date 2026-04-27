@@ -10,6 +10,7 @@ const TYPE_LABELS: Record<CampaignType, string> = {
   foreclosure_help: "Foreclosure",
   probate: "Probate",
   tax_sale: "Tax Sale",
+  custom: "Custom",
 };
 
 const TYPE_CLASSES: Record<CampaignType, string> = {
@@ -17,6 +18,7 @@ const TYPE_CLASSES: Record<CampaignType, string> = {
   foreclosure_help: "bg-[#fef2f2] text-[#e5484d]",
   probate: "bg-[#ede9fe] text-[#5b21b6]",
   tax_sale: "bg-[#fef3c7] text-[#92400e]",
+  custom: "bg-[#f3f4f6] text-[#6b7280]",
 };
 
 function TypeBadge({ type }: { type: CampaignType | null }) {

@@ -4,10 +4,11 @@ import { NextResponse } from "next/server";
 import { parseLeadCsv } from "@/lib/csv/parse-leads";
 import { classifyLeadMock } from "@/lib/ai/classify-lead";
 import { getRouteUser } from "@/lib/route-user";
-import { buildFirstSmsForLead } from "@/lib/sms/templates";
+import { renderTemplate } from "@/lib/sms/templates";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { sendTelnyxMessage, TelnyxSendError } from "@/lib/telnyx/send-sms";
 import { isInsideWindow, nextWindowOpenUTC } from "@/lib/send-window";
+import { withStopLanguage } from "@/lib/utils";
 import type { LeadPriority, LeadStage, CampaignType } from "@/types/database";
 
 const VALID_CAMPAIGN_TYPES = new Set<CampaignType>([
@@ -55,6 +56,32 @@ export async function POST(request: Request) {
 
   if (parsedRows.length === 0) {
     return NextResponse.json({ error: "CSV contains no valid rows" }, { status: 400 });
+  }
+
+  let campaignTemplate: string | null = null;
+  if (campaignId) {
+    const { data: campaign, error: campaignError } = await supabaseAdmin
+      .from("campaigns")
+      .select("id, campaign_type, first_sms_template")
+      .eq("id", campaignId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (campaignError) {
+      return NextResponse.json({ error: campaignError.message }, { status: 500 });
+    }
+
+    if (!campaign) {
+      return NextResponse.json({ error: "Campaign not found." }, { status: 404 });
+    }
+
+    campaignTemplate = campaign.first_sms_template?.trim() ?? null;
+    if (!campaignTemplate) {
+      return NextResponse.json(
+        { error: "Please choose a campaign message before sending." },
+        { status: 400 }
+      );
+    }
   }
 
   // Deduplicate by phone_normalized — keep first occurrence
@@ -185,18 +212,23 @@ export async function POST(request: Request) {
     for (const lead of smsTargets ?? []) {
       if (lead.status === "DNC" || lead.is_dnc) continue;
 
-      const rendered = buildFirstSmsForLead(
-        {
+      if (!campaignTemplate) {
+        return NextResponse.json(
+          { error: "Please choose a campaign message before sending." },
+          { status: 400 }
+        );
+      }
+
+      const text = withStopLanguage(
+        renderTemplate(campaignTemplate, {
           id: lead.id,
           phone_normalized: lead.phone_normalized,
           first_name: lead.first_name,
           property_address: lead.property_address,
           tag: lead.tag,
           lead_source: lead.lead_source,
-        },
-        campaignType ?? undefined
+        })
       );
-      const text = rendered.message;
 
       // Queue the message if auto-send is on but we're outside the window
       if (autoSendEnabled && !insideWindow && smsSettings) {

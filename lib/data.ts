@@ -124,23 +124,37 @@ export async function getCampaignCount(): Promise<number> {
 export async function getLeadDetailData(leadId: string) {
   const { supabase, user } = await requireUser();
 
-  const [leadResponse, noteResponse, followupResponse, messageResponse] = await Promise.all([
+  const [leadResponse, noteResponse, followupResponse, messageResponse, campaignResponse] = await Promise.all([
     supabase.from("leads").select("*").eq("user_id", user.id).eq("id", leadId).single(),
     supabase.from("notes").select("*").eq("user_id", user.id).eq("lead_id", leadId).order("created_at", { ascending: false }),
     supabase.from("followups").select("*").eq("user_id", user.id).eq("lead_id", leadId).order("due_date", { ascending: true }),
     supabase.from("messages").select("*").eq("user_id", user.id).eq("lead_id", leadId).order("created_at", { ascending: true }),
+    supabase.from("campaigns").select("id, name, campaign_type").eq("user_id", user.id),
   ]);
 
   if (leadResponse.error) throw leadResponse.error;
   if (noteResponse.error) throw noteResponse.error;
   if (followupResponse.error) throw followupResponse.error;
   if (messageResponse.error) throw messageResponse.error;
+  if (campaignResponse.error) throw campaignResponse.error;
+  const lead = leadResponse.data as Lead;
+  const campaigns = (campaignResponse.data ?? []) as Array<Pick<Campaign, "id" | "name" | "campaign_type">>;
+  const messages = (messageResponse.data ?? []) as Message[];
+
+  const campaign =
+    lead.campaign_id
+      ? campaigns.find((item) => item.id === lead.campaign_id) ?? null
+      : null;
+  const lastInboundMessage =
+    messages.filter((message) => message.direction === "inbound").at(-1) ?? null;
 
   return {
-    lead: leadResponse.data as Lead,
+    lead,
     notes: (noteResponse.data ?? []) as Note[],
     followups: (followupResponse.data ?? []) as Followup[],
-    messages: (messageResponse.data ?? []) as Message[],
+    messages,
+    campaign: campaign ? { id: campaign.id, name: campaign.name, campaign_type: campaign.campaign_type } : null,
+    lastInboundMessage: lastInboundMessage as Message | null,
   };
 }
 
@@ -160,16 +174,25 @@ export async function getDashboardStats() {
   const { supabase, user } = await requireUser();
   const today = format(new Date(), "yyyy-MM-dd");
 
-  const [leadsResponse, messagesResponse] = await Promise.all([
+  const [leadsResponse, messagesResponse, campaignsResponse] = await Promise.all([
     supabase.from("leads").select("*").eq("user_id", user.id).order("updated_at", { ascending: false }),
     supabase.from("messages").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+    supabase
+      .from("campaigns")
+      .select("id, name, campaign_type, messaged_count, replied_count, hot_count, total_leads")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (leadsResponse.error) throw leadsResponse.error;
   if (messagesResponse.error) throw messagesResponse.error;
+  if (campaignsResponse.error) throw campaignsResponse.error;
 
   const leads = (leadsResponse.data ?? []) as Lead[];
   const messages = (messagesResponse.data ?? []) as Message[];
+  const campaigns = (campaignsResponse.data ?? []) as Array<
+    Pick<Campaign, "id" | "name" | "campaign_type" | "messaged_count" | "replied_count" | "hot_count" | "total_leads">
+  >;
   const allDueLeads = leads.filter(
     (lead) => lead.next_follow_up_at && format(new Date(lead.next_follow_up_at), "yyyy-MM-dd") === today
   );
@@ -184,6 +207,11 @@ export async function getDashboardStats() {
   };
 
   const leadsById = new Map(leads.map((lead) => [lead.id, lead]));
+  const messageGroups = new Map<string, Message[]>();
+  for (const message of messages) {
+    if (!message.lead_id) continue;
+    messageGroups.set(message.lead_id, [...(messageGroups.get(message.lead_id) ?? []), message]);
+  }
   const recentReplies = messages
     .filter((message) => message.direction === "inbound" && message.lead_id)
     .slice(0, 6)
@@ -193,7 +221,25 @@ export async function getDashboardStats() {
     }))
     .filter((entry): entry is { message: Message; lead: Lead } => Boolean(entry.lead));
 
-  return { counts, dueLeads, recentReplies };
+  const hotLeadRows = leads
+    .filter((lead) => lead.classification === "HOT")
+    .slice(0, 6)
+    .map((lead) => ({
+      lead,
+      lastMessage:
+        [...(messageGroups.get(lead.id) ?? [])]
+          .sort((left, right) => right.created_at.localeCompare(left.created_at))[0] ?? null,
+    }));
+
+  const campaignPerformance = campaigns.map((campaign) => ({
+    ...campaign,
+    conversionRate:
+      campaign.messaged_count > 0
+        ? Math.round((campaign.hot_count / campaign.messaged_count) * 1000) / 10
+        : 0,
+  }));
+
+  return { counts, dueLeads, recentReplies, hotLeadRows, campaignPerformance };
 }
 
 export async function getInboxData() {
@@ -202,7 +248,7 @@ export async function getInboxData() {
   const [leadResponse, messageResponse, campaignResponse] = await Promise.all([
     supabase.from("leads").select("*").eq("user_id", user.id).order("updated_at", { ascending: false }),
     supabase.from("messages").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-    supabase.from("campaigns").select("id, campaign_type").eq("user_id", user.id),
+    supabase.from("campaigns").select("id, name, campaign_type").eq("user_id", user.id),
   ]);
 
   if (leadResponse.error) throw leadResponse.error;
@@ -212,7 +258,7 @@ export async function getInboxData() {
   return {
     leads: (leadResponse.data ?? []) as Lead[],
     messages: (messageResponse.data ?? []) as Message[],
-    campaigns: (campaignResponse.data ?? []) as Pick<Campaign, "id" | "campaign_type">[],
+    campaigns: (campaignResponse.data ?? []) as Pick<Campaign, "id" | "name" | "campaign_type">[],
   };
 }
 
@@ -223,7 +269,7 @@ export async function getPipelineData() {
     supabase.from("leads").select("*").eq("user_id", user.id).order("updated_at", { ascending: false }),
     supabase.from("messages").select("*").eq("user_id", user.id),
     supabase.from("followups").select("*").eq("user_id", user.id),
-    supabase.from("campaigns").select("id, name").eq("user_id", user.id),
+    supabase.from("campaigns").select("id, name, campaign_type").eq("user_id", user.id),
   ]);
 
   if (leadResponse.error) throw leadResponse.error;
@@ -234,9 +280,9 @@ export async function getPipelineData() {
   const leads = (leadResponse.data ?? []) as Lead[];
   const messages = (messageResponse.data ?? []) as Message[];
   const followups = (followupResponse.data ?? []) as Followup[];
-  const campaigns = (campaignResponse.data ?? []) as Array<Pick<Campaign, "id" | "name">>;
-  const campaignNameById = new Map(
-    campaigns.map((campaign) => [campaign.id, campaign.name])
+  const campaigns = (campaignResponse.data ?? []) as Array<Pick<Campaign, "id" | "name" | "campaign_type">>;
+  const campaignById = new Map(
+    campaigns.map((campaign) => [campaign.id, campaign])
   );
 
   const messageCountByLead = new Map<string, number>();
@@ -263,7 +309,7 @@ export async function getPipelineData() {
     followupCount: followupCountByLead.get(lead.id) ?? 0,
     daysInPipeline: Math.max(0, Math.floor((Date.now() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60 * 24))),
     lastMessagePreview: latestMessageByLead.get(lead.id)?.body ?? null,
-    campaignName: lead.campaign_id ? campaignNameById.get(lead.campaign_id) ?? null : null,
+    campaignName: lead.campaign_id ? campaignById.get(lead.campaign_id)?.name ?? campaignById.get(lead.campaign_id)?.campaign_type ?? null : null,
   }));
 
   const stageOrder: PipelineStage[] = [

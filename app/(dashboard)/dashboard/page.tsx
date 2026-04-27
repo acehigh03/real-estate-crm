@@ -21,7 +21,7 @@ export default async function DashboardPage() {
     .slice(0, 2)
     .join("");
 
-  const { counts, dueLeads, recentReplies } =
+  const { counts, dueLeads, recentReplies, hotLeadRows, campaignPerformance } =
     await getDashboardStats();
 
   return (
@@ -31,6 +31,8 @@ export default async function DashboardPage() {
       counts={counts}
       dueLeads={dueLeads}
       recentReplies={recentReplies}
+      hotLeadRows={hotLeadRows}
+      campaignPerformance={campaignPerformance}
     />
   );
 }

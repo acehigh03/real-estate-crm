@@ -1,6 +1,7 @@
 import { withStopLanguage } from "@/lib/utils";
+import type { CampaignType } from "@/types/database";
 
-export type SmsCampaignType = "cash_offer" | "foreclosure_help" | "probate" | "tax_sale";
+export type SmsCampaignType = CampaignType;
 
 interface TemplateLead {
   id?: string | null;
@@ -11,7 +12,7 @@ interface TemplateLead {
   tag?: string | null;
 }
 
-const TEMPLATE_LIBRARY: Record<SmsCampaignType, string[]> = {
+const TEMPLATE_LIBRARY: Record<Exclude<SmsCampaignType, "custom">, string[]> = {
   probate: [
     "Hi [[first_name]], this is Senay with Texas Relief Group. I work with families managing inherited properties. Would you be open to a quick cash offer on [[address]]? Reply YES or NO.",
   ],
@@ -28,6 +29,18 @@ const TEMPLATE_LIBRARY: Record<SmsCampaignType, string[]> = {
     "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Senay with Texas Relief Group. {{Wanted to ask -|Quick question -|Just checking -}} are you the owner of [[address]]? {{Looks like|Seems like}} it may be {{heading toward|facing}} foreclosure, and {{there may still be time to|you may still have time to}} {{delay|pause}} it before auction. {{Want me to take a quick look?|Want me to check your options?}}",
     "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Senay with Texas Relief Group. {{Just checking -|Wanted to ask -|Quick question -}} is [[address]] still yours? {{It looks like|Seems like}} foreclosure may be coming up. {{There may still be time to|You may still have time to}} {{delay|pause}} that process. {{Want me to take a quick look?|Want me to check what options may be available?}}",
   ],
+};
+
+export const DEFAULT_FIRST_SMS_TEMPLATES: Record<SmsCampaignType, string> = {
+  cash_offer:
+    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Senay with Texas Relief Group. {{Quick question -|Just checking -|Wanted to ask -}} is [[address]] still yours? {{I came across it|I saw it}} and wanted to see if you'd be open to {{a cash offer|an as-is cash offer}}. {{Reply YES or NO.|Would you consider it? Reply YES or NO.}}",
+  foreclosure_help:
+    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Senay with Texas Relief Group. {{Quick question -|Just checking -|Wanted to ask -}} is [[address]] still yours? {{Looks like|Seems like}} it may be {{heading toward|facing}} foreclosure. {{There may still be time to|You may still have time to}} {{delay|pause}} it before the auction. {{Want me to take a quick look?|Want me to check what options you have?}}",
+  probate:
+    "Hi [[first_name]], this is Senay with Texas Relief Group. I work with families managing inherited properties. Would you be open to a quick cash offer on [[address]]? Reply YES or NO.",
+  tax_sale:
+    "Hi [[first_name]], this is Senay with Texas Relief Group. I saw your property at [[address]] may have tax issues. I can help — interested in a cash offer? Reply YES or NO.",
+  custom: "",
 };
 
 function hashString(value: string) {
@@ -66,6 +79,9 @@ export function renderTemplate(template: string, lead: TemplateLead) {
 }
 
 export function pickTemplateVariant(lead: TemplateLead, campaignType: SmsCampaignType) {
+  if (campaignType === "custom") {
+    return "";
+  }
   const templates = TEMPLATE_LIBRARY[campaignType];
   const seed = hashString(`${campaignType}:${templateSeed(lead)}`);
   return templates[seed % templates.length];
@@ -78,6 +94,13 @@ export function resolveCampaignTypeForLead(lead: TemplateLead): SmsCampaignType 
 
 export function buildFirstSmsForLead(lead: TemplateLead, campaignType?: SmsCampaignType) {
   const selectedCampaign = campaignType ?? resolveCampaignTypeForLead(lead);
+  if (selectedCampaign === "custom") {
+    return {
+      campaignType: selectedCampaign,
+      template: "",
+      message: "",
+    };
+  }
   const template = pickTemplateVariant(lead, selectedCampaign);
   const rendered = renderTemplate(template, lead);
   return {

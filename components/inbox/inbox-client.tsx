@@ -3,17 +3,24 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
-import { CalendarClock, Flame, MessageSquare, Plus, Search, Send, Skull, Snowflake } from "lucide-react";
+import { MessageSquare, Plus, Search, Send } from "lucide-react";
 
-import { saveLead, setFollowup, updateLeadStatus } from "@/app/actions";
-import { getClassificationLabel } from "@/lib/ai/classify-lead";
+import { generateInboxDraftReply, getClassificationLabel } from "@/lib/ai/classify-lead";
 import { createClient } from "@/lib/supabase/browser";
-import { formatClassificationColor, formatStatusColor, normalizePhone } from "@/lib/utils";
+import {
+  fallbackCampaignName,
+  fallbackCampaignType,
+  formatClassificationColor,
+  leadDisplayName,
+  messageSnippet,
+  normalizePhone,
+} from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Database, LeadClassification, LeadStatus } from "@/types/database";
+import type { Database, LeadClassification } from "@/types/database";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type Message = Database["public"]["Tables"]["messages"]["Row"];
+type CampaignSummary = Pick<Database["public"]["Tables"]["campaigns"]["Row"], "id" | "name" | "campaign_type">;
 
 interface ConversationData {
   lead: Lead;
@@ -25,6 +32,7 @@ interface ConversationData {
 interface InboxClientProps {
   initialLeads: Lead[];
   initialMessages: Message[];
+  initialCampaigns: CampaignSummary[];
   userId: string;
 }
 
@@ -41,6 +49,10 @@ function avatarBg(name: string) {
   return colors[Math.abs(hash) % colors.length];
 }
 
+function campaignForLead(campaigns: CampaignSummary[], campaignId: string | null) {
+  return campaignId ? campaigns.find((campaign) => campaign.id === campaignId) ?? null : null;
+}
+
 function classificationBadge(classification: LeadClassification) {
   return (
     <span
@@ -49,24 +61,6 @@ function classificationBadge(classification: LeadClassification) {
       {getClassificationLabel(classification)}
     </span>
   );
-}
-
-function statusBadge(status: LeadStatus) {
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${formatStatusColor(status)}`}
-    >
-      {status}
-    </span>
-  );
-}
-
-function draftReplyForLead(lead: Lead, messages: Message[]) {
-  const lastInbound = [...messages].reverse().find((message) => message.direction === "inbound");
-  if (lastInbound) {
-    return `Thanks ${lead.first_name || "there"}, I saw your message. Are you available for a quick call tomorrow to discuss ${lead.property_address}?`;
-  }
-  return `Hi ${lead.first_name || "there"}, I wanted to follow up on ${lead.property_address}. Are you still open to selling?`;
 }
 
 function HiddenLeadFields({
@@ -101,7 +95,7 @@ function HiddenLeadFields({
   );
 }
 
-export function InboxClient({ initialLeads, initialMessages, userId }: InboxClientProps) {
+export function InboxClient({ initialLeads, initialMessages, initialCampaigns, userId }: InboxClientProps) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [messagesByLead, setMessagesByLead] = useState<Record<string, Message[]>>(() => {
     const grouped: Record<string, Message[]> = {};
@@ -323,7 +317,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
 
     const trimmedName = manualName.trim();
     const [firstNameRaw, ...restName] = trimmedName ? trimmedName.split(/\s+/) : [];
-    const firstName = firstNameRaw || "New Lead";
+    const firstName = firstNameRaw || "";
     const lastName = restName.join(" ");
     const newLead = {
       user_id: userId,
@@ -331,7 +325,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
       last_name: lastName,
       phone: manualPhone.trim(),
       phone_normalized: normalizedPhone,
-      property_address: "Inbox conversation",
+      property_address: "",
       mailing_address: null,
       email: null,
       lead_source: "Manual Inbox",
@@ -581,7 +575,15 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
 
   const lead = selectedConversation.lead;
   const leadMessages = selectedConversation.messages;
-  const suggestedReply = draftReplyForLead(lead, leadMessages);
+  const lastInbound = [...leadMessages].reverse().find((message) => message.direction === "inbound") ?? null;
+  const selectedCampaign = campaignForLead(initialCampaigns, lead.campaign_id);
+  const campaignType = selectedCampaign?.campaign_type ?? null;
+  const campaignName = selectedCampaign?.name ?? null;
+  const suggestedReply = generateInboxDraftReply({
+    propertyAddress: lead.property_address,
+    lastInboundBody: lastInbound?.body ?? null,
+    classification: lastInbound?.classification ?? lead.classification,
+  });
 
   return (
     <div className="crm-page flex h-full flex-col overflow-hidden">
@@ -636,13 +638,13 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                     key={conversation.lead.id}
                     type="button"
                     onClick={() => setSelectedLeadId(conversation.lead.id)}
-                    className={`w-full border-l-2 px-4 py-3 text-left transition ${
+                    className={`w-full border-l-2 px-4 py-2 text-left transition ${
                       isActive ? "border-[#00c08b] bg-white" : conversation.unread ? "border-transparent bg-[#f7f8fa]" : "border-transparent bg-[#f7f8fa] hover:bg-white"
                     }`}
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-center gap-3">
                       <div
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
                         style={{
                           background: avatarBg(`${conversation.lead.first_name} ${conversation.lead.last_name}`),
                         }}
@@ -650,9 +652,9 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                         {initials(conversation.lead)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center justify-between gap-2">
                           <p className={`truncate text-sm ${conversation.unread ? "font-semibold text-gray-900" : "font-medium text-gray-800"}`}>
-                            {conversation.lead.first_name} {conversation.lead.last_name}
+                            {leadDisplayName(conversation.lead)}
                           </p>
                           <div className="flex items-center gap-1">
                             {conversation.unread ? <span className="h-2 w-2 rounded-full bg-[#00c08b]" /> : null}
@@ -661,10 +663,12 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                             </span>
                           </div>
                         </div>
-                        <p className="mt-1 truncate text-xs text-gray-500">
-                          {conversation.lastMessage?.body ?? "No messages yet."}
-                        </p>
-                        <div className="mt-2">{classificationBadge(conversation.lead.classification)}</div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <p className="min-w-0 flex-1 truncate text-xs text-gray-500">
+                            {messageSnippet(conversation.lastMessage?.body, 42)}
+                          </p>
+                          {classificationBadge(conversation.lead.classification)}
+                        </div>
                       </div>
                     </div>
                   </button>
@@ -686,12 +690,12 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h2 className="truncate text-sm font-semibold text-[#0f1117]">
-                    {lead.first_name} {lead.last_name}
+                    {leadDisplayName(lead)}
                   </h2>
                   {classificationBadge(lead.classification)}
                 </div>
                 <p className="mt-1 truncate text-xs text-[#6b7280]">
-                  {lead.property_address} · {lead.phone}
+                  {fallbackCampaignName(campaignName)} · {fallbackCampaignType(campaignType)}
                 </p>
               </div>
             </div>

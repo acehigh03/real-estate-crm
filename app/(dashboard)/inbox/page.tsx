@@ -8,12 +8,13 @@ export default async function InboxPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { leads, messages } = await getInboxData();
+  const { leads, messages, campaigns } = await getInboxData();
 
   return (
     <InboxClient
       initialLeads={leads}
       initialMessages={messages}
+      initialCampaigns={campaigns}
       userId={user?.id ?? ""}
     />
   );

@@ -70,19 +70,19 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto px-6 py-8">
-        <div className="mx-auto max-w-xl">
+      <div className="flex-1 overflow-auto px-6 py-4">
+        <div className="max-w-xl">
           <form onSubmit={handleSubmit}>
             {/* SMS Automation card */}
             <div className="crm-card overflow-hidden rounded-[10px] border border-[#eaecf0] bg-white">
-              <div className="border-b border-[#e8edf2] px-6 py-4">
+              <div className="border-b border-[#e8edf2] px-4 py-3">
                 <h2 className="text-[14px] font-semibold text-[#1a1f36]">SMS Automation</h2>
                 <p className="mt-0.5 text-[12px] text-[#6b7c93]">
                   Configure when outbound SMS messages are sent automatically.
                 </p>
               </div>
 
-              <div className="space-y-5 px-6 py-5">
+              <div className="space-y-4 px-4 py-4">
                 {/* Auto-send toggle */}
                 <div className="flex items-center justify-between">
                   <div>
@@ -164,7 +164,7 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
                 </div>
               </div>
 
-              <div className="border-t border-[#e8edf2] px-6 py-4">
+              <div className="border-t border-[#e8edf2] px-4 py-3">
                 {error && (
                   <p className="mb-3 rounded-md bg-[#fef2f2] px-3 py-2 text-[12px] text-[#e5484d]">
                     {error}

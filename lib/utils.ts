@@ -63,3 +63,57 @@ export function formatClassificationColor(classification: string) {
       return "bg-[#f3f4f6] text-[#6b7280]";
   }
 }
+
+export function formatPhoneDisplay(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  const normalized = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+
+  if (normalized.length === 10) {
+    return `(${normalized.slice(0, 3)}) ${normalized.slice(3, 6)}-${normalized.slice(6, 10)}`;
+  }
+
+  return phone;
+}
+
+export function streetOnly(address: string | null | undefined) {
+  const trimmed = (address ?? "").trim();
+  if (!trimmed) return "";
+  return trimmed.split(",")[0]?.trim() ?? trimmed;
+}
+
+export function leadDisplayName(input: {
+  first_name?: string | null;
+  last_name?: string | null;
+  phone: string;
+}) {
+  const fullName = `${input.first_name ?? ""} ${input.last_name ?? ""}`.trim();
+  if (fullName && fullName.toLowerCase() !== "new lead") {
+    return fullName;
+  }
+  return formatPhoneDisplay(input.phone);
+}
+
+export function fallbackAddress(address: string | null | undefined) {
+  const street = streetOnly(address);
+  return street || "Address not found — verify with lead";
+}
+
+export function fallbackCampaignName(name: string | null | undefined) {
+  const trimmed = (name ?? "").trim();
+  return trimmed || "No campaign assigned";
+}
+
+export function fallbackCampaignType(type: string | null | undefined) {
+  const trimmed = (type ?? "").trim();
+  return trimmed || "No campaign assigned";
+}
+
+export function safeClassificationLabel(classification: string | null | undefined) {
+  return classification && classification !== "UNKNOWN" ? classification : "Needs qualification";
+}
+
+export function messageSnippet(text: string | null | undefined, maxLength = 60) {
+  const cleaned = (text ?? "").trim().replace(/\s+/g, " ");
+  if (!cleaned) return "No messages yet";
+  return cleaned.length > maxLength ? `${cleaned.slice(0, maxLength).trimEnd()}...` : cleaned;
+}

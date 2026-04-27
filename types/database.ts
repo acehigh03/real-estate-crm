@@ -3,7 +3,7 @@ export type LeadClassification = "HOT" | "WARM" | "COLD" | "DEAD" | "OPT_OUT" | 
 export type LeadStage = "New" | "Contacted" | "Replied" | "Hot Lead" | "Follow Up" | "Closed" | "DNC";
 export type LeadPriority = "high" | "medium" | "low";
 export type MessageClassification = "HOT" | "WARM" | "NOT_INTERESTED" | "STOP_DNC" | "NEEDS_REVIEW";
-export type CampaignType = "cash_offer" | "foreclosure_help" | "probate" | "tax_sale";
+export type CampaignType = "cash_offer" | "foreclosure_help" | "probate" | "tax_sale" | "custom";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -77,6 +77,10 @@ export interface Database {
         Row: {
           campaign_type: CampaignType | null;
           created_at: string;
+          first_sms_template: string | null;
+          followup_1_template: string | null;
+          followup_2_template: string | null;
+          followup_3_template: string | null;
           hot_count: number;
           id: string;
           messaged_count: number;
@@ -90,6 +94,10 @@ export interface Database {
         };
         Insert: {
           campaign_type?: CampaignType | null;
+          first_sms_template?: string | null;
+          followup_1_template?: string | null;
+          followup_2_template?: string | null;
+          followup_3_template?: string | null;
           hot_count?: number;
           messaged_count?: number;
           name: string;
