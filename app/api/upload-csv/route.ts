@@ -4,19 +4,11 @@ import { NextResponse } from "next/server";
 import { parseLeadCsv } from "@/lib/csv/parse-leads";
 import { classifyLeadMock } from "@/lib/ai/classify-lead";
 import { getRouteUser } from "@/lib/route-user";
+import { buildFirstSmsForLead } from "@/lib/sms/templates";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { sendTelnyxMessage, TelnyxSendError } from "@/lib/telnyx/send-sms";
-import { withStopLanguage } from "@/lib/utils";
 import { isInsideWindow, nextWindowOpenUTC } from "@/lib/send-window";
 import type { LeadPriority, LeadStage } from "@/types/database";
-
-function buildFirstSms(firstName: string, address: string): string {
-  const intro = address
-    ? `I came across your property at ${address} and wanted to reach out.`
-    : `I wanted to reach out about a potential cash offer.`;
-  const text = `Hi ${firstName}, this is Senay with Texas Relief Group. ${intro} Are you open to a cash offer? Reply YES or NO.`;
-  return withStopLanguage(text);
-}
 
 export async function POST(request: Request) {
   const supabaseAdmin = getSupabaseAdmin();
@@ -168,16 +160,24 @@ export async function POST(request: Request) {
     const newPhones = newRows.map((r) => r.phone_normalized);
     const { data: smsTargets } = await supabaseAdmin
       .from("leads")
-      .select("id, first_name, property_address, phone_normalized, status")
+      .select("id, first_name, property_address, phone_normalized, status, tag, lead_source, is_dnc")
       .eq("user_id", user.id)
       .in("phone_normalized", newPhones);
 
     const now = new Date().toISOString();
 
     for (const lead of smsTargets ?? []) {
-      if (lead.status === "DNC") continue;
+      if (lead.status === "DNC" || lead.is_dnc) continue;
 
-      const text = buildFirstSms(lead.first_name, lead.property_address);
+      const rendered = buildFirstSmsForLead({
+        id: lead.id,
+        phone_normalized: lead.phone_normalized,
+        first_name: lead.first_name,
+        property_address: lead.property_address,
+        tag: lead.tag,
+        lead_source: lead.lead_source,
+      });
+      const text = rendered.message;
 
       // Queue the message if auto-send is on but we're outside the window
       if (autoSendEnabled && !insideWindow && smsSettings) {

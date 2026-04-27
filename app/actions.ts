@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { classifyLeadMock } from "@/lib/ai/classify-lead";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { normalizePhone } from "@/lib/utils";
-import type { Database, LeadClassification, LeadStatus } from "@/types/database";
+import type { Database, LeadClassification, LeadPriority, LeadStage, LeadStatus } from "@/types/database";
 
 type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"];
 type LeadUpdate = Database["public"]["Tables"]["leads"]["Update"];
@@ -56,6 +56,10 @@ export async function saveLead(formData: FormData) {
   const classification =
     selectedClassification ||
     mockClassification.classification;
+  const score =
+    selectedClassification ? payloadScoreForClassification(classification) : mockClassification.motivationScore;
+  const stage = deriveLeadStage(status, classification, nextFollowUpAt);
+  const isDnc = status === "DNC" || classification === "OPT_OUT";
 
   const payload: LeadUpdate = {
     first_name: String(formData.get("first_name") ?? ""),
@@ -68,7 +72,12 @@ export async function saveLead(formData: FormData) {
     lead_source: String(formData.get("lead_source") ?? "") || null,
     status,
     classification,
-    motivation_score: selectedClassification ? payloadScoreForClassification(classification) : mockClassification.motivationScore,
+    motivation_score: score,
+    lead_score: score,
+    stage,
+    priority: deriveLeadPriority(classification),
+    is_dnc: isDnc,
+    dnc_reason: isDnc ? "Marked DNC manually" : null,
     next_follow_up_at: nextFollowUpAt,
     tag: String(formData.get("tag") ?? "") || null,
     notes_summary: notesSummary,
@@ -132,6 +141,11 @@ export async function updateLeadStatus(formData: FormData) {
     status,
     classification: mockClassification.classification,
     motivation_score: mockClassification.motivationScore,
+    lead_score: mockClassification.motivationScore,
+    stage: deriveLeadStage(status, mockClassification.classification, existingLead?.next_follow_up_at ?? null),
+    priority: deriveLeadPriority(mockClassification.classification),
+    is_dnc: status === "DNC" || mockClassification.classification === "OPT_OUT",
+    dnc_reason: status === "DNC" ? "Marked DNC manually" : null,
   };
   const { error } = await supabaseAdmin
     .from("leads")
@@ -212,8 +226,11 @@ export async function setFollowup(formData: FormData) {
   });
   const leadPayload: LeadUpdate = {
     next_follow_up_at: nextFollowUpAt || dueDate,
+    stage: "Follow Up",
     classification: mockClassification.classification,
     motivation_score: mockClassification.motivationScore,
+    lead_score: mockClassification.motivationScore,
+    priority: deriveLeadPriority(mockClassification.classification),
   };
   const { error: leadError } = await supabaseAdmin
     .from("leads")
@@ -293,6 +310,7 @@ export async function updatePipelineStage(formData: FormData) {
 
   const payload: LeadUpdate = {
     status: nextStatus,
+    stage: mapPipelineStageToLeadStage(stage),
     tag: nextTag,
     classification: stage === "Offer Sent" ? existingLead.classification : nextClassification || mockClassification.classification,
     motivation_score:
@@ -300,9 +318,19 @@ export async function updatePipelineStage(formData: FormData) {
         ? 90
         : stage === "Dead"
           ? 5
+        : stage === "Offer Sent"
+            ? Math.max(existingLead.motivation_score, 70)
+            : mockClassification.motivationScore,
+    lead_score:
+      stage === "Qualified"
+        ? 90
+        : stage === "Dead"
+          ? 5
           : stage === "Offer Sent"
             ? Math.max(existingLead.motivation_score, 70)
             : mockClassification.motivationScore,
+    priority: deriveLeadPriority(stage === "Offer Sent" ? existingLead.classification : nextClassification || mockClassification.classification),
+    is_dnc: stage === "Dead" ? existingLead.status === "DNC" || existingLead.is_dnc : existingLead.is_dnc,
   };
 
   const { error } = await supabaseAdmin
@@ -333,5 +361,42 @@ function payloadScoreForClassification(classification: LeadClassification) {
       return 0;
     default:
       return 25;
+  }
+}
+
+function deriveLeadStage(
+  status: LeadStatus,
+  classification: LeadClassification,
+  nextFollowUpAt: string | null
+): LeadStage {
+  if (status === "DNC" || classification === "OPT_OUT") return "DNC";
+  if (status === "Dead" || classification === "DEAD") return "Closed";
+  if (status === "Hot" || classification === "HOT") return "Hot Lead";
+  if (nextFollowUpAt) return "Follow Up";
+  if (status === "Replied") return "Replied";
+  if (status === "Contacted") return "Contacted";
+  return "New";
+}
+
+function deriveLeadPriority(classification: LeadClassification): LeadPriority {
+  if (classification === "HOT") return "high";
+  if (classification === "WARM") return "medium";
+  return "low";
+}
+
+function mapPipelineStageToLeadStage(stage: "New Leads" | "Contacted" | "Replied" | "Qualified" | "Offer Sent" | "Dead"): LeadStage {
+  switch (stage) {
+    case "New Leads":
+      return "New";
+    case "Contacted":
+      return "Contacted";
+    case "Replied":
+      return "Replied";
+    case "Qualified":
+      return "Hot Lead";
+    case "Offer Sent":
+      return "Closed";
+    case "Dead":
+      return "Closed";
   }
 }

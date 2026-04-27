@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Lead not found" }, { status: 404 });
   }
 
-  if (lead.status === "DNC") {
+  if (lead.status === "DNC" || lead.is_dnc) {
     return NextResponse.json({ error: "Cannot send to DNC lead" }, { status: 400 });
   }
 
@@ -67,6 +67,7 @@ export async function POST(request: Request) {
   const { error: messageError } = await supabaseAdmin.from("messages").insert({
     user_id: user.id,
     lead_id: lead.id,
+    phone: toNormalized,
     direction: "outbound",
     body,
     to_number: toNormalized,
@@ -88,8 +89,16 @@ export async function POST(request: Request) {
     .from("leads")
     .update({
       status: lead.status === "New" ? "Contacted" : lead.status,
+      stage: lead.status === "New" ? "Contacted" : lead.stage ?? "Contacted",
       classification: mockClassification.classification,
       motivation_score: mockClassification.motivationScore,
+      lead_score: mockClassification.motivationScore,
+      priority:
+        mockClassification.classification === "HOT"
+          ? "high"
+          : mockClassification.classification === "WARM"
+            ? "medium"
+            : "low",
       last_contacted_at: new Date().toISOString(),
     })
     .eq("id", lead.id);

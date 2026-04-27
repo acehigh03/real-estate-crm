@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const sendableLeads = (leads ?? []).filter((lead) => lead.status !== "DNC");
+  const sendableLeads = (leads ?? []).filter((lead) => lead.status !== "DNC" && !lead.is_dnc);
   const results = await Promise.all(
     sendableLeads.map(async (lead) => {
       const telnyxMessage = await sendTelnyxMessage({
@@ -49,6 +49,7 @@ export async function POST(request: Request) {
       await supabaseAdmin.from("messages").insert({
         user_id: user.id,
         lead_id: lead.id,
+        phone: lead.phone_normalized,
         direction: "outbound",
         body,
         to_number: lead.phone_normalized,
@@ -66,8 +67,10 @@ export async function POST(request: Request) {
         .from("leads")
         .update({
           status: lead.status === "New" ? "Contacted" : lead.status,
+          stage: lead.status === "New" ? "Contacted" : lead.stage ?? "Contacted",
           classification: mockClassification.classification,
           motivation_score: mockClassification.motivationScore,
+          lead_score: mockClassification.motivationScore,
           last_contacted_at: new Date().toISOString(),
         })
         .eq("id", lead.id);

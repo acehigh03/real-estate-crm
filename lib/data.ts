@@ -27,6 +27,13 @@ export interface PipelineLeadCard {
 }
 
 function derivePipelineStage(lead: Lead): PipelineStage {
+  if (lead.stage === "New") return "New Leads";
+  if (lead.stage === "Contacted") return "Contacted";
+  if (lead.stage === "Replied" || lead.stage === "Follow Up") return "Replied";
+  if (lead.stage === "Hot Lead") return "Qualified";
+  if (lead.stage === "Closed") return "Offer Sent";
+  if (lead.stage === "DNC") return "Dead";
+
   const tag = (lead.tag ?? "").toLowerCase();
   const summary = (lead.notes_summary ?? "").toLowerCase();
   const hasOfferSignal = tag.includes("offer") || summary.includes("offer sent");

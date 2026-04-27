@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { classifyLeadMock } from "@/lib/ai/classify-lead";
+import { classifyInboundSms } from "@/lib/ai/classify-lead";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { normalizePhone } from "@/lib/utils";
 
@@ -83,34 +83,37 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   const isStopReply = stopKeywords.has(inboundText.toUpperCase());
+  const inboundClassification = classifyInboundSms(inboundText);
+  const receivedAt = new Date().toISOString();
 
   await supabaseAdmin.from("messages").upsert(
     {
       user_id: lead?.user_id ?? null,
       lead_id: lead?.id ?? null,
+      phone: from,
       direction: "inbound",
       body: inboundText,
       to_number: from,
       status: "received",
+      classification: inboundClassification.messageClassification,
       telnyx_message_id: telnyxMessageId,
     },
     { onConflict: "telnyx_message_id" }
   );
 
   if (lead) {
-    const mockClassification = classifyLeadMock({
-      status: isStopReply ? "DNC" : "Replied",
-      notesSummary: lead.notes_summary,
-      nextFollowUpAt: lead.next_follow_up_at,
-      inboundMessageCount: 1,
-    });
-
     await supabaseAdmin
       .from("leads")
       .update({
-        status: isStopReply ? "DNC" : "Replied",
-        classification: mockClassification.classification,
-        motivation_score: mockClassification.motivationScore,
+        status: inboundClassification.leadStatus,
+        stage: inboundClassification.leadStage,
+        classification: inboundClassification.leadClassification,
+        motivation_score: inboundClassification.leadScore,
+        lead_score: inboundClassification.leadScore,
+        priority: inboundClassification.priority,
+        is_dnc: inboundClassification.isDnc,
+        dnc_reason: inboundClassification.dncReason,
+        last_replied_at: receivedAt,
       })
       .eq("id", lead.id);
 
@@ -119,6 +122,12 @@ export async function POST(request: Request) {
         user_id: lead.user_id,
         lead_id: lead.id,
         body: "Lead replied STOP and was automatically marked DNC.",
+      });
+    } else if (inboundClassification.shouldAlert) {
+      await supabaseAdmin.from("notes").insert({
+        user_id: lead.user_id,
+        lead_id: lead.id,
+        body: "HOT inbound reply detected. Review this lead immediately.",
       });
     }
   }
