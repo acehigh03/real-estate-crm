@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   PanelsTopLeft,
+  Search,
   Users,
   MessageSquare,
   LogOut,
@@ -20,25 +21,24 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { signOut } from "@/app/actions";
 
 const sidebarStyle = {
-  "--sidebar": "220 14% 10%",
-  "--sidebar-foreground": "215 12% 68%",
-  "--sidebar-border": "220 14% 17%",
-  "--sidebar-accent": "220 14% 15%",
-  "--sidebar-accent-foreground": "215 12% 90%",
-  "--sidebar-ring": "162 44% 55%",
+  "--sidebar": "220 18% 8%",
+  "--sidebar-foreground": "220 10% 76%",
+  "--sidebar-border": "220 18% 8%",
+  "--sidebar-accent": "220 18% 13%",
+  "--sidebar-accent-foreground": "0 0% 100%",
+  "--sidebar-ring": "160 84% 39%",
 } as React.CSSProperties;
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/pipeline", label: "Pipeline", icon: PanelsTopLeft },
-  { href: "/leads", label: "Leads", icon: Users },
-  { href: "/inbox", label: "Inbox", icon: MessageSquare },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null },
+  { href: "/pipeline", label: "Pipeline", icon: PanelsTopLeft, badge: null },
+  { href: "/leads", label: "Leads", icon: Users, badge: null },
+  { href: "/inbox", label: "Inbox", icon: MessageSquare, badge: "live" },
 ];
 
 interface AppSidebarProps {
@@ -51,43 +51,58 @@ export function AppSidebar({
   userEmail = "",
 }: AppSidebarProps) {
   const pathname = usePathname();
-
-  const initials = userEmail
-    ? userEmail
-        .split("@")[0]
-        .split(/[._-]/)
-        .slice(0, 2)
-        .map((s) => s[0]?.toUpperCase() ?? "")
-        .join("")
-        .slice(0, 2) || "SP"
-    : "SP";
+  const displayName =
+    userEmail
+      .split("@")[0]
+      .split(/[._-]/)
+      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+      .join(" ") || "Senay";
+  const initials =
+    displayName
+      .split(" ")
+      .map((segment) => segment[0] ?? "")
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "SP";
 
   return (
-    <Sidebar collapsible="icon" style={sidebarStyle} className="border-r border-[#1e2230]">
-      {/* Logo */}
+    <Sidebar collapsible="icon" style={sidebarStyle} className="!border-r-0">
       <SidebarHeader className="px-3 py-4">
-        <div className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#16a37f] text-[10px] font-bold text-white">
+        <div className="flex items-start gap-2.5 group-data-[collapsible=icon]:justify-center">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#10b981] text-[11px] font-semibold text-white">
             SP
           </div>
-          <span className="text-[13px] font-semibold text-white/85 group-data-[collapsible=icon]:hidden">
-            Seller Pipeline
-          </span>
+          <div className="group-data-[collapsible=icon]:hidden">
+            <p className="text-[13px] font-medium text-white">Seller Pipeline</p>
+            <p className="mt-0.5 text-[11px] text-white/35">sellingmy.casa</p>
+          </div>
+        </div>
+
+        <div className="mt-4 group-data-[collapsible=icon]:hidden">
+          <div className="crm-dark-input flex items-center gap-2 px-2.5 py-2">
+            <Search size={13} className="text-white/35" />
+            <input
+              readOnly
+              value=""
+              placeholder="Search"
+              className="w-full bg-transparent text-xs outline-none placeholder:text-white/35"
+            />
+          </div>
         </div>
       </SidebarHeader>
 
-      <SidebarSeparator className="bg-[#1e2230]" />
-
-      {/* Navigation */}
       <SidebarContent>
         <SidebarGroup className="px-2 py-2">
           <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map(({ href, label, icon: Icon }) => {
-                const isActive =
-                  pathname === href || pathname.startsWith(href + "/");
-                const showBadge =
-                  label === "Inbox" && inboxBadgeCount > 0;
+            <SidebarMenu className="gap-1">
+              {navItems.map(({ href, label, icon: Icon, badge }) => {
+                const isActive = pathname === href || pathname.startsWith(`${href}/`);
+                const badgeText =
+                  label === "Inbox"
+                    ? inboxBadgeCount > 0
+                      ? String(inboxBadgeCount)
+                      : badge
+                    : badge;
 
                 return (
                   <SidebarMenuItem key={href}>
@@ -96,19 +111,19 @@ export function AppSidebar({
                       isActive={isActive}
                       tooltip={label}
                       className={cn(
-                        "rounded-md border border-transparent px-2.5 py-1 transition-colors duration-100",
+                        "rounded-md px-2.5 py-2 text-[13px] transition-colors",
                         isActive
-                          ? "!border-[rgba(22,163,127,.15)] !bg-[rgba(255,255,255,.07)] !text-white"
-                          : "!text-[rgba(255,255,255,.48)] hover:!bg-[rgba(255,255,255,.04)] hover:!text-[rgba(255,255,255,.78)]"
+                          ? "!bg-[rgba(255,255,255,0.10)] !text-white data-[active=true]:font-medium"
+                          : "!text-white/62 hover:!bg-[rgba(255,255,255,0.06)] hover:!text-white"
                       )}
                     >
-                      <Icon size={14} strokeWidth={1.6} className="shrink-0" />
-                      <span className="flex-1 text-[13px]">{label}</span>
-                      {showBadge && (
-                        <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold leading-none text-white group-data-[collapsible=icon]:hidden">
-                          {inboxBadgeCount > 99 ? "99+" : inboxBadgeCount}
+                      <Icon size={14} strokeWidth={1.7} className="shrink-0" />
+                      <span className="flex-1">{label}</span>
+                      {badgeText ? (
+                        <span className="rounded-full bg-black/25 px-1.5 py-0.5 text-[10px] font-medium text-white/80 group-data-[collapsible=icon]:hidden">
+                          {badgeText}
                         </span>
-                      )}
+                      ) : null}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -118,28 +133,31 @@ export function AppSidebar({
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarSeparator className="bg-[#1e2230]" />
-
-      {/* Footer */}
-      <SidebarFooter className="px-2 py-3">
-        <div className="mb-1 flex items-center gap-2 px-2.5 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#16a37f] text-[9px] font-bold text-white">
+      <SidebarFooter className="px-3 py-4">
+        <div className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-[11px] font-medium text-white">
             {initials}
           </div>
-          <span className="truncate max-w-[110px] text-[11px] text-[rgba(255,255,255,.42)] group-data-[collapsible=icon]:hidden">
-            {userEmail || "User"}
-          </span>
+          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
+            <div className="flex items-center gap-2">
+              <p className="truncate text-[12px] font-medium text-white">{displayName}</p>
+              <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-white/70">
+                Pro
+              </span>
+            </div>
+            <p className="mt-0.5 truncate text-[11px] text-white/35">{userEmail || "seller@pipeline.com"}</p>
+          </div>
         </div>
 
-        <SidebarMenu>
+        <SidebarMenu className="mt-3">
           <SidebarMenuItem>
             <form action={signOut} className="w-full">
               <SidebarMenuButton
                 render={<button type="submit" className="w-full" />}
                 tooltip="Sign out"
-                className="rounded-md px-2.5 py-1 !text-[rgba(255,255,255,.38)] transition-colors duration-100 hover:!bg-[rgba(255,255,255,.04)] hover:!text-[rgba(255,255,255,.68)]"
+                className="rounded-md px-2.5 py-2 !text-white/50 transition-colors hover:!bg-[rgba(255,255,255,0.06)] hover:!text-white"
               >
-                <LogOut size={13} strokeWidth={1.6} />
+                <LogOut size={14} strokeWidth={1.7} />
                 <span className="text-[13px]">Sign out</span>
               </SidebarMenuButton>
             </form>

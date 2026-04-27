@@ -61,6 +61,14 @@ function statusBadge(status: LeadStatus) {
   );
 }
 
+function draftReplyForLead(lead: Lead, messages: Message[]) {
+  const lastInbound = [...messages].reverse().find((message) => message.direction === "inbound");
+  if (lastInbound) {
+    return `Thanks ${lead.first_name || "there"}, I saw your message. Are you available for a quick call tomorrow to discuss ${lead.property_address}?`;
+  }
+  return `Hi ${lead.first_name || "there"}, I wanted to follow up on ${lead.property_address}. Are you still open to selling?`;
+}
+
 function HiddenLeadFields({
   lead,
   classification,
@@ -567,24 +575,26 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
 
   const lead = selectedConversation.lead;
   const leadMessages = selectedConversation.messages;
+  const suggestedReply = draftReplyForLead(lead, leadMessages);
 
   return (
     <div className="crm-page flex h-full flex-col overflow-hidden">
-      <div className="crm-page-header px-6 py-6">
-        <p className="crm-section-kicker">Messaging workspace</p>
-        <h1 className="mt-2 text-[1.625rem] font-bold tracking-tight text-gray-900">Inbox</h1>
-        <p className="mt-1 text-sm text-gray-500">Manage seller conversations and lead follow-up in one place.</p>
+      <div className="crm-page-header flex items-center justify-between px-6 py-4">
+        <h1 className="text-[14px] font-medium text-[#0f1117]">Inbox</h1>
+        <button type="button" onClick={() => setIsModalOpen(true)} className="crm-button-primary">
+          Start conversation
+        </button>
       </div>
 
       {startConversationModal}
 
-      <div className="grid min-h-0 flex-1 gap-0 xl:grid-cols-[320px_minmax(0,1fr)_340px]">
-        <aside className="flex min-h-0 flex-col border-r border-slate-200/80 bg-white/90">
-          <div className="bg-gradient-to-b from-white to-slate-50/80 px-4 py-4">
-          <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
+      <div className="grid min-h-0 flex-1 gap-0 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="flex min-h-0 flex-col border-r border-[#eaecf0] bg-white">
+          <div className="px-4 py-4">
+          <div className="flex items-center justify-between border-b border-[#eaecf0] pb-4">
             <div>
-              <h2 className="text-sm font-semibold text-gray-900">Conversations</h2>
-              <p className="mt-1 text-xs text-gray-500">{filteredConversations.length} active threads</p>
+              <h2 className="text-sm font-medium text-[#0f1117]">Conversations</h2>
+              <p className="mt-1 text-xs text-[#6b7280]">{filteredConversations.length} active threads</p>
             </div>
             <Link
               href="#"
@@ -592,15 +602,15 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                 event.preventDefault();
                 setIsModalOpen(true);
               }}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#16a37f] text-white shadow-sm transition hover:bg-[#128765]"
+              className="flex h-9 w-9 items-center justify-center rounded-[6px] bg-[#0f1117] text-white"
               title="Start conversation"
             >
               <Plus size={16} />
             </Link>
           </div>
           </div>
-          <div className="border-b border-slate-200/80 px-4 py-4">
-            <div className="crm-muted-surface flex items-center gap-2 px-3 py-2">
+          <div className="border-b border-[#eaecf0] px-4 py-4">
+            <div className="flex items-center gap-2 rounded-[6px] border border-[#eaecf0] bg-[#f8f9fb] px-3 py-2">
               <Search size={14} className="text-gray-400" />
               <input
                 value={search}
@@ -612,7 +622,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
           </div>
 
           <ScrollArea className="min-h-0 flex-1">
-            <div className="divide-y">
+            <div className="divide-y divide-[#eaecf0]">
               {filteredConversations.map((conversation) => {
                 const isActive = conversation.lead.id === selectedConversation.lead.id;
                 return (
@@ -621,7 +631,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                     type="button"
                     onClick={() => setSelectedLeadId(conversation.lead.id)}
                     className={`w-full px-4 py-3 text-left transition ${
-                      isActive ? "border-l-2 border-[#16a37f] bg-[#eef8f4]" : conversation.unread ? "bg-[#fafdfb]" : "bg-white hover:bg-slate-50/80"
+                      isActive ? "bg-[#f8f9fb]" : conversation.unread ? "bg-[#fbfcfd]" : "bg-white hover:bg-[#f8f9fb]"
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -639,7 +649,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                             {conversation.lead.first_name} {conversation.lead.last_name}
                           </p>
                           <div className="flex items-center gap-1">
-                            {conversation.unread ? <span className="h-2 w-2 rounded-full bg-[#16a37f]" /> : null}
+                            {conversation.unread ? <span className="h-2 w-2 rounded-full bg-[#10b981]" /> : null}
                             <span className="shrink-0 text-[11px] text-gray-400">
                               {conversation.lastMessage ? format(new Date(conversation.lastMessage.created_at), "h:mm a") : ""}
                             </span>
@@ -658,8 +668,8 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
           </ScrollArea>
         </aside>
 
-        <section className="flex min-h-0 flex-col border-r border-slate-200/80 bg-[#f8fafc]">
-          <div className="border-b border-slate-200/80 bg-white/90 px-5 py-4">
+        <section className="flex min-h-0 flex-col bg-white">
+          <div className="border-b border-[#eaecf0] bg-white px-5 py-4">
             <div className="flex items-center gap-3">
               <div
                 className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
@@ -669,18 +679,20 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <h2 className="truncate text-sm font-semibold text-gray-900">
+                  <h2 className="truncate text-sm font-semibold text-[#0f1117]">
                     {lead.first_name} {lead.last_name}
                   </h2>
                   {classificationBadge(lead.classification)}
                 </div>
-                <p className="mt-1 truncate text-xs text-gray-500">{lead.property_address}</p>
+                <p className="mt-1 truncate text-xs text-[#6b7280]">
+                  {lead.property_address} · {lead.phone}
+                </p>
               </div>
             </div>
           </div>
 
-          <ScrollArea className="min-h-0 flex-1 px-5 py-5">
-            <div className="space-y-3">
+          <ScrollArea className="min-h-0 flex-1 bg-[#f8f9fb] px-5 py-5">
+            <div className="space-y-4">
               {leadMessages.map((message) => (
                 <div
                   key={message.id}
@@ -710,7 +722,23 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
             </div>
           </ScrollArea>
 
-          <div className="border-t border-slate-200/80 bg-white/95 px-5 py-3">
+          <div className="border-t border-[#eaecf0] bg-white px-5 py-4">
+            <div className="mb-3 rounded-[10px] border border-[#eaecf0] bg-[#f8f9fb] p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium text-[#6b7280]">AI draft reply</p>
+                  <p className="mt-1 text-sm text-[#0f1117]">{suggestedReply}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setComposeText(suggestedReply)}
+                  className="rounded-[6px] bg-[#0f1117] px-3 py-2 text-xs font-medium text-white"
+                >
+                  Approve
+                </button>
+              </div>
+            </div>
+
             <div className="mb-2 flex flex-wrap gap-2">
               {[
                 "Would you be open to a quick cash offer this week?",
@@ -721,7 +749,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                   key={quickReply}
                   type="button"
                   onClick={() => setComposeText(quickReply)}
-                  className="rounded-full border px-3 py-1 text-[11px] text-gray-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                  className="rounded-full border border-[#eaecf0] bg-white px-3 py-1 text-[11px] text-gray-600"
                 >
                   {quickReply}
                 </button>
@@ -742,150 +770,19 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                 }}
                 disabled={isSending || lead.status === "DNC"}
                 placeholder={lead.status === "DNC" ? "Messaging disabled for DNC lead" : "Type a message"}
-                className="flex-1 rounded-full border bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50 disabled:bg-gray-50 disabled:text-gray-400"
+                className="flex-1 rounded-[6px] border border-[#eaecf0] bg-white px-4 py-2.5 text-sm outline-none disabled:bg-gray-50 disabled:text-gray-400"
               />
               <button
                 type="button"
                 onClick={sendMessage}
                 disabled={isSending || !composeText.trim() || lead.status === "DNC"}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-200"
+                className="flex h-10 w-10 items-center justify-center rounded-[6px] bg-[#0f1117] text-white disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 <Send size={16} />
               </button>
             </div>
           </div>
         </section>
-
-        <aside className="flex min-h-0 flex-col bg-white/90">
-          <ScrollArea className="min-h-0 flex-1">
-            <div className="space-y-5 px-5 py-5">
-              <section className="space-y-3">
-                <div>
-                  <h3 className="text-base font-semibold text-gray-900">
-                    {lead.first_name} {lead.last_name}
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">{lead.phone}</p>
-                </div>
-                <div className="grid gap-3">
-                  <div className="crm-muted-surface px-3 py-3">
-                    <p className="text-[11px] uppercase tracking-wide text-gray-400">Property</p>
-                    <p className="mt-1 text-sm text-gray-900">{lead.property_address}</p>
-                  </div>
-                  <div className="crm-muted-surface px-3 py-3">
-                    <p className="text-[11px] uppercase tracking-wide text-gray-400">Classification</p>
-                    <div className="mt-2 flex items-center gap-2">
-                      {classificationBadge(lead.classification)}
-                      {statusBadge(lead.status)}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="crm-muted-surface px-3 py-3">
-                      <p className="text-[11px] uppercase tracking-wide text-gray-400">Motivation</p>
-                      <p className="mt-1 text-xl font-semibold text-gray-900">{lead.motivation_score}</p>
-                    </div>
-                    <div className="crm-muted-surface px-3 py-3">
-                      <p className="text-[11px] uppercase tracking-wide text-gray-400">Next follow-up</p>
-                      <p className="mt-1 text-sm text-gray-900">
-                        {lead.next_follow_up_at ? format(new Date(lead.next_follow_up_at), "MMM d, h:mm a") : "Not set"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="crm-muted-surface px-3 py-3">
-                    <p className="text-[11px] uppercase tracking-wide text-gray-400">Last contacted</p>
-                    <p className="mt-1 text-sm text-gray-900">
-                      {lead.last_contacted_at ? format(new Date(lead.last_contacted_at), "MMM d, yyyy h:mm a") : "Not contacted yet"}
-                    </p>
-                  </div>
-                </div>
-              </section>
-
-              <section className="space-y-3">
-                <h4 className="text-sm font-semibold text-gray-900">Quick actions</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  <form action={updateLeadStatus}>
-                    <input type="hidden" name="id" value={lead.id} />
-                    <input type="hidden" name="status" value="Hot" />
-                  <button className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-700 shadow-sm">
-                      <Flame size={14} />
-                      Mark hot
-                    </button>
-                  </form>
-
-                  <form action={saveLead}>
-                    <HiddenLeadFields
-                      lead={lead}
-                      classification="COLD"
-                      notesSummary={notesDraft}
-                      nextFollowUpAt={followUpDraft}
-                    />
-                    <button className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700">
-                      <Snowflake size={14} />
-                      Mark cold
-                    </button>
-                  </form>
-
-                  <form action={updateLeadStatus}>
-                    <input type="hidden" name="id" value={lead.id} />
-                    <input type="hidden" name="status" value="Dead" />
-                  <button className="flex w-full items-center justify-center gap-2 rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm font-medium text-rose-700 shadow-sm">
-                      <Skull size={14} />
-                      Mark dead
-                    </button>
-                  </form>
-                </div>
-              </section>
-
-              <section className="space-y-3">
-                <h4 className="text-sm font-semibold text-gray-900">Schedule follow-up</h4>
-                <form action={setFollowup} className="space-y-2">
-                  <input type="hidden" name="lead_id" value={lead.id} />
-                  <input type="hidden" name="due_date" value={followUpDraft ? followUpDraft.slice(0, 10) : ""} />
-                  <input
-                    name="next_follow_up_at"
-                    type="datetime-local"
-                    required
-                    value={followUpDraft}
-                    onChange={(event) => setFollowUpDraft(event.target.value)}
-                    className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
-                  />
-                  <input
-                    name="note"
-                    placeholder="Optional follow-up note"
-                    className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
-                  />
-                  <button className="crm-button-primary flex w-full items-center justify-center gap-2 bg-slate-900 px-3 py-2 text-sm">
-                    <CalendarClock size={14} />
-                    Schedule follow-up
-                  </button>
-                </form>
-              </section>
-
-              <section className="space-y-3">
-                <h4 className="text-sm font-semibold text-gray-900">Notes</h4>
-                <form action={saveLead} className="space-y-2">
-                  <HiddenLeadFields
-                    lead={lead}
-                    classification={lead.classification}
-                    notesSummary={notesDraft}
-                    nextFollowUpAt={followUpDraft}
-                    includeNotesSummary={false}
-                  />
-                  <textarea
-                    name="notes_summary"
-                    value={notesDraft}
-                    onChange={(event) => setNotesDraft(event.target.value)}
-                    rows={6}
-                    className="w-full rounded-xl border px-3 py-3 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
-                    placeholder="Add seller notes, objections, and next steps"
-                  />
-                  <button className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700">
-                    Save notes
-                  </button>
-                </form>
-              </section>
-            </div>
-          </ScrollArea>
-        </aside>
       </div>
     </div>
   );

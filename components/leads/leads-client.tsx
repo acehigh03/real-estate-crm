@@ -33,9 +33,37 @@ const STATUS_OPTIONS: Array<"all" | LeadStatus> = [
 ];
 
 function statusTag(status: LeadStatus) {
+  const classes =
+    status === "Hot"
+      ? "bg-emerald-50 text-emerald-700"
+      : status === "Contacted"
+        ? "bg-blue-50 text-blue-700"
+        : status === "Replied"
+          ? "bg-amber-50 text-amber-700"
+          : status === "Dead" || status === "DNC"
+            ? "bg-gray-100 text-gray-700"
+            : "bg-slate-100 text-slate-700";
   return (
-    <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${classes}`}>
       {status}
+    </span>
+  );
+}
+
+function classTag(classification: LeadClassification) {
+  const label = getClassificationLabel(classification);
+  const classes =
+    classification === "HOT"
+      ? "bg-emerald-50 text-emerald-700"
+      : classification === "WARM"
+        ? "bg-amber-50 text-amber-700"
+        : classification === "COLD"
+          ? "bg-indigo-50 text-indigo-700"
+          : "bg-gray-100 text-gray-700";
+
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${classes}`}>
+      {label}
     </span>
   );
 }
@@ -90,26 +118,23 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
 
   return (
     <div className="crm-page flex flex-1 flex-col overflow-hidden">
-      <div className="crm-page-header flex shrink-0 items-center justify-between gap-4 px-6 py-6">
+      <div className="crm-page-header flex shrink-0 items-center justify-between gap-4 px-6 py-4">
         <div>
-          <h1 className="text-[1.75rem] font-bold tracking-tight text-slate-900">Leads</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Review seller records, classifications, and next follow-up dates.
-          </p>
+          <h1 className="text-[14px] font-medium text-[#0f1117]">Leads</h1>
         </div>
         <div className="flex items-center gap-2">
           <Input
             placeholder="Search leads…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-9 w-52 rounded-xl border-slate-200 bg-white/90 text-sm shadow-sm"
+            className="crm-input h-9 w-56 px-3"
           />
           <select
             value={statusFilter}
             onChange={(e) =>
               setStatusFilter(e.target.value as "all" | LeadStatus)
             }
-            className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm"
+            className="crm-input h-9 px-3"
           >
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>
@@ -119,7 +144,7 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
           </select>
           <Button
             size="sm"
-            className="h-9 gap-1.5 rounded-md border-none bg-[#0f766e] px-4 text-white hover:bg-[#115e59]"
+            className="h-9 gap-1.5 rounded-[6px] border-none bg-[#0f1117] px-4 text-white hover:bg-[#0f1117]"
             onClick={() => setCsvDialogOpen(true)}
           >
             <Upload size={13} />
@@ -171,7 +196,7 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
             </div>
           </div>
         ) : (
-          <div className="crm-panel overflow-hidden">
+          <div className="overflow-hidden rounded-[10px] border border-[#eaecf0] bg-white">
             <Table>
             <TableHeader className="bg-white">
               <TableRow className="border-slate-200/80">
@@ -206,11 +231,7 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
                     </TableCell>
                     <TableCell className="px-5 py-4">{statusTag(lead.status)}</TableCell>
                     <TableCell className="px-5 py-4">
-                      <span
-                        className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
-                      >
-                        {getClassificationLabel(lead.classification)}
-                      </span>
+                      {classTag(lead.classification)}
                     </TableCell>
                     <TableCell className="px-5 py-4 text-sm text-muted-foreground">
                       {nextFollowUpForLead(lead)

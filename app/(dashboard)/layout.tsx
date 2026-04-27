@@ -22,7 +22,7 @@ export default async function DashboardLayout({
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "13rem",
+          "--sidebar-width": "11.75rem",
           "--sidebar-width-icon": "3.25rem",
         } as CSSProperties
       }

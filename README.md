@@ -313,7 +313,8 @@ Relevant files:
 1. Push this project to GitHub.
 2. Create a new project in [Vercel](https://vercel.com).
 3. Import the GitHub repository.
-4. In Vercel project settings, add these environment variables:
+4. Set the production branch to `main` so deploys happen automatically from Git pushes.
+5. In Vercel project settings, add these environment variables:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -323,14 +324,16 @@ Relevant files:
 - `TELNYX_FROM_NUMBER`
 - `TELNYX_MESSAGING_PROFILE_ID`
 
-5. Deploy.
-6. After deployment, update your Telnyx webhook URL to:
+6. Save the project settings and let Vercel deploy automatically from the connected GitHub repo.
+7. Future deploys should happen by pushing commits to `main`.
+8. Do not use the Vercel CLI for this project.
+9. After deployment, update your Telnyx webhook URL to:
 
 ```text
 https://your-vercel-domain.vercel.app/api/telnyx/inbound
 ```
 
-7. Test:
+10. Test:
 
 - login
 - CSV upload

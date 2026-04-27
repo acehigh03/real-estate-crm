@@ -11,7 +11,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-70"
+      className="w-full rounded-[6px] bg-[#0f1117] px-4 py-3 text-sm font-medium text-white transition disabled:opacity-70"
     >
       {pending ? "Signing in..." : "Sign in"}
     </button>
@@ -30,7 +30,7 @@ export function LoginForm({ error }: { error?: string }) {
           name="email"
           type="email"
           required
-          className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm"
+          className="w-full rounded-[6px] border border-[#eaecf0] bg-white px-4 py-3 text-sm"
         />
       </div>
 
@@ -43,12 +43,12 @@ export function LoginForm({ error }: { error?: string }) {
           name="password"
           type="password"
           required
-          className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm"
+          className="w-full rounded-[6px] border border-[#eaecf0] bg-white px-4 py-3 text-sm"
         />
       </div>
 
       {error ? (
-        <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
+        <p className="rounded-[6px] bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
       ) : null}
 
       <SubmitButton />
