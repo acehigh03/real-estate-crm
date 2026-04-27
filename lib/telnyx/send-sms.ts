@@ -16,7 +16,7 @@ export class TelnyxSendError extends Error {
 export async function sendTelnyxMessage({ to, text }: SendTelnyxMessageParams) {
   const apiKey = process.env.TELNYX_API_KEY;
   const fromNumber =
-    process.env.TELNYX_FROM_NUMBER ?? process.env.TELNYX_PHONE_NUMBER;
+    process.env.TELNYX_PHONE_NUMBER ?? process.env.TELNYX_FROM_NUMBER;
   const messagingProfileId = process.env.TELNYX_MESSAGING_PROFILE_ID;
 
   if (!apiKey || !fromNumber) {
