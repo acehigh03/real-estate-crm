@@ -82,6 +82,7 @@ export async function saveLead(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/leads");
   revalidatePath("/inbox");
+  revalidatePath("/pipeline");
 }
 
 export async function deleteLead(formData: FormData) {
@@ -100,6 +101,7 @@ export async function deleteLead(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/leads");
   revalidatePath("/inbox");
+  revalidatePath("/pipeline");
 }
 
 export async function updateLeadStatus(formData: FormData) {
@@ -142,6 +144,7 @@ export async function updateLeadStatus(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/leads");
   revalidatePath("/inbox");
+  revalidatePath("/pipeline");
 }
 
 export async function addNote(formData: FormData) {
@@ -224,6 +227,7 @@ export async function setFollowup(formData: FormData) {
   revalidatePath("/leads");
   revalidatePath(`/leads/${leadId}`);
   revalidatePath("/inbox");
+  revalidatePath("/pipeline");
 }
 
 function payloadScoreForClassification(classification: LeadClassification) {

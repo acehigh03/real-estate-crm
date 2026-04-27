@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  PanelsTopLeft,
   Users,
   MessageSquare,
   LogOut,
@@ -36,6 +37,7 @@ const sidebarStyle = {
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/pipeline", label: "Pipeline", icon: PanelsTopLeft },
   { href: "/leads", label: "Leads", icon: Users },
   { href: "/inbox", label: "Inbox", icon: MessageSquare },
 ];

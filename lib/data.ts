@@ -8,6 +8,51 @@ type Note = Database["public"]["Tables"]["notes"]["Row"];
 type Message = Database["public"]["Tables"]["messages"]["Row"];
 type Followup = Database["public"]["Tables"]["followups"]["Row"];
 
+export type PipelineStage =
+  | "New Leads"
+  | "Contacted"
+  | "Replied"
+  | "Qualified"
+  | "Offer Sent"
+  | "Dead";
+
+export interface PipelineLeadCard {
+  lead: Lead;
+  stage: PipelineStage;
+  messageCount: number;
+  callCount: number;
+  followupCount: number;
+  daysInPipeline: number;
+}
+
+function derivePipelineStage(lead: Lead): PipelineStage {
+  const tag = (lead.tag ?? "").toLowerCase();
+  const summary = (lead.notes_summary ?? "").toLowerCase();
+  const hasOfferSignal = tag.includes("offer") || summary.includes("offer sent");
+
+  if (lead.status === "Dead" || lead.status === "DNC" || lead.classification === "DEAD" || lead.classification === "OPT_OUT") {
+    return "Dead";
+  }
+
+  if (hasOfferSignal) {
+    return "Offer Sent";
+  }
+
+  if (lead.status === "Hot" || lead.classification === "HOT") {
+    return "Qualified";
+  }
+
+  if (lead.status === "Replied") {
+    return "Replied";
+  }
+
+  if (lead.status === "Contacted") {
+    return "Contacted";
+  }
+
+  return "New Leads";
+}
+
 export async function requireUser() {
   const supabase = await createClient();
   const {
@@ -134,5 +179,57 @@ export async function getInboxData() {
   return {
     leads: (leadResponse.data ?? []) as Lead[],
     messages: (messageResponse.data ?? []) as Message[]
+  };
+}
+
+export async function getPipelineData() {
+  const { supabase, user } = await requireUser();
+
+  const [leadResponse, messageResponse, followupResponse] = await Promise.all([
+    supabase.from("leads").select("*").eq("user_id", user.id).order("updated_at", { ascending: false }),
+    supabase.from("messages").select("*").eq("user_id", user.id),
+    supabase.from("followups").select("*").eq("user_id", user.id),
+  ]);
+
+  if (leadResponse.error) throw leadResponse.error;
+  if (messageResponse.error) throw messageResponse.error;
+  if (followupResponse.error) throw followupResponse.error;
+
+  const leads = (leadResponse.data ?? []) as Lead[];
+  const messages = (messageResponse.data ?? []) as Message[];
+  const followups = (followupResponse.data ?? []) as Followup[];
+
+  const messageCountByLead = new Map<string, number>();
+  for (const message of messages) {
+    if (!message.lead_id) continue;
+    messageCountByLead.set(message.lead_id, (messageCountByLead.get(message.lead_id) ?? 0) + 1);
+  }
+
+  const followupCountByLead = new Map<string, number>();
+  for (const followup of followups) {
+    followupCountByLead.set(followup.lead_id, (followupCountByLead.get(followup.lead_id) ?? 0) + 1);
+  }
+
+  const cards: PipelineLeadCard[] = leads.map((lead) => ({
+    lead,
+    stage: derivePipelineStage(lead),
+    messageCount: messageCountByLead.get(lead.id) ?? 0,
+    callCount: 0,
+    followupCount: followupCountByLead.get(lead.id) ?? 0,
+    daysInPipeline: Math.max(0, Math.floor((Date.now() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60 * 24))),
+  }));
+
+  const stageOrder: PipelineStage[] = [
+    "New Leads",
+    "Contacted",
+    "Replied",
+    "Qualified",
+    "Offer Sent",
+    "Dead",
+  ];
+
+  return {
+    stageOrder,
+    cards,
   };
 }
