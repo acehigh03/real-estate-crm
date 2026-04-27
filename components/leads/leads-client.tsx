@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { ArrowRight, Upload } from "lucide-react";
+import { ArrowRight, Upload, Trash2 } from "lucide-react";
 
 import {
   Table,
@@ -125,6 +125,10 @@ export function LeadsClient({ leads, notes, followups, campaigns }: LeadsClientP
   // Import modal state
   const [campaignName, setCampaignName] = useState("");
   const [campaignType, setCampaignType] = useState<CampaignType>("cash_offer");
+  // Selection + delete state
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleteConfirm, setDeleteConfirm] = useState<string[] | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Sync campaign filter from URL (?campaign=<id>)
   useEffect(() => {
@@ -151,6 +155,40 @@ export function LeadsClient({ leads, notes, followups, campaigns }: LeadsClientP
     setImportError(null);
     setCampaignName("");
     setCampaignType("cash_offer");
+  }
+
+  function toggleRow(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    if (selected.size === filtered.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(filtered.map((l) => l.id)));
+    }
+  }
+
+  async function confirmDelete(ids: string[]) {
+    setIsDeleting(true);
+    try {
+      const res = await fetch("/api/leads/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      if (res.ok) {
+        setSelected(new Set());
+        router.refresh();
+      }
+    } finally {
+      setIsDeleting(false);
+      setDeleteConfirm(null);
+    }
   }
 
   return (
@@ -199,6 +237,16 @@ export function LeadsClient({ leads, notes, followups, campaigns }: LeadsClientP
               ))}
             </select>
           )}
+          {selected.size > 0 && (
+            <Button
+              size="sm"
+              className="h-9 gap-1.5 rounded-[6px] border-none bg-[#e5484d] px-4 text-white hover:opacity-90"
+              onClick={() => setDeleteConfirm(Array.from(selected))}
+            >
+              <Trash2 size={13} />
+              Delete Selected ({selected.size})
+            </Button>
+          )}
           <Button
             size="sm"
             className="h-9 gap-1.5 rounded-[6px] border-none bg-[#00c08b] px-4 text-white hover:opacity-90"
@@ -209,6 +257,37 @@ export function LeadsClient({ leads, notes, followups, campaigns }: LeadsClientP
           </Button>
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="crm-panel w-full max-w-sm p-6">
+            <h2 className="text-[15px] font-semibold text-[#1a1f36]">
+              Delete {deleteConfirm.length} lead{deleteConfirm.length !== 1 ? "s" : ""}?
+            </h2>
+            <p className="mt-2 text-[12px] text-[#6b7c93]">
+              This action cannot be undone. The lead{deleteConfirm.length !== 1 ? "s" : ""} and all associated messages and notes will be permanently removed.
+            </p>
+            <div className="mt-5 flex gap-3">
+              <Button
+                className="flex-1 bg-[#e5484d] text-white hover:opacity-90 disabled:opacity-60"
+                disabled={isDeleting}
+                onClick={() => confirmDelete(deleteConfirm)}
+              >
+                {isDeleting ? "Deleting…" : "Delete"}
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                disabled={isDeleting}
+                onClick={() => setDeleteConfirm(null)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {csvDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -400,6 +479,14 @@ export function LeadsClient({ leads, notes, followups, campaigns }: LeadsClientP
             <Table>
             <TableHeader className="bg-[#f7f8fa]">
               <TableRow className="border-[#e8edf2]">
+                <TableHead className="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={filtered.length > 0 && selected.size === filtered.length}
+                    onChange={toggleAll}
+                    className="h-4 w-4 rounded border-[#d1d5db] accent-[#00c08b]"
+                  />
+                </TableHead>
                 <TableHead className="px-5 py-3 text-[11px] font-medium uppercase tracking-wide text-[#6b7c93]">Name</TableHead>
                 <TableHead className="px-5 py-3 text-[11px] font-medium uppercase tracking-wide text-[#6b7c93]">Address</TableHead>
                 <TableHead className="px-5 py-3 text-[11px] font-medium uppercase tracking-wide text-[#6b7c93]">Phone</TableHead>
@@ -413,6 +500,14 @@ export function LeadsClient({ leads, notes, followups, campaigns }: LeadsClientP
             <TableBody>
               {filtered.map((lead) => (
                   <TableRow key={lead.id} className="group border-[#e8edf2] transition hover:bg-[#f7f8fa]">
+                    <TableCell className="w-10 px-4 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(lead.id)}
+                        onChange={() => toggleRow(lead.id)}
+                        className="h-4 w-4 rounded border-[#d1d5db] accent-[#00c08b]"
+                      />
+                    </TableCell>
                     <TableCell className="px-5 py-4 text-sm font-semibold text-slate-800">
                       <Link href={`/leads/${lead.id}`} className="transition hover:text-[#16a37f]">
                         {lead.first_name} {lead.last_name}
@@ -439,13 +534,22 @@ export function LeadsClient({ leads, notes, followups, campaigns }: LeadsClientP
                         : "—"}
                     </TableCell>
                     <TableCell className="px-5 py-4 text-right">
-                      <Link
-                        href={`/leads/${lead.id}`}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-sm text-muted-foreground transition hover:bg-slate-100 hover:text-foreground"
-                      >
-                        View
-                        <ArrowRight size={13} />
-                      </Link>
+                      <div className="inline-flex items-center gap-1">
+                        <Link
+                          href={`/leads/${lead.id}`}
+                          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-sm text-muted-foreground transition hover:bg-slate-100 hover:text-foreground"
+                        >
+                          View
+                          <ArrowRight size={13} />
+                        </Link>
+                        <button
+                          onClick={() => setDeleteConfirm([lead.id])}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#6b7c93] transition hover:bg-[#fef2f2] hover:text-[#e5484d]"
+                          title="Delete lead"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </TableCell>
                   </TableRow>
               ))}
