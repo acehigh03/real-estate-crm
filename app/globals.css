@@ -98,6 +98,58 @@
   }
 }
 
+@layer components {
+  .crm-page {
+    @apply bg-[#f5f7f9];
+  }
+
+  .crm-page-header {
+    @apply border-b border-white/70 bg-gradient-to-b from-white to-[#f7faf9];
+    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
+  }
+
+  .crm-header-title {
+    @apply text-[1.75rem] font-semibold tracking-tight text-slate-900;
+  }
+
+  .crm-header-copy {
+    @apply mt-1 text-sm text-slate-500;
+  }
+
+  .crm-section-kicker {
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400;
+  }
+
+  .crm-card {
+    @apply rounded-[24px] border border-slate-200/70 bg-white;
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.03),
+      0 10px 30px rgba(15, 23, 42, 0.05);
+  }
+
+  .crm-card-soft {
+    @apply rounded-[20px] border border-slate-200/70 bg-white;
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.025),
+      0 8px 24px rgba(15, 23, 42, 0.04);
+  }
+
+  .crm-panel {
+    @apply rounded-[28px] border border-white/80 bg-gradient-to-b from-white to-[#fbfcfb];
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.03),
+      0 18px 40px rgba(15, 23, 42, 0.06);
+  }
+
+  .crm-muted-surface {
+    @apply rounded-[18px] border border-slate-200/80 bg-slate-50/80;
+  }
+
+  .crm-button-secondary {
+    @apply rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50;
+  }
+}
+
 /* ── Message bubble animation ─────────────────────────────── */
 @keyframes message-appear {
   from {

@@ -132,23 +132,28 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
   }, [leads, search, statusFilter]);
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      {/* ── Top bar ──────────────────────────────────────────── */}
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b bg-background px-6 py-4">
-        <h1 className="text-[15px] font-semibold">Leads</h1>
+    <div className="crm-page flex flex-1 flex-col overflow-hidden">
+      <div className="crm-page-header flex shrink-0 items-center justify-between gap-4 px-6 py-5">
+        <div>
+          <p className="crm-section-kicker">Lead workspace</p>
+          <h1 className="mt-2 text-xl font-semibold tracking-tight text-slate-900">Leads</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Review seller records, classifications, and next follow-up dates.
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <Input
             placeholder="Search leads…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-8 w-48 text-sm"
+            className="h-9 w-52 rounded-xl border-slate-200 bg-white/90 text-sm shadow-sm"
           />
           <select
             value={statusFilter}
             onChange={(e) =>
               setStatusFilter(e.target.value as "all" | LeadStatus)
             }
-            className="h-8 rounded-md border border-border bg-background px-2 text-sm"
+            className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm"
           >
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>
@@ -158,7 +163,7 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
           </select>
           <Button
             size="sm"
-            className="h-8 gap-1.5 bg-[#16a37f] hover:bg-[#0d7a5f] text-white border-none"
+            className="h-9 gap-1.5 rounded-xl border-none bg-[#16a37f] px-4 text-white shadow-sm hover:bg-[#0d7a5f]"
             onClick={() => setCsvDialogOpen(true)}
           >
             <Upload size={13} />
@@ -167,10 +172,9 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
         </div>
       </div>
 
-      {/* ── CSV upload overlay (lightweight) ─────────────────── */}
       {csvDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-card">
+          <div className="crm-panel relative w-full max-w-md p-6">
             <button
               onClick={() => setCsvDialogOpen(false)}
               className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
@@ -199,40 +203,43 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
         </div>
       )}
 
-      {/* ── Table ────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto px-6 py-6">
         {filtered.length === 0 ? (
-          <div className="flex h-full items-center justify-center">
-            <p className="text-sm text-muted-foreground">
-              {leads.length === 0
-                ? "Import a CSV to get started."
-                : "No leads match your filter."}
-            </p>
+          <div className="crm-card flex h-full items-center justify-center px-6 py-16">
+            <div className="text-center">
+              <p className="crm-section-kicker">No results</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {leads.length === 0
+                  ? "Import a CSV to get started."
+                  : "No leads match your filter."}
+              </p>
+            </div>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
+          <div className="crm-card overflow-hidden">
+            <Table>
+            <TableHeader className="bg-slate-50/80">
+              <TableRow className="border-slate-200/80">
                 <TableHead>Name</TableHead>
                 <TableHead>Address</TableHead>
                 <TableHead>Phone</TableHead>
-             <TableHead>Score</TableHead>
-              <TableHead>Status</TableHead>
+                <TableHead>Score</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Class</TableHead>
-              <TableHead>Follow-up</TableHead>
+                <TableHead>Follow-up</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((lead) => (
-                  <TableRow key={lead.id} className="group">
+                  <TableRow key={lead.id} className="group border-slate-100/90 transition hover:bg-slate-50/70">
                     <TableCell className="font-medium text-sm">
-                      <Link href={`/leads/${lead.id}`} className="hover:text-[#16a37f] hover:underline">
+                      <Link href={`/leads/${lead.id}`} className="transition hover:text-[#16a37f]">
                         {lead.first_name} {lead.last_name}
                       </Link>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-[180px] truncate">
-                      <Link href={`/leads/${lead.id}`} className="hover:text-[#16a37f] hover:underline">
+                      <Link href={`/leads/${lead.id}`} className="transition hover:text-[#16a37f]">
                         {lead.property_address}
                       </Link>
                     </TableCell>
@@ -258,7 +265,7 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
                     <TableCell className="text-right">
                       <Link
                         href={`/leads/${lead.id}`}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-sm text-muted-foreground transition hover:bg-slate-100 hover:text-foreground"
                       >
                         View
                         <ArrowRight size={13} />
@@ -268,6 +275,7 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
               ))}
             </TableBody>
           </Table>
+          </div>
         )}
       </div>
     </div>

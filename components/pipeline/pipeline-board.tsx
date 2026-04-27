@@ -52,29 +52,30 @@ export function PipelineBoard({
   const hasAnyLeads = cards.length > 0;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#f6f7f9]">
-      <div className="border-b bg-white px-8 py-5">
+    <div className="crm-page flex flex-1 flex-col overflow-hidden">
+      <div className="crm-page-header px-8 py-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Pipeline Board</h1>
-            <p className="mt-1 text-sm text-gray-500">Track seller leads across your acquisition workflow.</p>
+            <p className="crm-section-kicker">Daily pipeline</p>
+            <h1 className="crm-header-title mt-2">Pipeline Board</h1>
+            <p className="crm-header-copy">Track seller leads across your acquisition workflow.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
               href="/leads"
-              className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              className="crm-button-secondary"
             >
               Import CSV
             </Link>
             <Link
               href="/leads"
-              className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              className="crm-button-secondary"
             >
               Add Lead
             </Link>
             <Link
               href="/inbox"
-              className="rounded-lg bg-[#16a37f] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#128765]"
+              className="rounded-xl bg-[#16a37f] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#128765]"
             >
               Start Conversation
             </Link>
@@ -85,7 +86,7 @@ export function PipelineBoard({
       <div className="flex-1 overflow-x-auto overflow-y-hidden px-6 py-6">
         {!hasAnyLeads ? (
           <div className="flex h-full items-center justify-center">
-            <div className="max-w-md rounded-3xl border border-gray-100 bg-white p-10 text-center shadow-sm">
+            <div className="crm-panel max-w-md p-10 text-center">
               <h2 className="text-xl font-semibold text-gray-900">No leads yet</h2>
               <p className="mt-2 text-sm text-gray-500">
                 Add leads to start tracking and closing deals.
@@ -93,19 +94,19 @@ export function PipelineBoard({
               <div className="mt-6 flex flex-col gap-3">
                 <Link
                   href="/leads"
-                  className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                  className="crm-button-secondary"
                 >
                   Import CSV
                 </Link>
                 <Link
                   href="/leads"
-                  className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                  className="crm-button-secondary"
                 >
                   Go to Leads
                 </Link>
                 <Link
                   href="/inbox"
-                  className="rounded-lg bg-[#16a37f] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#128765]"
+                  className="rounded-xl bg-[#16a37f] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#128765]"
                 >
                   Start Conversation
                 </Link>
@@ -121,9 +122,9 @@ export function PipelineBoard({
             return (
               <section
                 key={stage}
-                className="flex min-h-0 flex-col rounded-3xl border border-gray-100 bg-white shadow-sm"
+                className="crm-card flex min-h-0 flex-col overflow-hidden"
               >
-                <div className="border-b px-4 py-4">
+                <div className="border-b border-slate-200/80 bg-gradient-to-b from-white to-slate-50/70 px-4 py-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <span className={`h-2.5 w-2.5 rounded-full ${styles.accent}`} />
@@ -145,7 +146,7 @@ export function PipelineBoard({
                       return (
                       <article
                         key={lead.id}
-                        className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition hover:border-teal-200 hover:shadow-md"
+                        className="crm-card-soft p-4 transition hover:border-teal-200 hover:shadow-md"
                       >
                         <div className="mb-3 flex items-start justify-between gap-2">
                           <p className="text-sm font-semibold leading-5 text-gray-900">{lead.property_address}</p>
@@ -173,25 +174,25 @@ export function PipelineBoard({
                             <CalendarClock size={13} />
                             <span>{contact.label}</span>
                           </div>
-                          <div className="rounded-xl bg-gray-50 px-3 py-2 text-[11px] leading-5 text-gray-600">
+                          <div className="crm-muted-surface px-3 py-2 text-[11px] leading-5 text-gray-600">
                             {lastMessagePreview ? `Last message: ${lastMessagePreview}` : "No messages yet"}
                           </div>
                         </div>
 
                         <div className="mt-4 grid grid-cols-2 gap-2">
-                          <div className="rounded-xl bg-gray-50 px-3 py-2">
+                          <div className="crm-muted-surface px-3 py-2">
                             <p className="text-[10px] uppercase tracking-wide text-gray-400">Days</p>
                             <p className="mt-1 text-sm font-semibold text-gray-900">{daysInPipeline}</p>
                           </div>
-                          <div className="rounded-xl bg-gray-50 px-3 py-2">
+                          <div className="crm-muted-surface px-3 py-2">
                             <p className="text-[10px] uppercase tracking-wide text-gray-400">Messages</p>
                             <p className="mt-1 text-sm font-semibold text-gray-900">{messageCount}</p>
                           </div>
-                          <div className="rounded-xl bg-gray-50 px-3 py-2">
+                          <div className="crm-muted-surface px-3 py-2">
                             <p className="text-[10px] uppercase tracking-wide text-gray-400">Calls</p>
                             <p className="mt-1 text-sm font-semibold text-gray-900">{callCount}</p>
                           </div>
-                          <div className="rounded-xl bg-gray-50 px-3 py-2">
+                          <div className="crm-muted-surface px-3 py-2">
                             <p className="text-[10px] uppercase tracking-wide text-gray-400">Tasks</p>
                             <p className="mt-1 text-sm font-semibold text-gray-900">{followupCount}</p>
                           </div>
@@ -220,7 +221,7 @@ export function PipelineBoard({
                               <option>Offer Sent</option>
                               <option>Dead</option>
                             </select>
-                            <button className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-[11px] font-medium text-gray-700">
+                            <button className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-[11px] font-medium text-gray-700 shadow-sm">
                               Update
                             </button>
                           </form>
@@ -274,7 +275,7 @@ export function PipelineBoard({
                       </article>
                     )})
                   ) : (
-                    <div className="rounded-2xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-400">
+                    <div className="crm-muted-surface border-dashed px-4 py-8 text-center text-sm text-gray-400">
                       No leads here yet
                     </div>
                   )}

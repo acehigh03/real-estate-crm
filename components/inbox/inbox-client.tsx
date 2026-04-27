@@ -410,8 +410,9 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
 
   const startConversationModal = isModalOpen ? (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b px-5 py-4">
+      <div className="crm-panel w-full max-w-md overflow-hidden">
+        <div className="bg-gradient-to-b from-white to-slate-50/80 px-5 py-4">
+          <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
           <div>
             <h2 className="text-base font-semibold text-gray-900">Start conversation</h2>
             <p className="mt-1 text-sm text-gray-500">Send a first message to a seller lead right away.</p>
@@ -423,6 +424,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
           >
             ✕
           </button>
+        </div>
         </div>
 
         <div className="space-y-3 px-5 py-5">
@@ -525,30 +527,33 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
     return (
       <>
         {startConversationModal}
-        <div className="flex h-full items-center justify-center bg-white px-6">
-          <div className="max-w-md rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm">
-            <MessageSquare className="mx-auto mb-4 h-9 w-9 text-gray-300" />
-            <h2 className="text-base font-semibold text-gray-900">No conversations yet</h2>
+        <div className="crm-page flex h-full items-center justify-center px-6">
+          <div className="crm-panel max-w-lg p-10 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-50 to-sky-50">
+              <MessageSquare className="h-7 w-7 text-[#16a37f]" />
+            </div>
+            <p className="crm-section-kicker">Inbox</p>
+            <h2 className="mt-2 text-xl font-semibold text-gray-900">No conversations yet</h2>
             <p className="mt-2 text-sm text-gray-500">
               Start texting leads in seconds.
             </p>
-            <div className="mt-5 flex flex-col gap-3">
+            <div className="mt-6 flex flex-col gap-3">
               <button
                 type="button"
                 onClick={() => setIsModalOpen(true)}
-                className="rounded-lg bg-[#16a37f] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#128765]"
+                className="rounded-xl bg-[#16a37f] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#128765]"
               >
                 Start Conversation
               </button>
               <Link
                 href="/leads"
-                className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                className="crm-button-secondary"
               >
                 Import CSV
               </Link>
               <Link
                 href="/leads"
-                className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                className="crm-button-secondary"
               >
                 Go to Leads
               </Link>
@@ -564,17 +569,19 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
   const leadMessages = selectedConversation.messages;
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-[#f6f7f9]">
-      <div className="border-b bg-white px-6 py-4">
-        <h1 className="text-lg font-semibold text-gray-900">Inbox</h1>
+    <div className="crm-page flex h-full flex-col overflow-hidden">
+      <div className="crm-page-header px-6 py-5">
+        <p className="crm-section-kicker">Messaging workspace</p>
+        <h1 className="mt-2 text-xl font-semibold tracking-tight text-gray-900">Inbox</h1>
         <p className="mt-1 text-sm text-gray-500">Manage seller conversations and lead follow-up in one place.</p>
       </div>
 
       {startConversationModal}
 
       <div className="grid min-h-0 flex-1 gap-0 xl:grid-cols-[320px_minmax(0,1fr)_340px]">
-        <aside className="flex min-h-0 flex-col border-r bg-white">
-          <div className="flex items-center justify-between border-b px-4 py-4">
+        <aside className="flex min-h-0 flex-col border-r border-slate-200/80 bg-white/90">
+          <div className="bg-gradient-to-b from-white to-slate-50/80 px-4 py-4">
+          <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">Conversations</h2>
               <p className="mt-1 text-xs text-gray-500">{filteredConversations.length} active threads</p>
@@ -591,8 +598,9 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
               <Plus size={16} />
             </Link>
           </div>
-          <div className="border-b px-4 py-4">
-            <div className="flex items-center gap-2 rounded-lg border bg-gray-50 px-3 py-2">
+          </div>
+          <div className="border-b border-slate-200/80 px-4 py-4">
+            <div className="crm-muted-surface flex items-center gap-2 px-3 py-2">
               <Search size={14} className="text-gray-400" />
               <input
                 value={search}
@@ -613,7 +621,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                     type="button"
                     onClick={() => setSelectedLeadId(conversation.lead.id)}
                     className={`w-full px-4 py-3 text-left transition ${
-                      isActive ? "bg-[#eef8f4]" : conversation.unread ? "bg-[#fafdfb]" : "bg-white hover:bg-gray-50"
+                      isActive ? "bg-[#eef8f4]" : conversation.unread ? "bg-[#fafdfb]" : "bg-white hover:bg-slate-50/80"
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -650,8 +658,8 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
           </ScrollArea>
         </aside>
 
-        <section className="flex min-h-0 flex-col border-r bg-[#f8fafc]">
-          <div className="border-b bg-white px-5 py-4">
+        <section className="flex min-h-0 flex-col border-r border-slate-200/80 bg-[#f8fafc]">
+          <div className="border-b border-slate-200/80 bg-white/90 px-5 py-4">
             <div className="flex items-center gap-3">
               <div
                 className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
@@ -702,7 +710,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
             </div>
           </ScrollArea>
 
-          <div className="border-t bg-white px-5 py-3">
+          <div className="border-t border-slate-200/80 bg-white/95 px-5 py-3">
             <div className="mb-2 flex flex-wrap gap-2">
               {[
                 "Would you be open to a quick cash offer this week?",
@@ -748,7 +756,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
           </div>
         </section>
 
-        <aside className="flex min-h-0 flex-col bg-white">
+        <aside className="flex min-h-0 flex-col bg-white/90">
           <ScrollArea className="min-h-0 flex-1">
             <div className="space-y-5 px-5 py-5">
               <section className="space-y-3">
@@ -759,11 +767,11 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                   <p className="mt-1 text-sm text-gray-500">{lead.phone}</p>
                 </div>
                 <div className="grid gap-3">
-                  <div className="rounded-xl border bg-gray-50 px-3 py-3">
+                  <div className="crm-muted-surface px-3 py-3">
                     <p className="text-[11px] uppercase tracking-wide text-gray-400">Property</p>
                     <p className="mt-1 text-sm text-gray-900">{lead.property_address}</p>
                   </div>
-                  <div className="rounded-xl border bg-gray-50 px-3 py-3">
+                  <div className="crm-muted-surface px-3 py-3">
                     <p className="text-[11px] uppercase tracking-wide text-gray-400">Classification</p>
                     <div className="mt-2 flex items-center gap-2">
                       {classificationBadge(lead.classification)}
@@ -771,18 +779,18 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-xl border bg-gray-50 px-3 py-3">
+                    <div className="crm-muted-surface px-3 py-3">
                       <p className="text-[11px] uppercase tracking-wide text-gray-400">Motivation</p>
                       <p className="mt-1 text-xl font-semibold text-gray-900">{lead.motivation_score}</p>
                     </div>
-                    <div className="rounded-xl border bg-gray-50 px-3 py-3">
+                    <div className="crm-muted-surface px-3 py-3">
                       <p className="text-[11px] uppercase tracking-wide text-gray-400">Next follow-up</p>
                       <p className="mt-1 text-sm text-gray-900">
                         {lead.next_follow_up_at ? format(new Date(lead.next_follow_up_at), "MMM d, h:mm a") : "Not set"}
                       </p>
                     </div>
                   </div>
-                  <div className="rounded-xl border bg-gray-50 px-3 py-3">
+                  <div className="crm-muted-surface px-3 py-3">
                     <p className="text-[11px] uppercase tracking-wide text-gray-400">Last contacted</p>
                     <p className="mt-1 text-sm text-gray-900">
                       {lead.last_contacted_at ? format(new Date(lead.last_contacted_at), "MMM d, yyyy h:mm a") : "Not contacted yet"}

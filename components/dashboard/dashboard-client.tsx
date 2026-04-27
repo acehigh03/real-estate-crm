@@ -38,16 +38,15 @@ export function DashboardClient({
   ];
 
   return (
-    <div className="flex flex-1 flex-col overflow-auto bg-white">
-      <div className="flex shrink-0 items-center justify-between border-b bg-white px-8 py-5">
+    <div className="crm-page flex flex-1 flex-col overflow-auto">
+      <div className="crm-page-header flex shrink-0 items-center justify-between px-8 py-6">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-            Seller follow-up
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">Welcome back, {userName}</p>
+          <p className="crm-section-kicker">Daily overview</p>
+          <h1 className="crm-header-title mt-2">Seller follow-up</h1>
+          <p className="crm-header-copy">Welcome back, {userName}</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition">
+          <button className="crm-card-soft rounded-full p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition">
             <Bell size={18} />
           </button>
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#16a37f] text-[13px] font-semibold text-white">
@@ -56,14 +55,14 @@ export function DashboardClient({
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto px-8 py-6 space-y-6">
+      <div className="flex-1 space-y-6 overflow-auto px-8 py-7">
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
           {cards.map((card) => (
             <div
               key={card.label}
-              className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm"
+              className="crm-card p-5"
             >
-              <p className="text-[12px] font-medium uppercase tracking-wider text-gray-400">
+              <p className="crm-section-kicker">
                 {card.label}
               </p>
               <p className={`mt-2 text-3xl font-semibold ${card.tone}`}>{card.value}</p>
@@ -72,16 +71,19 @@ export function DashboardClient({
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="crm-panel p-5">
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-[13px] font-semibold text-gray-800">Follow-ups Due</p>
+              <div>
+                <p className="crm-section-kicker">Priority queue</p>
+                <p className="mt-1 text-[15px] font-semibold text-gray-900">Follow-ups Due</p>
+              </div>
               <span className="text-xs text-gray-400">{counts.dueToday} due today</span>
             </div>
             <div className="space-y-3">
               {dueLeads.length ? (
                 dueLeads.map((lead) => (
-                  <div key={lead.id} className="rounded-xl border border-gray-100 px-4 py-3">
-                    <p className="font-medium text-gray-900">
+                  <div key={lead.id} className="crm-muted-surface px-4 py-3">
+                    <p className="text-sm font-semibold text-gray-900">
                       {lead.first_name} {lead.last_name}
                     </p>
                     <p className="mt-1 text-sm text-gray-500">{lead.property_address}</p>
@@ -96,17 +98,20 @@ export function DashboardClient({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="crm-panel p-5">
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-[13px] font-semibold text-gray-800">Recent Replies</p>
+              <div>
+                <p className="crm-section-kicker">Live activity</p>
+                <p className="mt-1 text-[15px] font-semibold text-gray-900">Recent Replies</p>
+              </div>
               <span className="text-xs text-gray-400">{counts.repliesReceived} replies received</span>
             </div>
             <div className="space-y-3">
               {recentReplies.length ? (
                 recentReplies.map(({ lead, message }) => (
-                  <div key={message.id} className="rounded-xl border border-gray-100 px-4 py-3">
+                  <div key={message.id} className="crm-muted-surface px-4 py-3">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="font-medium text-gray-900">
+                      <p className="text-sm font-semibold text-gray-900">
                         {lead.first_name} {lead.last_name}
                       </p>
                       <span className="text-xs text-gray-400">
