@@ -459,7 +459,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
             type="button"
             onClick={startConversation}
             disabled={isCreatingLead}
-            className="w-full rounded-lg bg-[#16a37f] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#128765] disabled:cursor-not-allowed disabled:bg-[#7dcfbc]"
+            className="w-full rounded-lg bg-[#00c08b] px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isCreatingLead ? "Sending..." : "Start Conversation"}
           </button>
@@ -580,7 +580,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
   return (
     <div className="crm-page flex h-full flex-col overflow-hidden">
       <div className="crm-page-header flex items-center justify-between px-6 py-4">
-        <h1 className="text-[14px] font-medium text-[#0f1117]">Inbox</h1>
+        <h1 className="crm-header-title">Inbox</h1>
         <button type="button" onClick={() => setIsModalOpen(true)} className="crm-button-primary">
           Start conversation
         </button>
@@ -589,7 +589,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
       {startConversationModal}
 
       <div className="grid min-h-0 flex-1 gap-0 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="flex min-h-0 flex-col border-r border-[#eaecf0] bg-white">
+        <aside className="flex min-h-0 flex-col border-r border-[#e8edf2] bg-[#f7f8fa]">
           <div className="px-4 py-4">
           <div className="flex items-center justify-between border-b border-[#eaecf0] pb-4">
             <div>
@@ -602,7 +602,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                 event.preventDefault();
                 setIsModalOpen(true);
               }}
-              className="flex h-9 w-9 items-center justify-center rounded-[6px] bg-[#0f1117] text-white"
+              className="flex h-9 w-9 items-center justify-center rounded-[6px] bg-[#00c08b] text-white"
               title="Start conversation"
             >
               <Plus size={16} />
@@ -630,8 +630,8 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                     key={conversation.lead.id}
                     type="button"
                     onClick={() => setSelectedLeadId(conversation.lead.id)}
-                    className={`w-full px-4 py-3 text-left transition ${
-                      isActive ? "bg-[#f8f9fb]" : conversation.unread ? "bg-[#fbfcfd]" : "bg-white hover:bg-[#f8f9fb]"
+                    className={`w-full border-l-2 px-4 py-3 text-left transition ${
+                      isActive ? "border-[#00c08b] bg-white" : conversation.unread ? "border-transparent bg-[#f7f8fa]" : "border-transparent bg-[#f7f8fa] hover:bg-white"
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -649,7 +649,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                             {conversation.lead.first_name} {conversation.lead.last_name}
                           </p>
                           <div className="flex items-center gap-1">
-                            {conversation.unread ? <span className="h-2 w-2 rounded-full bg-[#10b981]" /> : null}
+                            {conversation.unread ? <span className="h-2 w-2 rounded-full bg-[#00c08b]" /> : null}
                             <span className="shrink-0 text-[11px] text-gray-400">
                               {conversation.lastMessage ? format(new Date(conversation.lastMessage.created_at), "h:mm a") : ""}
                             </span>
@@ -691,7 +691,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
             </div>
           </div>
 
-          <ScrollArea className="min-h-0 flex-1 bg-[#f8f9fb] px-5 py-5">
+          <ScrollArea className="min-h-0 flex-1 bg-[#f7f8fa] px-5 py-5">
             <div className="space-y-4">
               {leadMessages.map((message) => (
                 <div
@@ -723,7 +723,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
           </ScrollArea>
 
           <div className="border-t border-[#eaecf0] bg-white px-5 py-4">
-            <div className="mb-3 rounded-[10px] border border-[#eaecf0] bg-[#f8f9fb] p-3">
+            <div className="mb-3 rounded-[10px] border border-[#00c08b]/20 bg-[#eaf9f5] p-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-medium text-[#6b7280]">AI draft reply</p>
@@ -732,7 +732,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                 <button
                   type="button"
                   onClick={() => setComposeText(suggestedReply)}
-                  className="rounded-[6px] bg-[#0f1117] px-3 py-2 text-xs font-medium text-white"
+                  className="rounded-[6px] bg-[#00c08b] px-3 py-2 text-xs font-medium text-white"
                 >
                   Approve
                 </button>
@@ -776,7 +776,7 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
                 type="button"
                 onClick={sendMessage}
                 disabled={isSending || !composeText.trim() || lead.status === "DNC"}
-                className="flex h-10 w-10 items-center justify-center rounded-[6px] bg-[#0f1117] text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="flex h-10 w-10 items-center justify-center rounded-[6px] bg-[#00c08b] text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Send size={16} />
               </button>

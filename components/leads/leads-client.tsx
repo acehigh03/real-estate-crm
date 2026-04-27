@@ -35,14 +35,14 @@ const STATUS_OPTIONS: Array<"all" | LeadStatus> = [
 function statusTag(status: LeadStatus) {
   const classes =
     status === "Hot"
-      ? "bg-emerald-50 text-emerald-700"
+      ? "bg-[#eaf9f5] text-[#00c08b]"
       : status === "Contacted"
-        ? "bg-blue-50 text-blue-700"
+        ? "bg-[#eff6ff] text-[#1d4ed8]"
         : status === "Replied"
-          ? "bg-amber-50 text-amber-700"
+          ? "bg-[#fef3c7] text-[#92400e]"
           : status === "Dead" || status === "DNC"
-            ? "bg-gray-100 text-gray-700"
-            : "bg-slate-100 text-slate-700";
+            ? "bg-[#f3f4f6] text-[#6b7280]"
+            : "bg-[#f3f4f6] text-[#6b7280]";
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${classes}`}>
       {status}
@@ -54,12 +54,12 @@ function classTag(classification: LeadClassification) {
   const label = getClassificationLabel(classification);
   const classes =
     classification === "HOT"
-      ? "bg-emerald-50 text-emerald-700"
+      ? "bg-[#eaf9f5] text-[#00c08b]"
       : classification === "WARM"
-        ? "bg-amber-50 text-amber-700"
+        ? "bg-[#fef3c7] text-[#92400e]"
         : classification === "COLD"
-          ? "bg-indigo-50 text-indigo-700"
-          : "bg-gray-100 text-gray-700";
+          ? "bg-[#ede9fe] text-[#5b21b6]"
+          : "bg-[#f3f4f6] text-[#6b7280]";
 
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${classes}`}>
@@ -120,7 +120,7 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
     <div className="crm-page flex flex-1 flex-col overflow-hidden">
       <div className="crm-page-header flex shrink-0 items-center justify-between gap-4 px-6 py-4">
         <div>
-          <h1 className="text-[14px] font-medium text-[#0f1117]">Leads</h1>
+          <h1 className="crm-header-title">Leads</h1>
         </div>
         <div className="flex items-center gap-2">
           <Input
@@ -144,7 +144,7 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
           </select>
           <Button
             size="sm"
-            className="h-9 gap-1.5 rounded-[6px] border-none bg-[#0f1117] px-4 text-white hover:bg-[#0f1117]"
+            className="h-9 gap-1.5 rounded-[6px] border-none bg-[#00c08b] px-4 text-white hover:opacity-90"
             onClick={() => setCsvDialogOpen(true)}
           >
             <Upload size={13} />
@@ -198,21 +198,21 @@ export function LeadsClient({ leads, notes, followups }: LeadsClientProps) {
         ) : (
           <div className="overflow-hidden rounded-[10px] border border-[#eaecf0] bg-white">
             <Table>
-            <TableHeader className="bg-white">
-              <TableRow className="border-slate-200/80">
-                <TableHead className="px-5 py-3 text-xs font-medium tracking-[0.01em] text-gray-500">Name</TableHead>
-                <TableHead className="px-5 py-3 text-xs font-medium tracking-[0.01em] text-gray-500">Address</TableHead>
-                <TableHead className="px-5 py-3 text-xs font-medium tracking-[0.01em] text-gray-500">Phone</TableHead>
-                <TableHead className="px-5 py-3 text-xs font-medium tracking-[0.01em] text-gray-500 text-right">Score</TableHead>
-                <TableHead className="px-5 py-3 text-xs font-medium tracking-[0.01em] text-gray-500">Status</TableHead>
-                <TableHead className="px-5 py-3 text-xs font-medium tracking-[0.01em] text-gray-500">Class</TableHead>
-                <TableHead className="px-5 py-3 text-xs font-medium tracking-[0.01em] text-gray-500">Follow-up</TableHead>
-                <TableHead className="px-5 py-3 text-right text-xs font-medium tracking-[0.01em] text-gray-500">Actions</TableHead>
+            <TableHeader className="bg-[#f7f8fa]">
+              <TableRow className="border-[#e8edf2]">
+                <TableHead className="px-5 py-3 text-[11px] font-medium uppercase tracking-wide text-[#6b7c93]">Name</TableHead>
+                <TableHead className="px-5 py-3 text-[11px] font-medium uppercase tracking-wide text-[#6b7c93]">Address</TableHead>
+                <TableHead className="px-5 py-3 text-[11px] font-medium uppercase tracking-wide text-[#6b7c93]">Phone</TableHead>
+                <TableHead className="px-5 py-3 text-right text-[11px] font-medium uppercase tracking-wide text-[#6b7c93]">Score</TableHead>
+                <TableHead className="px-5 py-3 text-[11px] font-medium uppercase tracking-wide text-[#6b7c93]">Status</TableHead>
+                <TableHead className="px-5 py-3 text-[11px] font-medium uppercase tracking-wide text-[#6b7c93]">Class</TableHead>
+                <TableHead className="px-5 py-3 text-[11px] font-medium uppercase tracking-wide text-[#6b7c93]">Follow-up</TableHead>
+                <TableHead className="px-5 py-3 text-right text-[11px] font-medium uppercase tracking-wide text-[#6b7c93]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((lead) => (
-                  <TableRow key={lead.id} className="group border-slate-100/90 transition hover:bg-gray-50">
+                  <TableRow key={lead.id} className="group border-[#e8edf2] transition hover:bg-[#f7f8fa]">
                     <TableCell className="px-5 py-4 text-sm font-semibold text-slate-800">
                       <Link href={`/leads/${lead.id}`} className="transition hover:text-[#16a37f]">
                         {lead.first_name} {lead.last_name}

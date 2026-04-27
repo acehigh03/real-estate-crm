@@ -34,31 +34,32 @@ export function withStopLanguage(message: string) {
 export function formatStatusColor(status: string) {
   switch (status) {
     case "Hot":
-      return "bg-amber-100 text-amber-800";
+      return "bg-[#eaf9f5] text-[#00c08b]";
     case "DNC":
-      return "bg-rose-100 text-rose-700";
+      return "bg-[#fef2f2] text-[#e5484d]";
     case "Replied":
-      return "bg-sky-100 text-sky-700";
+      return "bg-[#fef3c7] text-[#92400e]";
     case "Contacted":
-      return "bg-emerald-100 text-emerald-700";
+      return "bg-[#eff6ff] text-[#1d4ed8]";
     case "Dead":
-      return "bg-slate-200 text-slate-700";
+      return "bg-[#f3f4f6] text-[#6b7280]";
     default:
-      return "bg-slate-100 text-slate-700";
+      return "bg-[#f3f4f6] text-[#6b7280]";
   }
 }
 
 export function formatClassificationColor(classification: string) {
   switch (classification) {
     case "HOT":
-      return "bg-rose-100 text-rose-700";
+      return "bg-[#eaf9f5] text-[#00c08b]";
     case "WARM":
-      return "bg-amber-100 text-amber-800";
+      return "bg-[#fef3c7] text-[#92400e]";
+    case "COLD":
+      return "bg-[#ede9fe] text-[#5b21b6]";
     case "DEAD":
-      return "bg-zinc-200 text-zinc-700";
     case "OPT_OUT":
-      return "bg-slate-200 text-slate-700";
+      return "bg-[#f3f4f6] text-[#6b7280]";
     default:
-      return "bg-sky-100 text-sky-700";
+      return "bg-[#f3f4f6] text-[#6b7280]";
   }
 }

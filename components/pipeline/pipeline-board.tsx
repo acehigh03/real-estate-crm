@@ -16,12 +16,12 @@ const STAGE_STYLES: Record<PipelineStage, { accent: string; chip: string }> = {
 
 function priorityBadge(classification: string) {
   if (classification === "HOT") {
-    return { label: "HOT 🔥", classes: "bg-rose-100 text-rose-700" };
+    return { label: "HOT", classes: "bg-[#eaf9f5] text-[#00c08b]" };
   }
   if (classification === "WARM") {
-    return { label: "WARM", classes: "bg-amber-100 text-amber-700" };
+    return { label: "WARM", classes: "bg-[#fef3c7] text-[#92400e]" };
   }
-  return { label: "COLD", classes: "bg-slate-100 text-slate-600" };
+  return { label: "COLD", classes: "bg-[#ede9fe] text-[#5b21b6]" };
 }
 
 function contactAge(lead: PipelineLeadCard["lead"]) {
@@ -56,7 +56,7 @@ export function PipelineBoard({
       <div className="crm-page-header px-8 py-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-[14px] font-medium text-[#0f1117]">Pipeline</h1>
+            <h1 className="crm-header-title">Pipeline</h1>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
@@ -118,11 +118,14 @@ export function PipelineBoard({
                 key={stage}
                 className="flex min-h-0 flex-col rounded-[10px] border border-[#eaecf0] bg-white"
               >
-                <div className="border-b border-[#eaecf0] px-4 py-3">
+                <div className="border-b border-[#e8edf2] px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
-                    <h2 className="text-sm font-semibold text-[#0f1117]">
-                      {stage} <span className="text-[#6b7280]">({stageCards.length})</span>
+                    <h2 className="text-[12px] font-medium uppercase tracking-wide text-[#6b7c93]">
+                      {stage}
                     </h2>
+                    <span className="rounded-full bg-[#e8edf2] px-2 py-0.5 text-[11px] font-medium text-[#6b7c93]">
+                      {stageCards.length}
+                    </span>
                   </div>
                 </div>
 
@@ -203,7 +206,7 @@ export function PipelineBoard({
                             <select
                               name="stage"
                               defaultValue={stage}
-                              className="min-w-0 flex-1 rounded-[6px] border border-[#eaecf0] bg-white px-2 py-2 text-[11px] font-medium text-gray-700 outline-none"
+                              className="min-w-0 flex-1 rounded-[6px] border border-[#e8edf2] bg-[#f7f8fa] px-2 py-2 text-[11px] font-medium text-[#1a1f36] outline-none"
                             >
                               <option>New Leads</option>
                               <option>Contacted</option>
@@ -258,7 +261,7 @@ export function PipelineBoard({
 
                           <Link
                             href={`/leads/${lead.id}`}
-                            className="flex w-full items-center justify-center rounded-[6px] bg-[#0f1117] px-3 py-2 text-[11px] font-medium text-white"
+                            className="flex w-full items-center justify-center rounded-[6px] bg-[#1a1f36] px-3 py-2 text-[11px] font-medium text-white"
                           >
                             Open Lead
                           </Link>

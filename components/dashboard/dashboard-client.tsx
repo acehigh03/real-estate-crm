@@ -6,7 +6,6 @@ import {
   ArrowRight,
   CalendarClock,
   FileSpreadsheet,
-  Flame,
   MessageCircleReply,
   MessageSquareText,
   PanelsTopLeft,
@@ -33,16 +32,10 @@ interface Props {
 }
 
 function classificationPill(classification: Lead["classification"]) {
-  if (classification === "HOT") {
-    return "bg-emerald-50 text-emerald-700";
-  }
-  if (classification === "WARM") {
-    return "bg-amber-50 text-amber-700";
-  }
-  if (classification === "COLD") {
-    return "bg-indigo-50 text-indigo-700";
-  }
-  return "bg-gray-100 text-gray-600";
+  if (classification === "HOT") return "bg-[#eaf9f5] text-[#00c08b]";
+  if (classification === "WARM") return "bg-[#fef3c7] text-[#92400e]";
+  if (classification === "COLD") return "bg-[#ede9fe] text-[#5b21b6]";
+  return "bg-[#f3f4f6] text-[#6b7280]";
 }
 
 export function DashboardClient({
@@ -57,141 +50,139 @@ export function DashboardClient({
       description: "Upload fresh seller records and start sorting opportunities.",
       href: "/leads",
       icon: FileSpreadsheet,
-      iconClasses: "bg-emerald-50 text-emerald-600",
     },
     {
       title: "Start SMS",
       description: "Open your inbox and begin conversations with motivated sellers.",
       href: "/inbox",
       icon: MessageSquareText,
-      iconClasses: "bg-amber-50 text-amber-600",
     },
     {
       title: "Pipeline Board",
       description: "Review every active deal stage in one focused workspace.",
       href: "/pipeline",
       icon: PanelsTopLeft,
-      iconClasses: "bg-blue-50 text-blue-600",
     },
   ];
 
   const heroStats = [
-    { label: "Total leads", value: counts.totalLeads },
-    { label: "Hot leads", value: counts.hotLeads },
+    { label: "Total Leads", value: counts.totalLeads },
+    { label: "Hot Leads", value: counts.hotLeads },
     { label: "Replies", value: counts.repliesReceived },
-    { label: "Due today", value: counts.dueToday },
+    { label: "Due Today", value: counts.dueToday },
   ];
 
   return (
     <div className="crm-page flex flex-1 flex-col overflow-auto">
-      <div className="crm-page-header flex items-center justify-between px-8 py-4">
-        <div>
-          <h1 className="text-[14px] font-medium text-[#0f1117]">Dashboard</h1>
-        </div>
+      <div className="crm-page-header flex h-14 shrink-0 items-center justify-between px-8">
+        <h1 className="crm-header-title">Dashboard</h1>
         <Link href="/pipeline" className="crm-button-primary">
           Open pipeline
         </Link>
       </div>
 
-      <div className="flex-1 space-y-8 overflow-auto px-8 py-8">
-        <section className="relative overflow-hidden rounded-[10px] bg-[linear-gradient(135deg,#0f1117,#1a2540,#0f3460)] px-7 py-7 text-white">
-          <div className="absolute right-[-5rem] top-[-3rem] h-52 w-52 rounded-full bg-[radial-gradient(circle,_rgba(16,185,129,0.35),_transparent_65%)]" />
-          <div className="relative max-w-3xl">
-            <span className="inline-flex items-center rounded-full bg-emerald-500/18 px-3 py-1 text-xs font-medium text-emerald-200">
-              LIVE
-            </span>
-            <h2 className="mt-4 text-[2rem] font-semibold tracking-tight">
+      <div className="flex-1 space-y-6 overflow-auto px-8 py-6">
+        {/* Hero card */}
+        <section className="relative overflow-hidden rounded-xl border border-[#e8edf2] bg-white">
+          <div className="absolute bottom-0 left-0 top-0 w-1 bg-[#00c08b]" />
+          <div className="px-7 py-6">
+            <h2 className="text-[18px] font-semibold text-[#1a1f36]">
               Welcome back, {userName}.
             </h2>
-            <p className="mt-2 text-sm text-slate-300">
-              {counts.dueToday} follow-ups due today and {counts.repliesReceived} new replies waiting for you.
+            <p className="mt-1 text-[13px] text-[#6b7c93]">
+              {counts.dueToday} follow-ups due today · {counts.repliesReceived} new replies waiting.
             </p>
 
-            <div className="mt-6 grid grid-cols-2 gap-4 rounded-[10px] border border-white/10 bg-white/5 p-4 md:grid-cols-4">
+            <div className="mt-5 grid grid-cols-2 gap-6 border-t border-[#e8edf2] pt-5 md:grid-cols-4">
               {heroStats.map((stat) => (
                 <div key={stat.label}>
-                  <p className="text-xs text-slate-300">{stat.label}</p>
-                  <p className="mt-2 text-2xl font-semibold text-white">{stat.value}</p>
+                  <p className="text-[11px] uppercase tracking-wide text-[#6b7c93]">{stat.label}</p>
+                  <p className="mt-1.5 text-[28px] font-semibold leading-none text-[#1a1f36]">{stat.value}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
+        {/* Quick actions */}
         <section className="grid gap-4 lg:grid-cols-3">
           {quickActions.map((action) => (
             <div key={action.title} className="crm-panel p-5">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-[10px] ${action.iconClasses}`}>
-                <action.icon size={18} />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eaf9f5]">
+                <action.icon size={18} className="text-[#00c08b]" />
               </div>
-              <h3 className="mt-4 text-base font-semibold text-[#0f1117]">{action.title}</h3>
-              <p className="mt-2 text-sm text-[#6b7280]">{action.description}</p>
+              <h3 className="mt-4 text-[14px] font-semibold text-[#1a1f36]">{action.title}</h3>
+              <p className="mt-1.5 text-[13px] text-[#6b7c93]">{action.description}</p>
               <Link
                 href={action.href}
-                className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[#0f1117]"
+                className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#1a1f36]"
               >
                 Open
-                <ArrowRight size={14} />
+                <ArrowRight size={13} />
               </Link>
             </div>
           ))}
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-2">
+        {/* Follow-ups + Replies */}
+        <section className="grid gap-4 lg:grid-cols-2">
           <div className="crm-panel p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-[#0f1117]">Follow-ups due</h3>
-              <span className="text-xs text-[#6b7280]">{counts.dueToday} today</span>
+              <h3 className="crm-section-title">Follow-ups due</h3>
+              <span className="text-[12px] text-[#6b7c93]">{counts.dueToday} today</span>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {dueLeads.length ? (
-                dueLeads.map((lead) => (
-                  <div key={lead.id} className="flex items-center justify-between rounded-[10px] border border-[#eaecf0] bg-white px-4 py-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-[#0f1117]">
-                        {lead.first_name} {lead.last_name}
-                      </p>
-                      <p className="mt-1 truncate text-sm text-[#6b7280]">{lead.property_address}</p>
+                dueLeads.map((lead) => {
+                  const followUpDate = lead.next_follow_up_at ? new Date(lead.next_follow_up_at) : null;
+                  const isOverdue = followUpDate ? followUpDate < new Date() : true;
+                  return (
+                    <div key={lead.id} className="flex items-center justify-between rounded-lg border border-[#e8edf2] bg-white px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-[13px] font-medium text-[#1a1f36]">
+                          {lead.first_name} {lead.last_name}
+                        </p>
+                        <p className="mt-0.5 truncate text-[12px] text-[#6b7c93]">{lead.property_address}</p>
+                      </div>
+                      <span className={`ml-4 shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium ${isOverdue ? "bg-[#fef2f2] text-[#e5484d]" : "bg-[#f3f4f6] text-[#6b7c93]"}`}>
+                        <CalendarClock size={11} className="mr-1 inline" />
+                        {followUpDate ? format(followUpDate, "h:mm a") : "Now"}
+                      </span>
                     </div>
-                    <span className="ml-4 shrink-0 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
-                      {lead.next_follow_up_at
-                        ? format(new Date(lead.next_follow_up_at), "h:mm a")
-                        : "Now"}
-                    </span>
-                  </div>
-                ))
+                  );
+                })
               ) : (
-                <p className="text-sm text-[#6b7280]">No follow-ups are due right now.</p>
+                <p className="text-[13px] text-[#6b7c93]">No follow-ups are due right now.</p>
               )}
             </div>
           </div>
 
           <div className="crm-panel p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-[#0f1117]">Recent replies</h3>
-              <span className="text-xs text-[#6b7280]">{counts.repliesReceived} total</span>
+              <h3 className="crm-section-title">Recent replies</h3>
+              <span className="text-[12px] text-[#6b7c93]">{counts.repliesReceived} total</span>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {recentReplies.length ? (
                 recentReplies.map(({ lead, message }) => (
-                  <div key={message.id} className="rounded-[10px] border border-[#eaecf0] bg-white px-4 py-3">
+                  <div key={message.id} className="rounded-lg border border-[#e8edf2] bg-white px-4 py-3">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium text-[#0f1117]">
+                      <p className="text-[13px] font-medium text-[#1a1f36]">
                         {lead.first_name} {lead.last_name}
                       </p>
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${classificationPill(lead.classification)}`}>
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${classificationPill(lead.classification)}`}>
                         {getClassificationLabel(lead.classification)}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm text-[#6b7280]">{lead.property_address}</p>
-                    <div className="mt-3 flex items-start gap-2 text-sm text-[#4b5563]">
-                      <MessageCircleReply size={14} className="mt-0.5 text-[#9ca3af]" />
+                    <p className="mt-0.5 text-[12px] text-[#6b7c93]">{lead.property_address}</p>
+                    <div className="mt-2 flex items-start gap-1.5 text-[13px] text-[#1a1f36]">
+                      <MessageCircleReply size={13} className="mt-0.5 shrink-0 text-[#6b7c93]" />
                       <p className="line-clamp-2">{message.body}</p>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-[#6b7280]">No inbound replies yet.</p>
+                <p className="text-[13px] text-[#6b7c93]">No inbound replies yet.</p>
               )}
             </div>
           </div>

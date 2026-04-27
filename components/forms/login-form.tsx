@@ -11,7 +11,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded-[6px] bg-[#0f1117] px-4 py-3 text-sm font-medium text-white transition disabled:opacity-70"
+      className="w-full rounded-[6px] bg-[#00c08b] px-4 py-3 text-[13px] font-medium text-white transition hover:opacity-90 disabled:opacity-60"
     >
       {pending ? "Signing in..." : "Sign in"}
     </button>
@@ -22,7 +22,7 @@ export function LoginForm({ error }: { error?: string }) {
   return (
     <form action={signIn} className="space-y-4">
       <div>
-        <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-700">
+        <label htmlFor="email" className="mb-1.5 block text-[13px] font-medium text-[#1a1f36]">
           Email
         </label>
         <input
@@ -30,12 +30,12 @@ export function LoginForm({ error }: { error?: string }) {
           name="email"
           type="email"
           required
-          className="w-full rounded-[6px] border border-[#eaecf0] bg-white px-4 py-3 text-sm"
+          className="w-full rounded-[6px] border border-[#e8edf2] bg-white px-4 py-2.5 text-[13px] text-[#1a1f36] placeholder:text-[#6b7c93] focus:border-[#00c08b] focus:ring-2 focus:ring-[#eaf9f5]"
         />
       </div>
 
       <div>
-        <label htmlFor="password" className="mb-2 block text-sm font-medium text-slate-700">
+        <label htmlFor="password" className="mb-1.5 block text-[13px] font-medium text-[#1a1f36]">
           Password
         </label>
         <input
@@ -43,12 +43,12 @@ export function LoginForm({ error }: { error?: string }) {
           name="password"
           type="password"
           required
-          className="w-full rounded-[6px] border border-[#eaecf0] bg-white px-4 py-3 text-sm"
+          className="w-full rounded-[6px] border border-[#e8edf2] bg-white px-4 py-2.5 text-[13px] text-[#1a1f36] placeholder:text-[#6b7c93] focus:border-[#00c08b] focus:ring-2 focus:ring-[#eaf9f5]"
         />
       </div>
 
       {error ? (
-        <p className="rounded-[6px] bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
+        <p className="rounded-[6px] bg-[#fef2f2] px-4 py-3 text-[13px] text-[#e5484d]">{error}</p>
       ) : null}
 
       <SubmitButton />

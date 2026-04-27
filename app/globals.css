@@ -6,15 +6,19 @@
   color-scheme: light;
 
   /* Fonts */
-  --font-sans: "DM Sans", sans-serif;
+  --font-sans: "Inter", sans-serif;
   --font-mono: "DM Mono", monospace;
 
-  --crm-bg: #f8f9fb;
+  /* Telnyx design tokens */
+  --crm-bg: #f7f8fa;
   --crm-surface: #ffffff;
-  --crm-dark: #0f1117;
-  --crm-border: #eaecf0;
-  --crm-muted: #6b7280;
-  --crm-accent: #10b981;
+  --crm-dark: #1a1f36;
+  --crm-border: #e8edf2;
+  --crm-muted: #6b7c93;
+  --crm-accent: #00c08b;
+  --crm-accent-light: #eaf9f5;
+  --crm-danger: #e5484d;
+  --crm-amber: #f59e0b;
 
   /* shadcn base */
   --background: 0 0% 100%;
@@ -36,47 +40,17 @@
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
   --ring: 222.2 84% 4.9%;
-  --radius: 1rem;
+  --radius: 0.5rem;
 
-  /* shadcn sidebar (overridden inline on dark sidebar) */
-  --sidebar: 0 0% 8%;
-  --sidebar-foreground: 0 0% 45%;
-  --sidebar-primary: 162 44% 55%;
+  /* shadcn sidebar */
+  --sidebar: 220 14% 97%;
+  --sidebar-foreground: 215 16% 50%;
+  --sidebar-primary: 163 100% 38%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 162 30% 13%;
-  --sidebar-accent-foreground: 162 44% 55%;
-  --sidebar-border: 0 0% 11%;
-  --sidebar-ring: 162 44% 55%;
-}
-
-.dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 210 40% 98%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 212.7 26.8% 83.9%;
-  --sidebar: 240 5.9% 10%;
-  --sidebar-foreground: 240 4.8% 95.9%;
-  --sidebar-primary: 224.3 76.3% 48%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 240 3.7% 15.9%;
-  --sidebar-accent-foreground: 240 4.8% 95.9%;
-  --sidebar-border: 240 3.7% 15.9%;
-  --sidebar-ring: 217.2 91.2% 59.8%;
+  --sidebar-accent: 162 71% 95%;
+  --sidebar-accent-foreground: 163 100% 38%;
+  --sidebar-border: 210 24% 90%;
+  --sidebar-ring: 163 100% 38%;
 }
 
 @layer base {
@@ -85,9 +59,9 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: var(--font-sans), "Avenir Next", "Segoe UI", sans-serif;
+    font-family: var(--font-sans), "Segoe UI", sans-serif;
     font-weight: 400;
-    color: var(--crm-muted);
+    color: var(--crm-dark);
   }
   input,
   textarea,
@@ -103,27 +77,27 @@
 
   .crm-page-header {
     background: var(--crm-surface);
-    border-bottom: 0.5px solid var(--crm-border);
+    border-bottom: 1px solid var(--crm-border);
   }
 
   .crm-header-title {
     color: var(--crm-dark);
-    @apply text-[1.875rem] font-semibold tracking-tight;
+    @apply text-[15px] font-semibold;
   }
 
   .crm-header-copy {
     color: var(--crm-muted);
-    @apply mt-1 text-sm font-normal;
+    @apply mt-1 text-[13px] font-normal;
   }
 
   .crm-section-kicker {
     color: var(--crm-muted);
-    @apply text-xs font-medium tracking-[0.02em];
+    @apply text-[11px] font-medium uppercase tracking-wide;
   }
 
   .crm-section-title {
     color: var(--crm-dark);
-    @apply text-[1.1875rem] font-semibold tracking-tight;
+    @apply text-base font-semibold;
   }
 
   .crm-card {
@@ -146,8 +120,8 @@
 
   .crm-muted-surface {
     border: 1px solid var(--crm-border);
-    border-radius: 10px;
-    background: #fbfcfd;
+    border-radius: 8px;
+    background: var(--crm-bg);
   }
 
   .crm-button-secondary {
@@ -155,19 +129,20 @@
     border-radius: 6px;
     background: var(--crm-surface);
     color: var(--crm-muted);
-    @apply px-4 py-2 text-sm font-medium transition hover:bg-slate-50;
+    @apply px-4 py-2 text-sm font-medium transition hover:bg-[#f7f8fa];
   }
 
   .crm-button-primary {
     border-radius: 6px;
-    background: var(--crm-dark);
-    @apply px-4 py-2 text-sm font-semibold text-white transition;
+    background: var(--crm-accent);
+    @apply px-4 py-2 text-[13px] font-medium text-white transition hover:opacity-90;
   }
 
   .crm-chat-bubble-inbound {
     border: 1px solid var(--crm-border);
-    background: var(--crm-surface);
-    @apply rounded-2xl rounded-bl-md px-4 py-2.5 text-sm leading-5 text-slate-700;
+    background: var(--crm-bg);
+    color: var(--crm-dark);
+    @apply rounded-2xl rounded-bl-md px-4 py-2.5 text-sm leading-5;
   }
 
   .crm-chat-bubble-outbound {
@@ -179,18 +154,8 @@
     border: 1px solid var(--crm-border);
     border-radius: 6px;
     background: var(--crm-surface);
-    @apply text-sm text-slate-700;
-  }
-
-  .crm-dark-input {
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.9);
-  }
-
-  .crm-dark-input::placeholder {
-    color: rgba(255, 255, 255, 0.35);
+    color: var(--crm-dark);
+    @apply text-sm;
   }
 
   .crm-badge-neutral {
