@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -10,9 +12,47 @@ const stopKeywords = new Set(["STOP", "UNSUBSCRIBE", "CANCEL", "END", "QUIT", "S
 export async function POST(request: Request) {
   const supabaseAdmin = getSupabaseAdmin();
 
+  const rawBody = await request.text();
+
+  const publicKeyB64 = process.env.TELNYX_PUBLIC_KEY;
+  if (publicKeyB64) {
+    const signature = request.headers.get("telnyx-signature-ed25519");
+    const timestamp  = request.headers.get("telnyx-timestamp");
+
+    if (!signature || !timestamp) {
+      return NextResponse.json({ error: "Missing signature headers" }, { status: 401 });
+    }
+
+    if (Math.abs(Date.now() / 1000 - parseInt(timestamp, 10)) > 300) {
+      return NextResponse.json({ error: "Webhook timestamp expired" }, { status: 401 });
+    }
+
+    try {
+      const signedContent = `${timestamp}|${rawBody}`;
+
+      const rawKey     = Buffer.from(publicKeyB64, "base64");
+      const spkiHeader = Buffer.from("302a300506032b6570032100", "hex");
+      const derKey     = Buffer.concat([spkiHeader, rawKey]);
+      const publicKey  = crypto.createPublicKey({ key: derKey, format: "der", type: "spki" });
+
+      const isValid = crypto.verify(
+        null,
+        Buffer.from(signedContent),
+        publicKey,
+        Buffer.from(signature, "base64")
+      );
+
+      if (!isValid) {
+        return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
+      }
+    } catch {
+      return NextResponse.json({ error: "Signature verification failed" }, { status: 401 });
+    }
+  }
+
   let payload: unknown;
   try {
-    payload = await request.json();
+    payload = JSON.parse(rawBody);
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
