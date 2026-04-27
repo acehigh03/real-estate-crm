@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getRouteUser } from "@/lib/route-user";
 import { classifyLeadMock } from "@/lib/ai/classify-lead";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { sendTelnyxMessage } from "@/lib/telnyx/send-sms";
+import { sendTelnyxMessage, TelnyxSendError } from "@/lib/telnyx/send-sms";
 import { normalizePhone, withStopLanguage } from "@/lib/utils";
 
 const schema = z.object({
@@ -47,7 +47,22 @@ export async function POST(request: Request) {
   const toNormalized = normalizePhone(to);
   const body = withStopLanguage(message);
 
-  const telnyxMessage = await sendTelnyxMessage({ to: toNormalized, text: body });
+  let telnyxMessage: {
+    id: string;
+    to: Array<{ status: string }>;
+  };
+  try {
+    telnyxMessage = await sendTelnyxMessage({ to: toNormalized, text: body });
+  } catch (error) {
+    if (error instanceof TelnyxSendError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
+    return NextResponse.json(
+      { error: "Unable to send message right now. Please try again." },
+      { status: 500 }
+    );
+  }
 
   const { error: messageError } = await supabaseAdmin.from("messages").insert({
     user_id: user.id,

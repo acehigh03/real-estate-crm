@@ -3,6 +3,16 @@ interface SendTelnyxMessageParams {
   text: string;
 }
 
+export class TelnyxSendError extends Error {
+  status: number;
+
+  constructor(message: string, status = 500) {
+    super(message);
+    this.name = "TelnyxSendError";
+    this.status = status;
+  }
+}
+
 export async function sendTelnyxMessage({ to, text }: SendTelnyxMessageParams) {
   const apiKey = process.env.TELNYX_API_KEY;
   const fromNumber =
@@ -10,7 +20,10 @@ export async function sendTelnyxMessage({ to, text }: SendTelnyxMessageParams) {
   const messagingProfileId = process.env.TELNYX_MESSAGING_PROFILE_ID;
 
   if (!apiKey || !fromNumber) {
-    throw new Error("Telnyx env vars not configured");
+    throw new TelnyxSendError(
+      "Telnyx is not configured. Add TELNYX_API_KEY and TELNYX_FROM_NUMBER before sending messages.",
+      500
+    );
   }
 
   const body: Record<string, string> = {
@@ -32,8 +45,24 @@ export async function sendTelnyxMessage({ to, text }: SendTelnyxMessageParams) {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Telnyx send failed: ${errorText}`);
+    let errorMessage = "Telnyx send failed.";
+
+    try {
+      const errorPayload = (await response.json()) as {
+        errors?: Array<{ title?: string; detail?: string; code?: string }>;
+      };
+      const firstError = errorPayload.errors?.[0];
+      if (firstError) {
+        errorMessage = firstError.detail ?? firstError.title ?? firstError.code ?? errorMessage;
+      }
+    } catch {
+      const errorText = (await response.text()).trim();
+      if (errorText) {
+        errorMessage = errorText;
+      }
+    }
+
+    throw new TelnyxSendError(errorMessage, response.status);
   }
 
   const payload = await response.json();
