@@ -41,7 +41,7 @@ export function DashboardClient({
     <div className="crm-page flex flex-1 flex-col overflow-auto">
       <div className="crm-page-header flex shrink-0 items-center justify-between px-8 py-6">
         <div>
-          <h1 className="crm-header-title">Seller follow-up</h1>
+          <h1 className="crm-header-title">Seller Pipeline</h1>
           <p className="crm-header-copy">Welcome back, {userName}</p>
         </div>
         <div className="flex items-center gap-3">
