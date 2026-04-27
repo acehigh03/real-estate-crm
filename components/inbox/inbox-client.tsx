@@ -396,22 +396,30 @@ export function InboxClient({ initialLeads, initialMessages, userId }: InboxClie
           <MessageSquare className="mx-auto mb-4 h-9 w-9 text-gray-300" />
           <h2 className="text-base font-semibold text-gray-900">No conversations yet</h2>
           <p className="mt-2 text-sm text-gray-500">
-            No conversations yet. Import leads or open a lead to start messaging.
+            Start texting leads in seconds.
           </p>
-          <div className="mt-5 flex items-center justify-center gap-3">
-            <Link
-              href="/leads"
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+          <div className="mt-5 flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="rounded-lg bg-[#16a37f] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#128765]"
             >
-              Go to Leads
-            </Link>
+              Start Conversation
+            </button>
             <Link
               href="/leads"
-              className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
             >
               Import CSV
             </Link>
+            <Link
+              href="/leads"
+              className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            >
+              Go to Leads
+            </Link>
           </div>
+          <p className="mt-4 text-xs text-gray-400">Tip: Import a CSV to start bulk outreach</p>
         </div>
       </div>
     );
