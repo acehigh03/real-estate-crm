@@ -3,6 +3,7 @@ export type LeadClassification = "HOT" | "WARM" | "COLD" | "DEAD" | "OPT_OUT" | 
 export type LeadStage = "New" | "Contacted" | "Replied" | "Hot Lead" | "Follow Up" | "Closed" | "DNC";
 export type LeadPriority = "high" | "medium" | "low";
 export type MessageClassification = "HOT" | "WARM" | "NOT_INTERESTED" | "STOP_DNC" | "NEEDS_REVIEW";
+export type CampaignType = "cash_offer" | "foreclosure_help" | "probate" | "tax_sale";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -11,6 +12,7 @@ export interface Database {
     Tables: {
       leads: {
         Row: {
+          campaign_id: string | null;
           city: string | null;
           created_at: string;
           dnc_reason: string | null;
@@ -41,6 +43,7 @@ export interface Database {
           zip: string | null;
         };
         Insert: {
+          campaign_id?: string | null;
           city?: string | null;
           classification?: LeadClassification;
           dnc_reason?: string | null;
@@ -68,6 +71,35 @@ export interface Database {
           zip?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["leads"]["Insert"]>;
+        Relationships: [];
+      };
+      campaigns: {
+        Row: {
+          campaign_type: CampaignType | null;
+          created_at: string;
+          hot_count: number;
+          id: string;
+          messaged_count: number;
+          name: string;
+          replied_count: number;
+          status: string | null;
+          template_variant: string | null;
+          total_leads: number;
+          updated_at: string;
+          user_id: string | null;
+        };
+        Insert: {
+          campaign_type?: CampaignType | null;
+          hot_count?: number;
+          messaged_count?: number;
+          name: string;
+          replied_count?: number;
+          status?: string | null;
+          template_variant?: string | null;
+          total_leads?: number;
+          user_id?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["campaigns"]["Insert"]>;
         Relationships: [];
       };
       messages: {
