@@ -366,7 +366,6 @@ export async function updateForeclosureLead(formData: FormData) {
     .update({
       crm_status: crmStatus,
       crm_notes: crmNotes,
-      updated_at: new Date().toISOString(),
     } as never)
     .eq("id", id as never);
 

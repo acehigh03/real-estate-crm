@@ -46,6 +46,28 @@ export interface ForeclosureLeadView {
   updatedAt: string | null;
 }
 
+const FORECLOSURE_SELECT = [
+  "id",
+  "owner_name",
+  "first_name",
+  "last_name",
+  "name",
+  "full_name",
+  "phone",
+  "email",
+  "property_address",
+  "address",
+  "city",
+  "state",
+  "zip",
+  "campaign_name",
+  "campaign_type",
+  "crm_status",
+  "crm_notes",
+  "created_at",
+  "updated_at",
+].join(", ");
+
 function isMissingRelationError(error: { code?: string; message?: string } | null | undefined) {
   return error?.code === "42P01" || /relation .* does not exist/i.test(error?.message ?? "");
 }
@@ -84,7 +106,7 @@ function normalizeForeclosureLead(row: ForeclosureLeadRow): ForeclosureLeadView 
     cityStateZip: [city, state, zip].filter(Boolean).join(", "),
     campaignName: campaignName || null,
     campaignType: campaignType || null,
-    crmStatus: pickFirstString(raw, ["crm_status", "status"]) || "new",
+    crmStatus: pickFirstString(raw, ["crm_status"]) || "new",
     crmNotes: pickFirstString(raw, ["crm_notes"]) || "",
     createdAt: typeof raw.created_at === "string" ? raw.created_at : null,
     updatedAt: typeof raw.updated_at === "string" ? raw.updated_at : null,
@@ -434,7 +456,7 @@ export async function getForeclosuresData() {
 
   const { data, error } = await supabaseAdmin
     .from("foreclosure_leads" as never)
-    .select("*")
+    .select(FORECLOSURE_SELECT as never)
     .limit(250);
 
   if (error) {
