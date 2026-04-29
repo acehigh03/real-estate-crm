@@ -15,7 +15,7 @@ type NoteInsert = Database["public"]["Tables"]["notes"]["Insert"];
 type FollowupInsert = Database["public"]["Tables"]["followups"]["Insert"];
 
 export async function signIn(formData: FormData) {
-  const email = String(formData.get("email") ?? "");
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 
   const supabase = await createClient();
@@ -345,6 +345,34 @@ export async function updatePipelineStage(formData: FormData) {
   revalidatePath("/leads");
   revalidatePath("/inbox");
   revalidatePath("/pipeline");
+}
+
+export async function updateForeclosureLead(formData: FormData) {
+  const id = String(formData.get("id") ?? "").trim();
+  const crmStatus = String(formData.get("crm_status") ?? "").trim() || null;
+  const crmNotes = String(formData.get("crm_notes") ?? "").trim() || null;
+
+  const supabase = await createClient();
+  const supabaseAdmin = getSupabaseAdmin();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
+  if (!id) throw new Error("Missing foreclosure lead id");
+
+  const { error } = await supabaseAdmin
+    .from("foreclosure_leads" as never)
+    .update({
+      crm_status: crmStatus,
+      crm_notes: crmNotes,
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", id as never);
+
+  if (error) throw error;
+
+  revalidatePath("/foreclosures");
 }
 
 function payloadScoreForClassification(classification: LeadClassification) {

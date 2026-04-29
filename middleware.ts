@@ -56,6 +56,10 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute =
     pathname === "/" ||
     pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/campaigns") ||
+    pathname.startsWith("/pipeline") ||
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/foreclosures") ||
     pathname.startsWith("/leads") ||
     pathname.startsWith("/inbox");
 
@@ -67,7 +71,7 @@ export async function middleware(request: NextRequest) {
 
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/inbox";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 
@@ -79,6 +83,10 @@ export const config = {
     "/",
     "/login",
     "/dashboard/:path*",
+    "/campaigns/:path*",
+    "/pipeline/:path*",
+    "/settings/:path*",
+    "/foreclosures/:path*",
     "/leads/:path*",
     "/inbox/:path*",
   ],

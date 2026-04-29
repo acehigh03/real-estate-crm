@@ -130,6 +130,52 @@ create table if not exists public.followups (
 create index if not exists followups_due_idx
   on public.followups (user_id, due_date, completed_at);
 
+create table if not exists public.sms_settings (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade unique,
+  auto_send_enabled boolean not null default false,
+  send_window_start time not null default '09:00:00',
+  send_window_end time not null default '20:00:00',
+  timezone text not null default 'America/Chicago',
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
+create table if not exists public.sms_queue (
+  id uuid primary key default gen_random_uuid(),
+  lead_id uuid not null references public.leads(id) on delete cascade,
+  message text not null,
+  status text not null default 'queued',
+  scheduled_for timestamptz,
+  sent_at timestamptz,
+  created_at timestamptz not null default timezone('utc', now())
+);
+
+create index if not exists sms_queue_status_scheduled_idx
+  on public.sms_queue (status, scheduled_for);
+
+create table if not exists public.foreclosure_leads (
+  id bigint generated always as identity primary key,
+  owner_name text,
+  first_name text,
+  last_name text,
+  name text,
+  full_name text,
+  phone text,
+  email text,
+  property_address text,
+  address text,
+  city text,
+  state text,
+  zip text,
+  campaign_name text,
+  campaign_type text,
+  crm_status text default 'new',
+  crm_notes text,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
@@ -145,12 +191,24 @@ create trigger campaigns_set_updated_at
   before update on public.campaigns
   for each row execute procedure public.handle_updated_at();
 
+drop trigger if exists sms_settings_set_updated_at on public.sms_settings;
+create trigger sms_settings_set_updated_at
+  before update on public.sms_settings
+  for each row execute procedure public.handle_updated_at();
+
+drop trigger if exists foreclosure_leads_set_updated_at on public.foreclosure_leads;
+create trigger foreclosure_leads_set_updated_at
+  before update on public.foreclosure_leads
+  for each row execute procedure public.handle_updated_at();
+
 alter table public.profiles enable row level security;
 alter table public.leads enable row level security;
 alter table public.campaigns enable row level security;
 alter table public.messages enable row level security;
 alter table public.notes enable row level security;
 alter table public.followups enable row level security;
+alter table public.sms_settings enable row level security;
+alter table public.sms_queue enable row level security;
 
 create policy "Users can view own profile"
   on public.profiles for select
@@ -235,3 +293,48 @@ create policy "Users can update own followups"
 create policy "Users can delete own followups"
   on public.followups for delete
   using (auth.uid() = user_id);
+
+create policy "Users can view own sms settings"
+  on public.sms_settings for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert own sms settings"
+  on public.sms_settings for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own sms settings"
+  on public.sms_settings for update
+  using (auth.uid() = user_id);
+
+create policy "Users can view own sms queue"
+  on public.sms_queue for select
+  using (
+    exists (
+      select 1
+      from public.leads
+      where public.leads.id = sms_queue.lead_id
+        and public.leads.user_id = auth.uid()
+    )
+  );
+
+create policy "Users can insert own sms queue"
+  on public.sms_queue for insert
+  with check (
+    exists (
+      select 1
+      from public.leads
+      where public.leads.id = sms_queue.lead_id
+        and public.leads.user_id = auth.uid()
+    )
+  );
+
+create policy "Users can update own sms queue"
+  on public.sms_queue for update
+  using (
+    exists (
+      select 1
+      from public.leads
+      where public.leads.id = sms_queue.lead_id
+        and public.leads.user_id = auth.uid()
+    )
+  );

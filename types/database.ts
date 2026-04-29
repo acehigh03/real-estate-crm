@@ -110,6 +110,52 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["campaigns"]["Insert"]>;
         Relationships: [];
       };
+      foreclosure_leads: {
+        Row: {
+          id: string | number;
+          owner_name: string | null;
+          first_name: string | null;
+          last_name: string | null;
+          name: string | null;
+          full_name: string | null;
+          phone: string | null;
+          email: string | null;
+          property_address: string | null;
+          address: string | null;
+          city: string | null;
+          state: string | null;
+          zip: string | null;
+          campaign_name: string | null;
+          campaign_type: string | null;
+          crm_status: string | null;
+          crm_notes: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string | number;
+          owner_name?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
+          name?: string | null;
+          full_name?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          property_address?: string | null;
+          address?: string | null;
+          city?: string | null;
+          state?: string | null;
+          zip?: string | null;
+          campaign_name?: string | null;
+          campaign_type?: string | null;
+          crm_status?: string | null;
+          crm_notes?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["foreclosure_leads"]["Insert"]>;
+        Relationships: [];
+      };
       messages: {
         Row: {
           body: string;
