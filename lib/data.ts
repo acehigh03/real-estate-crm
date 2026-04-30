@@ -113,6 +113,32 @@ function normalizeForeclosureLead(row: ForeclosureLeadRow): ForeclosureLeadView 
   };
 }
 
+async function safeFetchMessages(
+  query: PromiseLike<{ data: Message[] | null; error: { code?: string; message?: string } | null }>
+): Promise<Message[]> {
+  try {
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []) as Message[];
+  } catch (error) {
+    console.error("messages query failed:", error);
+    return [];
+  }
+}
+
+async function safeCountMessages(
+  query: PromiseLike<{ count: number | null; error: { code?: string; message?: string } | null }>
+): Promise<number> {
+  try {
+    const { count, error } = await query;
+    if (error) throw error;
+    return count ?? 0;
+  } catch (error) {
+    console.error("messages query failed:", error);
+    return 0;
+  }
+}
+
 function derivePipelineStage(lead: Lead): PipelineStage {
   if (lead.stage === "New") return "New Leads";
   if (lead.stage === "Contacted") return "Contacted";
@@ -217,22 +243,22 @@ export async function getCampaignCount(): Promise<number> {
 export async function getLeadDetailData(leadId: string) {
   const { supabase, user } = await requireUser();
 
-  const [leadResponse, noteResponse, followupResponse, messageResponse, campaignResponse] = await Promise.all([
+  const [leadResponse, noteResponse, followupResponse, messages, campaignResponse] = await Promise.all([
     supabase.from("leads").select("*").eq("user_id", user.id).eq("id", leadId).single(),
     supabase.from("notes").select("*").eq("user_id", user.id).eq("lead_id", leadId).order("created_at", { ascending: false }),
     supabase.from("followups").select("*").eq("user_id", user.id).eq("lead_id", leadId).order("due_date", { ascending: true }),
-    supabase.from("messages").select("*").eq("user_id", user.id).eq("lead_id", leadId).order("created_at", { ascending: true }),
+    safeFetchMessages(
+      supabase.from("messages").select("*").eq("user_id", user.id).eq("lead_id", leadId).order("created_at", { ascending: true })
+    ),
     supabase.from("campaigns").select("id, name, campaign_type").eq("user_id", user.id),
   ]);
 
   if (leadResponse.error) throw leadResponse.error;
   if (noteResponse.error) throw noteResponse.error;
   if (followupResponse.error) throw followupResponse.error;
-  if (messageResponse.error) throw messageResponse.error;
   if (campaignResponse.error) throw campaignResponse.error;
   const lead = leadResponse.data as Lead;
   const campaigns = (campaignResponse.data ?? []) as Array<Pick<Campaign, "id" | "name" | "campaign_type">>;
-  const messages = (messageResponse.data ?? []) as Message[];
 
   const campaign =
     lead.campaign_id
@@ -254,23 +280,25 @@ export async function getLeadDetailData(leadId: string) {
 export async function getInboxBadgeCount(): Promise<number> {
   const { supabase, user } = await requireUser();
   const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-  const { count, error } = await supabase
-    .from("messages")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .eq("direction", "inbound")
-    .gte("created_at", cutoff);
-  if (error && !isMissingRelationError(error)) throw error;
-  return count ?? 0;
+  return safeCountMessages(
+    supabase
+      .from("messages")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("direction", "inbound")
+      .gte("created_at", cutoff)
+  );
 }
 
 export async function getDashboardStats() {
   const { supabase, user } = await requireUser();
   const today = format(new Date(), "yyyy-MM-dd");
 
-  const [leadsResponse, messagesResponse, campaignsResponse] = await Promise.all([
+  const [leadsResponse, messages, campaignsResponse] = await Promise.all([
     supabase.from("leads").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-    supabase.from("messages").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+    safeFetchMessages(
+      supabase.from("messages").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+    ),
     supabase
       .from("campaigns")
       .select("id, name, campaign_type, messaged_count, replied_count, hot_count, total_leads")
@@ -278,9 +306,9 @@ export async function getDashboardStats() {
       .order("created_at", { ascending: false }),
   ]);
 
-  if (leadsResponse.error || messagesResponse.error || campaignsResponse.error) {
+  if (leadsResponse.error || campaignsResponse.error) {
     const missingTableError =
-      leadsResponse.error ?? messagesResponse.error ?? campaignsResponse.error;
+      leadsResponse.error ?? campaignsResponse.error;
     if (!isMissingRelationError(missingTableError)) {
       throw missingTableError;
     }
@@ -300,7 +328,6 @@ export async function getDashboardStats() {
   }
 
   const leads = (leadsResponse.data ?? []) as Lead[];
-  const messages = (messagesResponse.data ?? []) as Message[];
   const campaigns = (campaignsResponse.data ?? []) as Array<
     Pick<Campaign, "id" | "name" | "campaign_type" | "messaged_count" | "replied_count" | "hot_count" | "total_leads">
   >;
@@ -356,15 +383,17 @@ export async function getDashboardStats() {
 export async function getInboxData() {
   const { supabase, user } = await requireUser();
 
-  const [leadResponse, messageResponse, campaignResponse] = await Promise.all([
+  const [leadResponse, messages, campaignResponse] = await Promise.all([
     supabase.from("leads").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-    supabase.from("messages").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+    safeFetchMessages(
+      supabase.from("messages").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+    ),
     supabase.from("campaigns").select("id, name, campaign_type").eq("user_id", user.id),
   ]);
 
-  if (leadResponse.error || messageResponse.error || campaignResponse.error) {
+  if (leadResponse.error || campaignResponse.error) {
     const missingTableError =
-      leadResponse.error ?? messageResponse.error ?? campaignResponse.error;
+      leadResponse.error ?? campaignResponse.error;
     if (!isMissingRelationError(missingTableError)) {
       throw missingTableError;
     }
@@ -373,7 +402,7 @@ export async function getInboxData() {
 
   return {
     leads: (leadResponse.data ?? []) as Lead[],
-    messages: (messageResponse.data ?? []) as Message[],
+    messages,
     campaigns: (campaignResponse.data ?? []) as Pick<Campaign, "id" | "name" | "campaign_type">[],
   };
 }
@@ -381,16 +410,18 @@ export async function getInboxData() {
 export async function getPipelineData() {
   const { supabase, user } = await requireUser();
 
-  const [leadResponse, messageResponse, followupResponse, campaignResponse] = await Promise.all([
+  const [leadResponse, messages, followupResponse, campaignResponse] = await Promise.all([
     supabase.from("leads").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-    supabase.from("messages").select("*").eq("user_id", user.id),
+    safeFetchMessages(
+      supabase.from("messages").select("*").eq("user_id", user.id)
+    ),
     supabase.from("followups").select("*").eq("user_id", user.id),
     supabase.from("campaigns").select("id, name, campaign_type").eq("user_id", user.id),
   ]);
 
-  if (leadResponse.error || messageResponse.error || followupResponse.error || campaignResponse.error) {
+  if (leadResponse.error || followupResponse.error || campaignResponse.error) {
     const missingTableError =
-      leadResponse.error ?? messageResponse.error ?? followupResponse.error ?? campaignResponse.error;
+      leadResponse.error ?? followupResponse.error ?? campaignResponse.error;
     if (!isMissingRelationError(missingTableError)) {
       throw missingTableError;
     }
@@ -401,7 +432,6 @@ export async function getPipelineData() {
   }
 
   const leads = (leadResponse.data ?? []) as Lead[];
-  const messages = (messageResponse.data ?? []) as Message[];
   const followups = (followupResponse.data ?? []) as Followup[];
   const campaigns = (campaignResponse.data ?? []) as Array<Pick<Campaign, "id" | "name" | "campaign_type">>;
   const campaignById = new Map(
