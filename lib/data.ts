@@ -497,24 +497,28 @@ export async function getPipelineData() {
 }
 
 export async function getForeclosuresData() {
-  const { user } = await requireUser();
-  const supabaseAdmin = getSupabaseAdmin();
+  try {
+    const { user } = await requireUser();
+    const supabaseAdmin = getSupabaseAdmin();
 
-  const { data, error } = await supabaseAdmin
-    .from("foreclosure_leads" as never)
-    .select(FORECLOSURE_SELECT as never)
-    .limit(250);
+    const { data, error } = await supabaseAdmin
+      .from("foreclosure_leads" as never)
+      .select(FORECLOSURE_SELECT as never)
+      .limit(250);
 
-  if (error) {
-    if (isMissingRelationError(error)) {
-      return { rows: [] as ForeclosureLeadView[], tableMissing: true, userId: user.id };
-    }
-    throw error;
+    if (error) throw error;
+
+    return {
+      rows: ((data ?? []) as ForeclosureLeadRow[]).map(normalizeForeclosureLead),
+      tableMissing: false,
+      userId: user.id,
+    };
+  } catch (error) {
+    logDataLoaderFailure("getForeclosuresData", error);
+    return {
+      rows: [] as ForeclosureLeadView[],
+      tableMissing: true,
+      userId: "",
+    };
   }
-
-  return {
-    rows: ((data ?? []) as ForeclosureLeadRow[]).map(normalizeForeclosureLead),
-    tableMissing: false,
-    userId: user.id,
-  };
 }

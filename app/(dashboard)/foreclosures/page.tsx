@@ -2,7 +2,11 @@ import { ForeclosuresClient } from "@/components/foreclosures/foreclosures-clien
 import { getForeclosuresData } from "@/lib/data";
 
 export default async function ForeclosuresPage() {
-  const { rows, tableMissing } = await getForeclosuresData();
-
-  return <ForeclosuresClient rows={rows} tableMissing={tableMissing} />;
+  try {
+    const { rows, tableMissing } = await getForeclosuresData();
+    return <ForeclosuresClient rows={rows} tableMissing={tableMissing} />;
+  } catch (error) {
+    console.error("foreclosures page data failed:", error);
+    return <ForeclosuresClient rows={[]} tableMissing />;
+  }
 }
