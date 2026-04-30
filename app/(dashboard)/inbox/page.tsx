@@ -8,7 +8,15 @@ export default async function InboxPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { leads, messages, campaigns } = await getInboxData();
+  let leads = [] as Awaited<ReturnType<typeof getInboxData>>["leads"];
+  let messages = [] as Awaited<ReturnType<typeof getInboxData>>["messages"];
+  let campaigns = [] as Awaited<ReturnType<typeof getInboxData>>["campaigns"];
+
+  try {
+    ({ leads, messages, campaigns } = await getInboxData());
+  } catch (error) {
+    console.error("inbox page data failed:", error);
+  }
 
   return (
     <InboxClient

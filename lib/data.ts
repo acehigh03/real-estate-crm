@@ -113,6 +113,10 @@ function normalizeForeclosureLead(row: ForeclosureLeadRow): ForeclosureLeadView 
   };
 }
 
+function logDataLoaderFailure(loader: string, error: unknown) {
+  console.error(`${loader} failed:`, error);
+}
+
 async function safeFetchMessages(
   query: PromiseLike<{ data: Message[] | null; error: { code?: string; message?: string } | null }>
 ): Promise<Message[]> {
@@ -188,56 +192,65 @@ export async function requireUser() {
 }
 
 export async function getLeadsPageData() {
-  const { supabase, user } = await requireUser();
+  try {
+    const { supabase, user } = await requireUser();
 
-  const [leadResponse, noteResponse, followupResponse, campaignResponse] = await Promise.all([
-    supabase.from("leads").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-    supabase.from("notes").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-    supabase.from("followups").select("*").eq("user_id", user.id).order("due_date", { ascending: true }),
-    supabase.from("campaigns").select("id, name, campaign_type").eq("user_id", user.id).order("created_at", { ascending: false }),
-  ]);
+    const [leadResponse, noteResponse, followupResponse, campaignResponse] = await Promise.all([
+      supabase.from("leads").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("notes").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("followups").select("*").eq("user_id", user.id).order("due_date", { ascending: true }),
+      supabase.from("campaigns").select("id, name, campaign_type").eq("user_id", user.id).order("created_at", { ascending: false }),
+    ]);
 
-  if (leadResponse.error || noteResponse.error || followupResponse.error || campaignResponse.error) {
-    const missingTableError =
-      leadResponse.error ?? noteResponse.error ?? followupResponse.error ?? campaignResponse.error;
-    if (!isMissingRelationError(missingTableError)) {
-      throw missingTableError;
+    if (leadResponse.error || noteResponse.error || followupResponse.error || campaignResponse.error) {
+      const loaderError =
+        leadResponse.error ?? noteResponse.error ?? followupResponse.error ?? campaignResponse.error;
+      throw loaderError;
     }
+
+    return {
+      leads: (leadResponse.data ?? []) as Lead[],
+      notes: (noteResponse.data ?? []) as Note[],
+      followups: (followupResponse.data ?? []) as Followup[],
+      campaigns: (campaignResponse.data ?? []) as Pick<Campaign, "id" | "name" | "campaign_type">[],
+    };
+  } catch (error) {
+    logDataLoaderFailure("getLeadsPageData", error);
     return { leads: [], notes: [], followups: [], campaigns: [] };
   }
-
-  return {
-    leads: (leadResponse.data ?? []) as Lead[],
-    notes: (noteResponse.data ?? []) as Note[],
-    followups: (followupResponse.data ?? []) as Followup[],
-    campaigns: (campaignResponse.data ?? []) as Pick<Campaign, "id" | "name" | "campaign_type">[],
-  };
 }
 
 export async function getCampaignsData() {
-  const { supabase, user } = await requireUser();
+  try {
+    const { supabase, user } = await requireUser();
 
-  const { data, error } = await supabase
-    .from("campaigns")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("campaigns")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
 
-  if (error) {
-    if (isMissingRelationError(error)) return [];
-    throw error;
+    if (error) throw error;
+    return (data ?? []) as Campaign[];
+  } catch (error) {
+    logDataLoaderFailure("getCampaignsData", error);
+    return [];
   }
-  return (data ?? []) as Campaign[];
 }
 
 export async function getCampaignCount(): Promise<number> {
-  const { supabase, user } = await requireUser();
-  const { count, error } = await supabase
-    .from("campaigns")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id);
-  if (error && !isMissingRelationError(error)) throw error;
-  return count ?? 0;
+  try {
+    const { supabase, user } = await requireUser();
+    const { count, error } = await supabase
+      .from("campaigns")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    if (error) throw error;
+    return count ?? 0;
+  } catch (error) {
+    logDataLoaderFailure("getCampaignCount", error);
+    return 0;
+  }
 }
 
 export async function getLeadDetailData(leadId: string) {
@@ -291,27 +304,80 @@ export async function getInboxBadgeCount(): Promise<number> {
 }
 
 export async function getDashboardStats() {
-  const { supabase, user } = await requireUser();
-  const today = format(new Date(), "yyyy-MM-dd");
+  try {
+    const { supabase, user } = await requireUser();
+    const today = format(new Date(), "yyyy-MM-dd");
 
-  const [leadsResponse, messages, campaignsResponse] = await Promise.all([
-    supabase.from("leads").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-    safeFetchMessages(
-      supabase.from("messages").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
-    ),
-    supabase
-      .from("campaigns")
-      .select("id, name, campaign_type, messaged_count, replied_count, hot_count, total_leads")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false }),
-  ]);
+    const [leadsResponse, messages, campaignsResponse] = await Promise.all([
+      supabase.from("leads").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      safeFetchMessages(
+        supabase.from("messages").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+      ),
+      supabase
+        .from("campaigns")
+        .select("id, name, campaign_type, messaged_count, replied_count, hot_count, total_leads")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false }),
+    ]);
 
-  if (leadsResponse.error || campaignsResponse.error) {
-    const missingTableError =
-      leadsResponse.error ?? campaignsResponse.error;
-    if (!isMissingRelationError(missingTableError)) {
-      throw missingTableError;
+    if (leadsResponse.error || campaignsResponse.error) {
+      const loaderError = leadsResponse.error ?? campaignsResponse.error;
+      throw loaderError;
     }
+
+    const leads = (leadsResponse.data ?? []) as Lead[];
+    const campaigns = (campaignsResponse.data ?? []) as Array<
+      Pick<Campaign, "id" | "name" | "campaign_type" | "messaged_count" | "replied_count" | "hot_count" | "total_leads">
+    >;
+    const allDueLeads = leads.filter(
+      (lead) => lead.next_follow_up_at && format(new Date(lead.next_follow_up_at), "yyyy-MM-dd") === today
+    );
+    const dueLeads = allDueLeads.slice(0, 6);
+
+    const counts = {
+      totalLeads: leads.length,
+      contactedLeads: leads.filter((lead) => Boolean(lead.last_contacted_at) || messages.some((message) => message.lead_id === lead.id && message.direction === "outbound")).length,
+      repliesReceived: messages.filter((message) => message.direction === "inbound").length,
+      hotLeads: leads.filter((lead) => lead.classification === "HOT").length,
+      dueToday: allDueLeads.length,
+    };
+
+    const leadsById = new Map(leads.map((lead) => [lead.id, lead]));
+    const messageGroups = new Map<string, Message[]>();
+    for (const message of messages) {
+      if (!message.lead_id) continue;
+      messageGroups.set(message.lead_id, [...(messageGroups.get(message.lead_id) ?? []), message]);
+    }
+    const recentReplies = messages
+      .filter((message) => message.direction === "inbound" && message.lead_id)
+      .slice(0, 6)
+      .map((message) => ({
+        message,
+        lead: leadsById.get(message.lead_id ?? ""),
+      }))
+      .filter((entry): entry is { message: Message; lead: Lead } => Boolean(entry.lead));
+
+    const hotLeadRows = leads
+      .filter((lead) => lead.classification === "HOT")
+      .slice(0, 6)
+      .map((lead) => ({
+        lead,
+        lastMessage:
+          [...(messageGroups.get(lead.id) ?? [])]
+            .sort((left, right) => right.created_at.localeCompare(left.created_at))[0] ?? null,
+      }));
+
+    const campaignPerformance = campaigns.map((campaign) => ({
+      ...campaign,
+      conversionRate:
+        campaign.messaged_count > 0
+          ? Math.round((campaign.hot_count / campaign.messaged_count) * 1000) / 10
+          : 0,
+    }));
+
+    return { counts, dueLeads, recentReplies, hotLeadRows, campaignPerformance };
+  } catch (error) {
+    logDataLoaderFailure("getDashboardStats", error);
     return {
       counts: {
         totalLeads: 0,
@@ -326,158 +392,108 @@ export async function getDashboardStats() {
       campaignPerformance: [],
     };
   }
-
-  const leads = (leadsResponse.data ?? []) as Lead[];
-  const campaigns = (campaignsResponse.data ?? []) as Array<
-    Pick<Campaign, "id" | "name" | "campaign_type" | "messaged_count" | "replied_count" | "hot_count" | "total_leads">
-  >;
-  const allDueLeads = leads.filter(
-    (lead) => lead.next_follow_up_at && format(new Date(lead.next_follow_up_at), "yyyy-MM-dd") === today
-  );
-  const dueLeads = allDueLeads.slice(0, 6);
-
-  const counts = {
-    totalLeads: leads.length,
-    contactedLeads: leads.filter((lead) => Boolean(lead.last_contacted_at) || messages.some((message) => message.lead_id === lead.id && message.direction === "outbound")).length,
-    repliesReceived: messages.filter((message) => message.direction === "inbound").length,
-    hotLeads: leads.filter((lead) => lead.classification === "HOT").length,
-    dueToday: allDueLeads.length,
-  };
-
-  const leadsById = new Map(leads.map((lead) => [lead.id, lead]));
-  const messageGroups = new Map<string, Message[]>();
-  for (const message of messages) {
-    if (!message.lead_id) continue;
-    messageGroups.set(message.lead_id, [...(messageGroups.get(message.lead_id) ?? []), message]);
-  }
-  const recentReplies = messages
-    .filter((message) => message.direction === "inbound" && message.lead_id)
-    .slice(0, 6)
-    .map((message) => ({
-      message,
-      lead: leadsById.get(message.lead_id ?? ""),
-    }))
-    .filter((entry): entry is { message: Message; lead: Lead } => Boolean(entry.lead));
-
-  const hotLeadRows = leads
-    .filter((lead) => lead.classification === "HOT")
-    .slice(0, 6)
-    .map((lead) => ({
-      lead,
-      lastMessage:
-        [...(messageGroups.get(lead.id) ?? [])]
-          .sort((left, right) => right.created_at.localeCompare(left.created_at))[0] ?? null,
-    }));
-
-  const campaignPerformance = campaigns.map((campaign) => ({
-    ...campaign,
-    conversionRate:
-      campaign.messaged_count > 0
-        ? Math.round((campaign.hot_count / campaign.messaged_count) * 1000) / 10
-        : 0,
-  }));
-
-  return { counts, dueLeads, recentReplies, hotLeadRows, campaignPerformance };
 }
 
 export async function getInboxData() {
-  const { supabase, user } = await requireUser();
+  try {
+    const { supabase, user } = await requireUser();
 
-  const [leadResponse, messages, campaignResponse] = await Promise.all([
-    supabase.from("leads").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-    safeFetchMessages(
-      supabase.from("messages").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
-    ),
-    supabase.from("campaigns").select("id, name, campaign_type").eq("user_id", user.id),
-  ]);
+    const [leadResponse, messages, campaignResponse] = await Promise.all([
+      supabase.from("leads").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      safeFetchMessages(
+        supabase.from("messages").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+      ),
+      supabase.from("campaigns").select("id, name, campaign_type").eq("user_id", user.id),
+    ]);
 
-  if (leadResponse.error || campaignResponse.error) {
-    const missingTableError =
-      leadResponse.error ?? campaignResponse.error;
-    if (!isMissingRelationError(missingTableError)) {
-      throw missingTableError;
+    if (leadResponse.error || campaignResponse.error) {
+      const loaderError = leadResponse.error ?? campaignResponse.error;
+      throw loaderError;
     }
+
+    return {
+      leads: (leadResponse.data ?? []) as Lead[],
+      messages,
+      campaigns: (campaignResponse.data ?? []) as Pick<Campaign, "id" | "name" | "campaign_type">[],
+    };
+  } catch (error) {
+    logDataLoaderFailure("getInboxData", error);
     return { leads: [], messages: [], campaigns: [] };
   }
-
-  return {
-    leads: (leadResponse.data ?? []) as Lead[],
-    messages,
-    campaigns: (campaignResponse.data ?? []) as Pick<Campaign, "id" | "name" | "campaign_type">[],
-  };
 }
 
 export async function getPipelineData() {
-  const { supabase, user } = await requireUser();
+  try {
+    const { supabase, user } = await requireUser();
 
-  const [leadResponse, messages, followupResponse, campaignResponse] = await Promise.all([
-    supabase.from("leads").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-    safeFetchMessages(
-      supabase.from("messages").select("*").eq("user_id", user.id)
-    ),
-    supabase.from("followups").select("*").eq("user_id", user.id),
-    supabase.from("campaigns").select("id, name, campaign_type").eq("user_id", user.id),
-  ]);
+    const [leadResponse, messages, followupResponse, campaignResponse] = await Promise.all([
+      supabase.from("leads").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      safeFetchMessages(
+        supabase.from("messages").select("*").eq("user_id", user.id)
+      ),
+      supabase.from("followups").select("*").eq("user_id", user.id),
+      supabase.from("campaigns").select("id, name, campaign_type").eq("user_id", user.id),
+    ]);
 
-  if (leadResponse.error || followupResponse.error || campaignResponse.error) {
-    const missingTableError =
-      leadResponse.error ?? followupResponse.error ?? campaignResponse.error;
-    if (!isMissingRelationError(missingTableError)) {
-      throw missingTableError;
+    if (leadResponse.error || followupResponse.error || campaignResponse.error) {
+      const loaderError = leadResponse.error ?? followupResponse.error ?? campaignResponse.error;
+      throw loaderError;
     }
+
+    const leads = (leadResponse.data ?? []) as Lead[];
+    const followups = (followupResponse.data ?? []) as Followup[];
+    const campaigns = (campaignResponse.data ?? []) as Array<Pick<Campaign, "id" | "name" | "campaign_type">>;
+    const campaignById = new Map(
+      campaigns.map((campaign) => [campaign.id, campaign])
+    );
+
+    const messageCountByLead = new Map<string, number>();
+    const latestMessageByLead = new Map<string, Message>();
+    for (const message of messages) {
+      if (!message.lead_id) continue;
+      messageCountByLead.set(message.lead_id, (messageCountByLead.get(message.lead_id) ?? 0) + 1);
+      const currentLatest = latestMessageByLead.get(message.lead_id);
+      if (!currentLatest || currentLatest.created_at < message.created_at) {
+        latestMessageByLead.set(message.lead_id, message);
+      }
+    }
+
+    const followupCountByLead = new Map<string, number>();
+    for (const followup of followups) {
+      followupCountByLead.set(followup.lead_id, (followupCountByLead.get(followup.lead_id) ?? 0) + 1);
+    }
+
+    const cards: PipelineLeadCard[] = leads.map((lead) => ({
+      lead,
+      stage: derivePipelineStage(lead),
+      messageCount: messageCountByLead.get(lead.id) ?? 0,
+      callCount: 0,
+      followupCount: followupCountByLead.get(lead.id) ?? 0,
+      daysInPipeline: Math.max(0, Math.floor((Date.now() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60 * 24))),
+      lastMessagePreview: latestMessageByLead.get(lead.id)?.body ?? null,
+      campaignName: lead.campaign_id ? campaignById.get(lead.campaign_id)?.name ?? campaignById.get(lead.campaign_id)?.campaign_type ?? null : null,
+    }));
+
+    const stageOrder: PipelineStage[] = [
+      "New Leads",
+      "Contacted",
+      "Replied",
+      "Qualified",
+      "Offer Sent",
+      "Dead",
+    ];
+
+    return {
+      stageOrder,
+      cards,
+    };
+  } catch (error) {
+    logDataLoaderFailure("getPipelineData", error);
     return {
       stageOrder: ["New Leads", "Contacted", "Replied", "Qualified", "Offer Sent", "Dead"] as PipelineStage[],
       cards: [],
     };
   }
-
-  const leads = (leadResponse.data ?? []) as Lead[];
-  const followups = (followupResponse.data ?? []) as Followup[];
-  const campaigns = (campaignResponse.data ?? []) as Array<Pick<Campaign, "id" | "name" | "campaign_type">>;
-  const campaignById = new Map(
-    campaigns.map((campaign) => [campaign.id, campaign])
-  );
-
-  const messageCountByLead = new Map<string, number>();
-  const latestMessageByLead = new Map<string, Message>();
-  for (const message of messages) {
-    if (!message.lead_id) continue;
-    messageCountByLead.set(message.lead_id, (messageCountByLead.get(message.lead_id) ?? 0) + 1);
-    const currentLatest = latestMessageByLead.get(message.lead_id);
-    if (!currentLatest || currentLatest.created_at < message.created_at) {
-      latestMessageByLead.set(message.lead_id, message);
-    }
-  }
-
-  const followupCountByLead = new Map<string, number>();
-  for (const followup of followups) {
-    followupCountByLead.set(followup.lead_id, (followupCountByLead.get(followup.lead_id) ?? 0) + 1);
-  }
-
-  const cards: PipelineLeadCard[] = leads.map((lead) => ({
-    lead,
-    stage: derivePipelineStage(lead),
-    messageCount: messageCountByLead.get(lead.id) ?? 0,
-    callCount: 0,
-    followupCount: followupCountByLead.get(lead.id) ?? 0,
-    daysInPipeline: Math.max(0, Math.floor((Date.now() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60 * 24))),
-    lastMessagePreview: latestMessageByLead.get(lead.id)?.body ?? null,
-    campaignName: lead.campaign_id ? campaignById.get(lead.campaign_id)?.name ?? campaignById.get(lead.campaign_id)?.campaign_type ?? null : null,
-  }));
-
-  const stageOrder: PipelineStage[] = [
-    "New Leads",
-    "Contacted",
-    "Replied",
-    "Qualified",
-    "Offer Sent",
-    "Dead",
-  ];
-
-  return {
-    stageOrder,
-    cards,
-  };
 }
 
 export async function getForeclosuresData() {

@@ -16,10 +16,17 @@ export default async function DashboardLayout({
 
   if (!user) redirect("/login");
 
-  const [inboxBadgeCount, campaignCount] = await Promise.all([
-    getInboxBadgeCount(),
-    getCampaignCount(),
-  ]);
+  let inboxBadgeCount = 0;
+  let campaignCount = 0;
+
+  try {
+    [inboxBadgeCount, campaignCount] = await Promise.all([
+      getInboxBadgeCount(),
+      getCampaignCount(),
+    ]);
+  } catch (error) {
+    console.error("dashboard layout data failed:", error);
+  }
 
   return (
     <SidebarProvider

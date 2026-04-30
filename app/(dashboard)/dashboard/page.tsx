@@ -21,8 +21,24 @@ export default async function DashboardPage() {
     .slice(0, 2)
     .join("");
 
-  const { counts, dueLeads, recentReplies, hotLeadRows, campaignPerformance } =
-    await getDashboardStats();
+  let counts = {
+    totalLeads: 0,
+    contactedLeads: 0,
+    repliesReceived: 0,
+    hotLeads: 0,
+    dueToday: 0,
+  };
+  let dueLeads = [] as Awaited<ReturnType<typeof getDashboardStats>>["dueLeads"];
+  let recentReplies = [] as Awaited<ReturnType<typeof getDashboardStats>>["recentReplies"];
+  let hotLeadRows = [] as Awaited<ReturnType<typeof getDashboardStats>>["hotLeadRows"];
+  let campaignPerformance = [] as Awaited<ReturnType<typeof getDashboardStats>>["campaignPerformance"];
+
+  try {
+    ({ counts, dueLeads, recentReplies, hotLeadRows, campaignPerformance } =
+      await getDashboardStats());
+  } catch (error) {
+    console.error("dashboard page data failed:", error);
+  }
 
   return (
     <DashboardClient
