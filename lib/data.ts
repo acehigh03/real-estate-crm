@@ -269,7 +269,7 @@ export async function getDashboardStats() {
   const today = format(new Date(), "yyyy-MM-dd");
 
   const [leadsResponse, messagesResponse, campaignsResponse] = await Promise.all([
-    supabase.from("leads").select("*").eq("user_id", user.id).order("updated_at", { ascending: false }),
+    supabase.from("leads").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
     supabase.from("messages").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
     supabase
       .from("campaigns")
@@ -357,7 +357,7 @@ export async function getInboxData() {
   const { supabase, user } = await requireUser();
 
   const [leadResponse, messageResponse, campaignResponse] = await Promise.all([
-    supabase.from("leads").select("*").eq("user_id", user.id).order("updated_at", { ascending: false }),
+    supabase.from("leads").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
     supabase.from("messages").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
     supabase.from("campaigns").select("id, name, campaign_type").eq("user_id", user.id),
   ]);
@@ -382,7 +382,7 @@ export async function getPipelineData() {
   const { supabase, user } = await requireUser();
 
   const [leadResponse, messageResponse, followupResponse, campaignResponse] = await Promise.all([
-    supabase.from("leads").select("*").eq("user_id", user.id).order("updated_at", { ascending: false }),
+    supabase.from("leads").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
     supabase.from("messages").select("*").eq("user_id", user.id),
     supabase.from("followups").select("*").eq("user_id", user.id),
     supabase.from("campaigns").select("id, name, campaign_type").eq("user_id", user.id),
