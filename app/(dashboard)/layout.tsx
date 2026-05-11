@@ -1,8 +1,6 @@
-import type { CSSProperties } from "react";
 import { redirect } from "next/navigation";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { Sidebar } from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 import { getInboxBadgeCount, getCampaignCount } from "@/lib/data";
 
@@ -28,29 +26,29 @@ export default async function DashboardLayout({
     console.error("dashboard layout data failed:", error);
   }
 
+  void inboxBadgeCount;
+  void campaignCount;
+
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "12.5rem",
-          "--sidebar-width-icon": "3.25rem",
-        } as CSSProperties
-      }
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "204px 1fr",
+        height: "100vh",
+        overflow: "hidden",
+      }}
     >
-      <AppSidebar
-        inboxBadgeCount={inboxBadgeCount}
-        campaignCount={campaignCount}
-        userEmail={user.email ?? ""}
-      />
-      <SidebarInset className="overflow-hidden">
-        {/* Mobile-only top bar */}
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4 md:hidden">
-          <SidebarTrigger />
-          <span className="text-sm font-semibold">Seller Pipeline</span>
-        </header>
-        {/* Page content fills remaining height */}
-        <div className="flex flex-1 flex-col overflow-hidden">{children}</div>
-      </SidebarInset>
-    </SidebarProvider>
+      <Sidebar activeItem="Dashboard" />
+      <main
+        style={{
+          overflowY: "auto",
+          background: "var(--bg)",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {children}
+      </main>
+    </div>
   );
 }

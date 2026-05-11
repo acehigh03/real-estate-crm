@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Settings,
   LogOut,
+  Home,
 } from "lucide-react";
 
 import {
@@ -41,6 +42,7 @@ const navItems = [
   { href: "/campaigns", label: "Campaigns", icon: Layers },
   { href: "/leads", label: "Leads", icon: Users },
   { href: "/inbox", label: "Inbox", icon: MessageSquare },
+  { href: "/foreclosure", label: "Foreclosure", icon: Home },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

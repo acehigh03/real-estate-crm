@@ -89,5 +89,6 @@ export const config = {
     "/foreclosures/:path*",
     "/leads/:path*",
     "/inbox/:path*",
+    "/foreclosure/:path*",
   ],
 };
