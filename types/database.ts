@@ -31,7 +31,6 @@ export interface Database {
           next_follow_up_at: string | null;
           notes_summary: string | null;
           phone: string;
-          phone_normalized: string;
           priority: LeadPriority | null;
           property_address: string;
           stage: LeadStage | null;
@@ -60,7 +59,6 @@ export interface Database {
           next_follow_up_at?: string | null;
           notes_summary?: string | null;
           phone: string;
-          phone_normalized: string;
           priority?: LeadPriority | null;
           property_address: string;
           stage?: LeadStage | null;

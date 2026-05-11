@@ -102,11 +102,11 @@ export async function POST(request: Request) {
 
   const { data: existingLeads } = await supabaseAdmin
     .from("leads")
-    .select("phone_normalized")
+    .select("phone")
     .eq("user_id", user.id)
-    .in("phone_normalized", incomingPhones);
+    .in("phone", incomingPhones);
 
-  const existingPhoneSet = new Set((existingLeads ?? []).map((l) => l.phone_normalized));
+  const existingPhoneSet = new Set((existingLeads ?? []).map((l) => l.phone));
 
   const newRows = parsedRows.filter((r) => !existingPhoneSet.has(r.phone_normalized));
   const skippedCount = csvSkippedCount + (parsedRows.length - newRows.length);
@@ -118,8 +118,10 @@ export async function POST(request: Request) {
       notesSummary: row.notes_summary,
       nextFollowUpAt: null,
     });
+    const { phone_normalized: phoneNorm, phone: _rawPhone, ...rowRest } = row;
     return {
-      ...row,
+      ...rowRest,
+      phone: phoneNorm,
       classification: classify.classification,
       motivation_score: classify.motivationScore,
       lead_score: classify.motivationScore,
@@ -150,7 +152,7 @@ export async function POST(request: Request) {
 
   const { error: upsertError } = await supabaseAdmin
     .from("leads")
-    .upsert(payload, { onConflict: "user_id,phone_normalized" });
+    .upsert(payload, { onConflict: "user_id,phone" });
 
   if (upsertError) {
     return NextResponse.json({ error: upsertError.message }, { status: 500 });
@@ -163,7 +165,7 @@ export async function POST(request: Request) {
       .from("leads")
       .select("id, user_id, notes_summary")
       .eq("user_id", user.id)
-      .in("phone_normalized", newPhones);
+      .in("phone", newPhones);
 
     const noteRows = (insertedLeads ?? [])
       .filter((lead) => lead.notes_summary)
@@ -203,9 +205,9 @@ export async function POST(request: Request) {
     const newPhones = newRows.map((r) => r.phone_normalized);
     const { data: smsTargets } = await supabaseAdmin
       .from("leads")
-      .select("id, first_name, property_address, phone_normalized, status, tag, lead_source, is_dnc")
+      .select("id, first_name, property_address, phone, status, tag, lead_source, is_dnc")
       .eq("user_id", user.id)
-      .in("phone_normalized", newPhones);
+      .in("phone", newPhones);
 
     const now = new Date().toISOString();
 
@@ -222,7 +224,7 @@ export async function POST(request: Request) {
       const text = withStopLanguage(
         renderTemplate(campaignTemplate, {
           id: lead.id,
-          phone_normalized: lead.phone_normalized,
+          phone_normalized: lead.phone,
           first_name: lead.first_name,
           property_address: lead.property_address,
           tag: lead.tag,
@@ -251,17 +253,17 @@ export async function POST(request: Request) {
       // Send immediately (auto-send off = send right away; inside window = send right away)
       try {
         const telnyxResult = await sendTelnyxMessage({
-          to: lead.phone_normalized,
+          to: lead.phone,
           text,
         });
 
       await supabaseAdmin.from("messages").insert({
         user_id: user.id,
         lead_id: lead.id,
-        phone: lead.phone_normalized,
+        phone: lead.phone,
         direction: "outbound",
         body: text,
-        to_number: lead.phone_normalized,
+        to_number: lead.phone,
         status: telnyxResult?.to?.[0]?.status ?? "queued",
           telnyx_message_id: telnyxResult?.id ?? null,
         });
