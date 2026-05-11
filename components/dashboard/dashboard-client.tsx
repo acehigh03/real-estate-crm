@@ -327,12 +327,13 @@ export function DashboardClient({ counts }: Props) {
           gridAutoRows: "54px",
           gap: 10,
           padding: "16px 20px",
+          paddingBottom: 20,
         }}
       >
         {/* ── HERO ──────────────────────────────── col 1-8, row 1-2 */}
         <Card
           noLift
-          style={{ gridColumn: "1 / 9", gridRow: "1 / 3", minHeight: 160, padding: "22px 24px 20px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}
+          style={{ gridColumn: "1 / 9", gridRow: "1 / 4", padding: "22px 24px 20px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}
         >
           <div>
             <div
@@ -473,7 +474,7 @@ export function DashboardClient({ counts }: Props) {
         </div>
 
         {/* ── URGENCY HEAT MAP ──────────────────── col 1-4, row 3-5 */}
-        <Card noLift style={{ gridColumn: "1 / 5", gridRow: "3 / 6" }}>
+        <Card noLift style={{ gridColumn: "1 / 5", gridRow: "4 / 7" }}>
           <PanelHeader
             icon={Activity}
             iconColor="var(--red)"
@@ -503,7 +504,7 @@ export function DashboardClient({ counts }: Props) {
         </Card>
 
         {/* ── AI INSIGHT ────────────────────────── col 5-8, row 3-5 */}
-        <Card noLift style={{ gridColumn: "5 / 9", gridRow: "3 / 6", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
+        <Card noLift style={{ gridColumn: "5 / 9", gridRow: "4 / 7", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span
               style={{
@@ -585,7 +586,7 @@ export function DashboardClient({ counts }: Props) {
         </Card>
 
         {/* ── PIPELINE VELOCITY ─────────────────── col 1-4, row 6-8 */}
-        <Card noLift style={{ gridColumn: "1 / 5", gridRow: "6 / 9" }}>
+        <Card noLift style={{ gridColumn: "1 / 5", gridRow: "7 / 10" }}>
           <PanelHeader
             icon={TrendingUp}
             iconColor="var(--g)"
@@ -619,7 +620,7 @@ export function DashboardClient({ counts }: Props) {
         </Card>
 
         {/* ── LIVE ACTIVITY FEED ────────────────── col 5-8, row 6-9 */}
-        <Card noLift style={{ gridColumn: "5 / 9", gridRow: "6 / 10" }}>
+        <Card noLift style={{ gridColumn: "5 / 9", gridRow: "7 / 11" }}>
           <PanelHeader
             icon={Rss}
             iconColor="var(--blu)"
@@ -727,7 +728,7 @@ export function DashboardClient({ counts }: Props) {
             key={m.label}
             style={{
               gridColumn: `${1 + i * 3} / ${1 + i * 3 + 3}`,
-              gridRow: "9 / 11",
+              gridRow: "11 / 13",
               padding: "16px 18px",
               display: "flex",
               flexDirection: "column",
