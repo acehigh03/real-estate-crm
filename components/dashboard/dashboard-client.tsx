@@ -332,7 +332,7 @@ export function DashboardClient({ counts }: Props) {
         {/* ── HERO ──────────────────────────────── col 1-8, row 1-2 */}
         <Card
           noLift
-          style={{ gridColumn: "1 / 9", gridRow: "1 / 3", padding: "22px 24px 20px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}
+          style={{ gridColumn: "1 / 9", gridRow: "1 / 3", minHeight: 160, padding: "22px 24px 20px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}
         >
           <div>
             <div
