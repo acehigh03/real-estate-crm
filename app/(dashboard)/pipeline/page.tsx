@@ -1,8 +1,15 @@
 import { getPipelineData } from "@/lib/data";
-import { PipelineBoard } from "@/components/pipeline/pipeline-board";
+import { PipelineClient } from "@/components/pipeline/pipeline-client";
 
 export default async function PipelinePage() {
-  const { stageOrder, cards } = await getPipelineData();
+  let cards: Awaited<ReturnType<typeof getPipelineData>>["cards"] = [];
 
-  return <PipelineBoard stageOrder={stageOrder} cards={cards} />;
+  try {
+    const data = await getPipelineData();
+    cards = data.cards;
+  } catch (error) {
+    console.error("pipeline page data failed:", error);
+  }
+
+  return <PipelineClient cards={cards} />;
 }

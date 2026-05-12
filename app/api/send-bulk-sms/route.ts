@@ -42,17 +42,17 @@ export async function POST(request: Request) {
   const results = await Promise.all(
     sendableLeads.map(async (lead) => {
       const telnyxMessage = await sendTelnyxMessage({
-        to: lead.phone_normalized,
+        to: lead.phone,
         text: body
       });
 
       await supabaseAdmin.from("messages").insert({
         user_id: user.id,
         lead_id: lead.id,
-        phone: lead.phone_normalized,
+        phone: lead.phone,
         direction: "outbound",
         body,
-        to_number: lead.phone_normalized,
+        to_number: lead.phone,
         status: telnyxMessage?.to?.[0]?.status ?? "queued",
         telnyx_message_id: telnyxMessage?.id ?? null
       });

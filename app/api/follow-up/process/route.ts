@@ -67,7 +67,7 @@ export async function POST() {
   const leadIds = queueItems.map((q) => q.lead_id);
   const { data: leads } = await supabase
     .from("leads")
-    .select("id, phone_normalized, status, first_name, is_dnc, stage")
+    .select("id, phone, status, first_name, is_dnc, stage")
     .eq("user_id", user.id)
     .in("id", leadIds);
 
@@ -88,17 +88,17 @@ export async function POST() {
 
     try {
       const telnyxResult = await sendTelnyxMessage({
-        to: lead.phone_normalized,
+        to: lead.phone,
         text: item.message,
       });
 
       await supabase.from("messages").insert({
         user_id: user.id,
         lead_id: lead.id,
-        phone: lead.phone_normalized,
+        phone: lead.phone,
         direction: "outbound",
         body: item.message,
-        to_number: lead.phone_normalized,
+        to_number: lead.phone,
         status: telnyxResult?.to?.[0]?.status ?? "queued",
         telnyx_message_id: telnyxResult?.id ?? null,
       });

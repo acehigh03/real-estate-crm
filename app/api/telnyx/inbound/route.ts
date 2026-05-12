@@ -81,7 +81,7 @@ export async function POST(request: Request) {
   const { data: lead } = await supabaseAdmin
     .from("leads")
     .select("*")
-    .eq("phone_normalized", from)
+    .eq("phone", from)
     .maybeSingle();
   console.log("lead match result", lead ? { id: lead.id, user_id: lead.user_id, campaign_id: lead.campaign_id } : null);
 

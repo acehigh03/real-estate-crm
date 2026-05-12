@@ -241,7 +241,7 @@ export function InboxClient({ initialLeads, initialMessages, initialCampaigns, u
       .from("leads")
       .select("*")
       .eq("user_id", userId)
-      .eq("phone_normalized", normalizedPhone)
+      .eq("phone", normalizedPhone)
       .maybeSingle();
 
     if (existingLeadError) {
@@ -268,7 +268,7 @@ export function InboxClient({ initialLeads, initialMessages, initialCampaigns, u
         user_id: userId,
         status: "sending",
         telnyx_message_id: null,
-        to_number: leadRecord.phone_normalized,
+        to_number: leadRecord.phone,
         classification: null,
         phone: null,
       };
@@ -284,7 +284,7 @@ export function InboxClient({ initialLeads, initialMessages, initialCampaigns, u
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            to: leadRecord.phone_normalized,
+            to: leadRecord.phone,
             message: modalMessage.trim(),
             lead_id: leadRecord.id,
           }),
@@ -323,8 +323,7 @@ export function InboxClient({ initialLeads, initialMessages, initialCampaigns, u
       user_id: userId,
       first_name: firstName,
       last_name: lastName,
-      phone: manualPhone.trim(),
-      phone_normalized: normalizedPhone,
+      phone: normalizedPhone,
       property_address: "",
       mailing_address: null,
       email: null,
@@ -368,7 +367,7 @@ export function InboxClient({ initialLeads, initialMessages, initialCampaigns, u
       user_id: userId,
       status: "sending",
       telnyx_message_id: null,
-      to_number: insertedLead.phone_normalized,
+      to_number: insertedLead.phone,
       classification: null,
       phone: null,
     };
@@ -384,7 +383,7 @@ export function InboxClient({ initialLeads, initialMessages, initialCampaigns, u
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          to: insertedLead.phone_normalized,
+          to: insertedLead.phone,
           message: modalMessage.trim(),
           lead_id: insertedLead.id,
         }),
@@ -481,7 +480,7 @@ export function InboxClient({ initialLeads, initialMessages, initialCampaigns, u
       user_id: userId,
       status: "sending",
       telnyx_message_id: null,
-      to_number: selectedConversation.lead.phone_normalized,
+      to_number: selectedConversation.lead.phone,
       classification: null,
       phone: null,
     };
@@ -502,7 +501,7 @@ export function InboxClient({ initialLeads, initialMessages, initialCampaigns, u
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          to: selectedConversation.lead.phone_normalized,
+          to: selectedConversation.lead.phone,
           message: text,
           lead_id: selectedConversation.lead.id,
         }),

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -28,7 +29,7 @@ interface SidebarProps {
 const WORKSPACE = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { label: "Messenger", icon: MessageSquare, href: "/inbox", chip: "14", chipColor: "blu" },
-  { label: "Contacts", icon: Users, href: "/leads", chip: "247", chipColor: "amb" },
+  { label: "Contacts", icon: Users, href: "/contacts", chip: "247", chipColor: "amb" },
   { label: "Calendar", icon: Calendar, href: "/calendar" },
   { label: "Scheduled", icon: Clock, href: "/scheduled", chip: "3", chipColor: "blu" },
   { label: "Call Logs", icon: Phone, href: "/call-logs" },
@@ -45,7 +46,7 @@ const OUTREACH = [
 
 const SYSTEM = [
   { label: "Pipeline", icon: Kanban, href: "/pipeline" },
-  { label: "Import CSV", icon: FileUp, href: "/leads" },
+  { label: "Import CSV", icon: FileUp, href: "/import" },
   { label: "Settings", icon: Settings, href: "/settings" },
 ];
 
@@ -134,9 +135,31 @@ function NavItem({
   );
 }
 
+const HREF_TO_LABEL: Record<string, string> = {
+  "/dashboard":      "Dashboard",
+  "/inbox":          "Messenger",
+  "/messenger":      "Messenger",
+  "/contacts":       "Contacts",
+  "/calendar":       "Calendar",
+  "/scheduled":      "Scheduled",
+  "/call-logs":      "Call Logs",
+  "/drips":          "Text Drips",
+  "/auto-responders":"Auto Responders",
+  "/campaigns":      "Campaigns",
+  "/templates":      "Templates",
+  "/tags":           "Tags",
+  "/stop-words":     "Stop Words",
+  "/pipeline":       "Pipeline",
+  "/import":         "Import CSV",
+  "/settings":       "Settings",
+};
+
 export function Sidebar({ activeItem }: SidebarProps) {
   const { theme, toggleTheme } = useTheme();
+  const pathname = usePathname();
   const isDark = theme === "dark";
+
+  const activeLabel = HREF_TO_LABEL[pathname] ?? activeItem;
 
   return (
     <aside
@@ -257,7 +280,7 @@ export function Sidebar({ activeItem }: SidebarProps) {
           Workspace
         </span>
         {WORKSPACE.map((item) => (
-          <NavItem key={item.label} {...item} isActive={activeItem === item.label} />
+          <NavItem key={item.label} {...item} isActive={activeLabel === item.label} />
         ))}
 
         {/* OUTREACH */}
@@ -274,7 +297,7 @@ export function Sidebar({ activeItem }: SidebarProps) {
           Outreach
         </span>
         {OUTREACH.map((item) => (
-          <NavItem key={item.label} {...item} isActive={activeItem === item.label} />
+          <NavItem key={item.label} {...item} isActive={activeLabel === item.label} />
         ))}
 
         {/* SYSTEM */}
@@ -291,7 +314,7 @@ export function Sidebar({ activeItem }: SidebarProps) {
           System
         </span>
         {SYSTEM.map((item) => (
-          <NavItem key={item.label} {...item} isActive={activeItem === item.label} />
+          <NavItem key={item.label} {...item} isActive={activeLabel === item.label} />
         ))}
       </nav>
 

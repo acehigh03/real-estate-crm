@@ -496,6 +496,38 @@ export async function getPipelineData() {
   }
 }
 
+export async function getContactsData() {
+  try {
+    const { supabase, user } = await requireUser();
+
+    const [leadResponse, messages] = await Promise.all([
+      supabase
+        .from("leads")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false }),
+      safeFetchMessages(
+        supabase
+          .from("messages")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(500)
+      ),
+    ]);
+
+    if (leadResponse.error) throw leadResponse.error;
+
+    return {
+      leads: (leadResponse.data ?? []) as Lead[],
+      messages,
+    };
+  } catch (error) {
+    logDataLoaderFailure("getContactsData", error);
+    return { leads: [], messages: [] as Message[] };
+  }
+}
+
 export async function getForeclosuresData() {
   try {
     const { user } = await requireUser();
