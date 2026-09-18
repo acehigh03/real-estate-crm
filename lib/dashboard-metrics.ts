@@ -13,12 +13,16 @@ export type PipelineStage =
   | "Dead";
 
 export interface DashboardRevenueMetrics {
-  /** Sum of deal value / assignment fee across open leads. */
+  /** Sum of leads.deal_value across active leads (leads with no value entered count as nothing). */
   pipelineValue: number;
+  /** How many active leads have a deal value entered. */
+  pipelineValuedLeads: number;
   /** Leads with an offer sent and no reply recorded since. */
   offersAwaitingResponse: number;
-  /** Leads with a tax-sale or auction deadline within 30 days. */
+  /** Active leads whose deadline (tax sale / auction) falls within the next 30 days. */
   dealsAtRisk: number;
+  /** How many active leads have any deadline set. */
+  deadlinesSet: number;
 }
 
 export interface AttentionItem {
@@ -36,6 +40,8 @@ export interface DashboardAttention {
   overdueCount: number;
   /** Offer sent, no reply since. */
   awaitingOffers: AttentionItem[];
+  /** Deadline within 30 days, soonest first. */
+  atRisk: AttentionItem[];
   /** Hot leads that have no offer yet. */
   hotNoOffer: AttentionItem[];
   hotNoOfferCount: number;
@@ -48,6 +54,7 @@ export const EMPTY_ATTENTION: DashboardAttention = {
   overdue: [],
   overdueCount: 0,
   awaitingOffers: [],
+  atRisk: [],
   hotNoOffer: [],
   hotNoOfferCount: 0,
   stageCounts: { "New Leads": 0, Contacted: 0, Replied: 0, Qualified: 0, "Offer Sent": 0, Dead: 0 },
@@ -55,6 +62,8 @@ export const EMPTY_ATTENTION: DashboardAttention = {
 
 export const EMPTY_REVENUE_METRICS: DashboardRevenueMetrics = {
   pipelineValue: 0,
+  pipelineValuedLeads: 0,
   offersAwaitingResponse: 0,
   dealsAtRisk: 0,
+  deadlinesSet: 0,
 };

@@ -349,6 +349,57 @@ export async function updatePipelineStage(formData: FormData) {
   revalidatePath("/pipeline");
 }
 
+export interface DealTermsState {
+  ok: boolean;
+  message: string;
+}
+
+/**
+ * Saves the investor's estimated deal value and deadline for a lead. Returns a result (rather
+ * than throwing) so the lead page can show "Saved" or a plain-language error inline.
+ */
+export async function saveDealTerms(_previous: DealTermsState | null, formData: FormData): Promise<DealTermsState> {
+  const leadId = String(formData.get("lead_id") ?? "").trim();
+  const rawValue = String(formData.get("deal_value") ?? "").replace(/[$,\s]/g, "");
+  const rawDeadline = String(formData.get("deadline") ?? "").trim();
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  if (!leadId) return { ok: false, message: "Missing lead." };
+
+  let dealValue: number | null = null;
+  if (rawValue !== "") {
+    dealValue = Number(rawValue);
+    if (!Number.isFinite(dealValue) || dealValue < 0 || dealValue > 999_999_999) {
+      return { ok: false, message: "Enter a deal value of $0 or more." };
+    }
+    dealValue = Math.round(dealValue * 100) / 100;
+  }
+
+  if (rawDeadline !== "" && !/^\d{4}-\d{2}-\d{2}$/.test(rawDeadline)) {
+    return { ok: false, message: "Enter a valid deadline date." };
+  }
+
+  const { error } = await supabase
+    .from("leads")
+    .update({ deal_value: dealValue, deadline: rawDeadline || null })
+    .eq("id", leadId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    logError("actions/saveDealTerms", error);
+    return { ok: false, message: userFacingError(error, "Couldn't save. Please try again.") };
+  }
+
+  revalidatePath(`/leads/${leadId}`);
+  revalidatePath("/dashboard");
+  revalidatePath("/pipeline");
+  return { ok: true, message: "Saved" };
+}
+
 export async function updateForeclosureLead(formData: FormData) {
   const id = String(formData.get("id") ?? "").trim();
   const crmStatus = String(formData.get("crm_status") ?? "").trim() || null;
@@ -399,7 +450,7 @@ function deriveLeadStage(
   nextFollowUpAt: string | null
 ): LeadStage {
   if (status === "DNC" || classification === "OPT_OUT") return "DNC";
-  if (status === "Dead" || classification === "DEAD") return "Closed";
+  if (status === "Dead" || classification === "DEAD") return "Dead";
   if (status === "Hot" || classification === "HOT") return "Hot Lead";
   if (nextFollowUpAt) return "Follow Up";
   if (status === "Replied") return "Replied";
@@ -424,8 +475,8 @@ function mapPipelineStageToLeadStage(stage: "New Leads" | "Contacted" | "Replied
     case "Qualified":
       return "Hot Lead";
     case "Offer Sent":
-      return "Closed";
+      return "Offer Sent";
     case "Dead":
-      return "Closed";
+      return "Dead";
   }
 }

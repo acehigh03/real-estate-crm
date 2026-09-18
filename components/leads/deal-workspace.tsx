@@ -33,9 +33,9 @@ function safeFormat(value: string | null | undefined, pattern: string) {
   return Number.isNaN(date.getTime()) ? "—" : format(date, pattern);
 }
 
-function Field({ label, value }: { label: string; value: string | null | undefined }) {
+function Field({ label, value, wide }: { label: string; value: string | null | undefined; wide?: boolean }) {
   return (
-    <div className="rounded-xl bg-gray-50 px-4 py-3">
+    <div className={`rounded-xl bg-gray-50 px-4 py-3 ${wide ? "md:col-span-2 xl:col-span-3" : ""}`}>
       <p className="text-xs uppercase tracking-wide text-gray-400">{label}</p>
       <p className="mt-2 break-words text-sm font-medium text-gray-900">{value?.trim() || "—"}</p>
     </div>
@@ -124,6 +124,7 @@ export function DealWorkspace({
   followups,
   campaignName,
   initialTab,
+  nextAction,
 }: {
   lead: Lead;
   messages: Message[];
@@ -131,6 +132,7 @@ export function DealWorkspace({
   followups: Followup[];
   campaignName: string | null;
   initialTab?: string;
+  nextAction?: string;
 }) {
   const [tab, setTab] = useState<TabKey>(
     TABS.some((entry) => entry.key === initialTab) ? (initialTab as TabKey) : "property"
@@ -213,6 +215,10 @@ export function DealWorkspace({
             <Field label="Status" value={lead.status} />
             <Field label="Stage" value={lead.stage} />
             <Field label="Priority" value={lead.priority} />
+            <Field label="Last contacted" value={lead.last_contacted_at ? safeFormat(lead.last_contacted_at, "MMM d, yyyy h:mm a") : null} />
+            <Field label="Motivation score" value={String(lead.motivation_score)} />
+            <Field label="Next action" value={nextAction} />
+            <Field label="Summary" value={lead.notes_summary ?? "No summary yet — waiting for more info"} wide />
           </div>
         ) : null}
 

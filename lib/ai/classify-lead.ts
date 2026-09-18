@@ -131,7 +131,7 @@ export function classifyInboundSms(text: string): InboundSmsClassificationResult
       messageClassification: "NOT_INTERESTED",
       leadClassification: "DEAD",
       leadStatus: "Dead",
-      leadStage: "Closed",
+      leadStage: "Dead",
       leadScore: 10,
       priority: "low",
       isDnc: false,

@@ -146,9 +146,11 @@ export const POST = withErrorHandling("api/upload-csv", async (request: Request)
             ? "Replied"
             : row.status === "Contacted"
               ? "Contacted"
-              : row.status === "Dead" || row.status === "DNC"
-                ? "Closed"
-                : "New"
+              : row.status === "Dead"
+                ? "Dead"
+                : row.status === "DNC"
+                  ? "DNC"
+                  : "New"
       ) as LeadStage,
       is_dnc: row.status === "DNC",
       dnc_reason: row.status === "DNC" ? "Imported as DNC" : null,

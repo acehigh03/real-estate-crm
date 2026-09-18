@@ -1,6 +1,16 @@
 export type LeadStatus = "New" | "Contacted" | "Replied" | "Hot" | "Dead" | "DNC";
 export type LeadClassification = "HOT" | "WARM" | "COLD" | "DEAD" | "OPT_OUT" | "UNKNOWN";
-export type LeadStage = "New" | "Contacted" | "Replied" | "Hot Lead" | "Follow Up" | "Closed" | "DNC";
+// "Closed" is legacy: older rows used it for both Offer Sent and Dead. New writes use the distinct values.
+export type LeadStage =
+  | "New"
+  | "Contacted"
+  | "Replied"
+  | "Hot Lead"
+  | "Follow Up"
+  | "Offer Sent"
+  | "Dead"
+  | "Closed"
+  | "DNC";
 export type LeadPriority = "high" | "medium" | "low";
 export type MessageClassification = "HOT" | "WARM" | "NOT_INTERESTED" | "STOP_DNC" | "NEEDS_REVIEW";
 export type CampaignType = "cash_offer" | "foreclosure_help" | "probate" | "tax_sale" | "custom";
@@ -15,6 +25,8 @@ export interface Database {
           campaign_id: string | null;
           city: string | null;
           created_at: string;
+          deadline: string | null;
+          deal_value: number | null;
           dnc_reason: string | null;
           email: string | null;
           first_name: string;
@@ -45,6 +57,8 @@ export interface Database {
           campaign_id?: string | null;
           city?: string | null;
           classification?: LeadClassification;
+          deadline?: string | null;
+          deal_value?: number | null;
           dnc_reason?: string | null;
           email?: string | null;
           first_name: string;

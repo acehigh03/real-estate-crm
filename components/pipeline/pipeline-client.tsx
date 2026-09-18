@@ -21,7 +21,7 @@ const COLUMNS: Column[] = [
   { label: "Contacted",      stage: "Contacted",  accent: "var(--blu)" },
   { label: "Warm",           stage: "Replied",    accent: "var(--amb)" },
   { label: "Offer Sent",     stage: "Offer Sent", accent: "var(--pur)" },
-  { label: "Under Contract", stage: "Qualified",  accent: "var(--g)"   },
+  { label: "Qualified",      stage: "Qualified",  accent: "var(--g)"   },
 ];
 
 // Maps PipelineStage → the string value updatePipelineStage() expects

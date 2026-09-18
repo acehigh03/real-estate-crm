@@ -30,26 +30,30 @@ interface ContactsClientProps {
 
 // ── Avatar ───────────────────────────────────────────────────────────────────
 
+// Light tint + hairline border per classification, with charcoal initials so the letters stay
+// readable on both the off-white canvas and the dark theme.
 const AVATAR_COLORS: Record<string, [string, string]> = {
-  HOT:     ["#3a1d22", "var(--red)"],
-  WARM:    ["#3a2a14", "var(--amb)"],
-  COLD:    ["#1e242c", "var(--t3)"],
-  DEAD:    ["#1e242c", "var(--t3)"],
-  OPT_OUT: ["#2a1a2a", "var(--pur)"],
-  UNKNOWN: ["#141b2a", "var(--blu)"],
+  HOT:     ["var(--redd)", "var(--redb)"],
+  WARM:    ["var(--ambd)", "var(--ambb)"],
+  COLD:    ["var(--s3)", "var(--b1)"],
+  DEAD:    ["var(--s3)", "var(--b1)"],
+  OPT_OUT: ["var(--s3)", "var(--b1)"],
+  UNKNOWN: ["var(--gd)", "var(--gb)"],
 };
 
 function Avatar({ lead }: { lead: Lead }) {
   const initials =
     ((lead.first_name?.[0] ?? "") + (lead.last_name?.[0] ?? "")).toUpperCase() || "?";
-  const [bg, color] = AVATAR_COLORS[lead.classification] ?? ["#141b2a", "var(--blu)"];
+  const [bg, border] = AVATAR_COLORS[lead.classification] ?? AVATAR_COLORS.UNKNOWN;
   return (
     <div
+      aria-hidden
       style={{
         width: 30,
         height: 30,
         borderRadius: 7,
         background: bg,
+        border: `1px solid ${border}`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -60,7 +64,7 @@ function Avatar({ lead }: { lead: Lead }) {
         style={{
           fontSize: 11,
           fontWeight: 600,
-          color,
+          color: "var(--t1)",
           fontFamily: "var(--font-mono)",
         }}
       >

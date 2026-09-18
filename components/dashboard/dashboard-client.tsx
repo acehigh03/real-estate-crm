@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { format, formatDistanceToNowStrict } from "date-fns";
+import { format, formatDistanceToNowStrict, parseISO } from "date-fns";
 import {
   ArrowRight,
   CalendarClock,
@@ -296,6 +296,8 @@ export function DashboardClient({
   const firstOverdue = attention.overdue[0]?.lead;
   const firstOffer = attention.awaitingOffers[0]?.lead;
   const firstHot = attention.hotNoOffer[0]?.lead;
+  const firstAtRisk = attention.atRisk[0]?.lead;
+  const valuedLeads = revenue.pipelineValuedLeads ?? 0;
 
   // Rule-based next steps built from the counts above — no invented data.
   const insights: Array<{ key: string; text: React.ReactNode; action: React.ReactNode }> = [];
@@ -323,6 +325,19 @@ export function DashboardClient({
       action: <ActionLink href={`/leads/${firstOverdue.id}?tab=tasks#deal-workspace`}>Set 24hr Follow-up</ActionLink>,
     });
   }
+  if (revenue.dealsAtRisk > 0 && firstAtRisk) {
+    insights.push({
+      key: "risk",
+      text: (
+        <>
+          {revenue.dealsAtRisk} {revenue.dealsAtRisk === 1 ? "deal has" : "deals have"} a deadline within 30 days. Soonest:{" "}
+          <strong>{leadDisplayName(firstAtRisk)}</strong>
+          {firstAtRisk.deadline ? `, ${format(parseISO(firstAtRisk.deadline), "MMM d")}` : ""}.
+        </>
+      ),
+      action: <CallLink lead={firstAtRisk} />,
+    });
+  }
   if (attention.awaitingOffers.length > 0 && firstOffer) {
     insights.push({
       key: "offer",
@@ -338,12 +353,13 @@ export function DashboardClient({
     });
   }
 
+  // Same buckets and names as the Pipeline board, so these numbers match that page.
   const stageRows = [
     ["New Leads", "New"],
     ["Contacted", "Contacted"],
-    ["Replied", "Replied"],
+    ["Replied", "Warm"],
+    ["Offer Sent", "Offer Sent"],
     ["Qualified", "Qualified"],
-    ["Offer Sent", "Offer sent"],
   ] as const;
 
   return (
@@ -393,9 +409,15 @@ export function DashboardClient({
         <CommandCard
           label="Deals at risk"
           value={String(revenue.dealsAtRisk)}
-          caption="Sale or auction within 30 days. Not tracked yet."
-          action="Review foreclosures"
-          href="/foreclosures"
+          caption={
+            revenue.dealsAtRisk > 0
+              ? "Deadline within 30 days"
+              : (revenue.deadlinesSet ?? 0) > 0
+                ? "No deadlines in the next 30 days"
+                : "Add deadlines on lead pages"
+          }
+          action={revenue.dealsAtRisk > 0 ? "Review deals" : "Add a deadline"}
+          href={firstAtRisk ? `/leads/${firstAtRisk.id}` : "/leads"}
           icon={CalendarClock}
           tone="var(--amb)"
         />
@@ -411,15 +433,19 @@ export function DashboardClient({
         <CommandCard
           label="Estimated pipeline value"
           value={money.format(revenue.pipelineValue)}
-          caption="Deal values aren't tracked yet."
-          action="Open Pipeline"
-          href="/pipeline"
+          caption={
+            valuedLeads > 0
+              ? `Across ${valuedLeads} active ${valuedLeads === 1 ? "lead" : "leads"} with a value`
+              : "Add deal values on lead pages"
+          }
+          action={valuedLeads > 0 ? "Open Pipeline" : "Add a deal value"}
+          href={valuedLeads > 0 ? "/pipeline" : "/leads"}
           icon={DollarSign}
           tone="var(--g)"
         />
       </div>
 
-      <div className="order-2 grid gap-5 md:order-3 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="order-2 grid gap-5 md:order-3 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
         {/* Who to work, right now */}
         <Panel
           title="Needs attention now"

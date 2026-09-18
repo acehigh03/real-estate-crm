@@ -153,8 +153,14 @@ function derivePipelineStage(lead: Lead): PipelineStage {
   if (lead.stage === "Contacted") return "Contacted";
   if (lead.stage === "Replied" || lead.stage === "Follow Up") return "Replied";
   if (lead.stage === "Hot Lead") return "Qualified";
-  if (lead.stage === "Closed") return "Offer Sent";
-  if (lead.stage === "DNC") return "Dead";
+  if (lead.stage === "Offer Sent") return "Offer Sent";
+  if (lead.stage === "Dead" || lead.stage === "DNC") return "Dead";
+  // Legacy rows: "Closed" used to mean both Offer Sent and Dead. Dead-looking leads are Dead.
+  if (lead.stage === "Closed") {
+    const looksDead =
+      lead.status === "Dead" || lead.status === "DNC" || lead.classification === "DEAD" || lead.classification === "OPT_OUT";
+    return looksDead ? "Dead" : "Offer Sent";
+  }
 
   const tag = (lead.tag ?? "").toLowerCase();
   const summary = (lead.notes_summary ?? "").toLowerCase();
@@ -396,20 +402,26 @@ export async function getDashboardStats() {
       (lead) => hasOfferSent(lead) && isOpen(lead) && latestMessageByLead.get(lead.id)?.direction !== "inbound"
     );
 
+    // Pipeline value and deadlines come from the investor-entered fields on the lead page
+    // (leads.deal_value / leads.deadline). Rows from a database that predates the migration
+    // simply have neither, so both cards fall back to 0 instead of failing.
+    const valued = leads.filter((lead) => isOpen(lead) && lead.deal_value != null && Number.isFinite(Number(lead.deal_value)));
+    const horizon = format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), "yyyy-MM-dd");
+    const withDeadline = leads.filter((lead) => isOpen(lead) && lead.deadline);
+    const atRiskAll = withDeadline
+      .filter((lead) => (lead.deadline as string) >= today && (lead.deadline as string) <= horizon)
+      .sort((a, b) => (a.deadline as string).localeCompare(b.deadline as string));
+
     const revenue: DashboardRevenueMetrics = {
-      // TODO(data source): the schema has no deal value or assignment fee column on
-      // public.leads (or anywhere else). Add e.g. leads.deal_value / leads.assignment_fee,
-      // then sum it over open leads here. Until then this is intentionally 0.
-      pipelineValue: 0,
+      pipelineValue: valued.reduce((sum, lead) => sum + Number(lead.deal_value), 0),
+      pipelineValuedLeads: valued.length,
 
       // "Offer sent" is only recorded as a tag/summary flag (no offer_sent_at). An offer is
       // awaiting a response while the latest message on the lead is not an inbound reply.
       offersAwaitingResponse: awaitingOfferLeads.length,
 
-      // TODO(data source): no lead has a tax-sale / auction date. It exists only as free text
-      // in foreclosure_leads.notes ("Sale Date: ...") with no key linking it to public.leads.
-      // Add leads.sale_date (or a foreclosure_leads.lead_id link) to count deadlines <= 30 days.
-      dealsAtRisk: 0,
+      dealsAtRisk: atRiskAll.length,
+      deadlinesSet: withDeadline.length,
     };
 
     const nowIso = new Date().toISOString();
@@ -434,6 +446,7 @@ export async function getDashboardStats() {
       overdue: overdueAll.slice(0, 10),
       overdueCount: overdueAll.length,
       awaitingOffers: awaitingOfferLeads.map(toItem).slice(0, 10),
+      atRisk: atRiskAll.map(toItem).slice(0, 10),
       hotNoOffer: hotNoOfferAll.map(toItem).slice(0, 10),
       hotNoOfferCount: hotNoOfferAll.length,
       stageCounts,
@@ -599,6 +612,106 @@ export async function getContactsData() {
   } catch (error) {
     logDataLoaderFailure("getContactsData", error);
     return { leads: [], messages: [] as Message[] };
+  }
+}
+
+// ── Scheduled follow-ups, sent-text log, and tags (all read-only, from existing columns) ──────
+
+export async function getScheduledData() {
+  try {
+    const { supabase, user } = await requireUser();
+    const { data, error } = await supabase
+      .from("leads")
+      .select("*")
+      .eq("user_id", user.id)
+      .not("next_follow_up_at", "is", null)
+      .order("next_follow_up_at", { ascending: true })
+      .limit(500);
+    if (error) throw error;
+
+    return {
+      leads: ((data ?? []) as Lead[]).filter(
+        (lead) => Boolean(lead.next_follow_up_at) && !lead.is_dnc && lead.status !== "DNC" && lead.status !== "Dead"
+      ),
+    };
+  } catch (error) {
+    logDataLoaderFailure("getScheduledData", error);
+    return { leads: [] as Lead[], failed: true };
+  }
+}
+
+export interface SentTextRow {
+  message: Message;
+  lead: Pick<Lead, "id" | "first_name" | "last_name" | "phone"> | null;
+}
+
+export async function getCallLogsData(limit = 200) {
+  try {
+    const { supabase, user } = await requireUser();
+    const [messageResponse, leadResponse] = await Promise.all([
+      supabase
+        .from("messages")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("direction", "outbound")
+        .order("created_at", { ascending: false })
+        .limit(limit),
+      supabase.from("leads").select("id, first_name, last_name, phone").eq("user_id", user.id),
+    ]);
+    if (messageResponse.error) throw messageResponse.error;
+    if (leadResponse.error) throw leadResponse.error;
+
+    const leadsById = new Map((leadResponse.data ?? []).map((lead) => [lead.id, lead]));
+    const rows: SentTextRow[] = ((messageResponse.data ?? []) as Message[]).map((message) => ({
+      message,
+      lead: message.lead_id ? (leadsById.get(message.lead_id) ?? null) : null,
+    }));
+    return { rows, limit };
+  } catch (error) {
+    logDataLoaderFailure("getCallLogsData", error);
+    return { rows: [] as SentTextRow[], limit, failed: true };
+  }
+}
+
+export interface TagGroup {
+  tag: string;
+  leads: Array<Pick<Lead, "id" | "first_name" | "last_name" | "phone" | "property_address" | "status">>;
+}
+
+export async function getTagsData() {
+  try {
+    const { supabase, user } = await requireUser();
+    const { data, error } = await supabase
+      .from("leads")
+      .select("id, first_name, last_name, phone, property_address, status, tag")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+
+    // `leads.tag` is one free-text label per lead; group case-insensitively, keep first spelling.
+    const groups = new Map<string, TagGroup>();
+    let untagged = 0;
+    for (const lead of data ?? []) {
+      const labels = (lead.tag ?? "").split(",").map((label: string) => label.trim()).filter(Boolean);
+      if (labels.length === 0) {
+        untagged += 1;
+        continue;
+      }
+      for (const label of labels) {
+        const key = label.toLowerCase();
+        const group = groups.get(key) ?? { tag: label, leads: [] };
+        group.leads.push(lead);
+        groups.set(key, group);
+      }
+    }
+
+    return {
+      groups: [...groups.values()].sort((a, b) => b.leads.length - a.leads.length || a.tag.localeCompare(b.tag)),
+      untagged,
+    };
+  } catch (error) {
+    logDataLoaderFailure("getTagsData", error);
+    return { groups: [] as TagGroup[], untagged: 0, failed: true };
   }
 }
 
