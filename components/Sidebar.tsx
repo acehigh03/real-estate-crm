@@ -85,37 +85,25 @@ function NavItem({
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 7,
-        padding: "6px 9px",
-        borderRadius: 7,
-        fontSize: 12,
-        fontWeight: isActive ? 500 : 400,
-        color: isActive ? "var(--t1)" : "var(--t2)",
-        background: isActive ? "var(--s2)" : "transparent",
+        gap: 9,
+        minHeight: 34,
+        padding: "0 10px",
+        borderRadius: 8,
+        fontSize: 13,
+        fontWeight: isActive ? 600 : 500,
+        color: isActive ? "var(--g)" : "var(--t2)",
+        background: isActive ? "var(--gd)" : "transparent",
         textDecoration: "none",
         position: "relative",
         transition: "background 0.1s, color 0.1s",
       }}
       className="nav-item group"
     >
-      {isActive && (
-        <span
-          style={{
-            position: "absolute",
-            left: 0,
-            top: "50%",
-            transform: "translateY(-50%)",
-            width: 2,
-            height: 13,
-            borderRadius: "0 2px 2px 0",
-            background: "var(--g)",
-          }}
-        />
-      )}
       <Icon
-        size={14}
+        size={16}
+        strokeWidth={isActive ? 2.2 : 1.8}
         style={{
-          opacity: isActive ? 1 : 0.55,
+          opacity: isActive ? 1 : 0.7,
           flexShrink: 0,
           transition: "opacity 0.1s",
         }}
@@ -273,21 +261,21 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: "10px 8px",
+          padding: "6px 10px 12px",
           display: "flex",
           flexDirection: "column",
-          gap: 1,
+          gap: 2,
         }}
       >
         {/* WORKSPACE */}
         <span
           style={{
-            fontSize: 9.5,
-            fontWeight: 500,
+            fontSize: 10.5,
+            fontWeight: 600,
             textTransform: "uppercase",
-            letterSpacing: "0.09em",
+            letterSpacing: "0.08em",
             color: "var(--t3)",
-            padding: "10px 8px 3px",
+            padding: "16px 10px 6px",
           }}
         >
           Workspace
@@ -306,12 +294,12 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
         {/* OUTREACH */}
         <span
           style={{
-            fontSize: 9.5,
-            fontWeight: 500,
+            fontSize: 10.5,
+            fontWeight: 600,
             textTransform: "uppercase",
-            letterSpacing: "0.09em",
+            letterSpacing: "0.08em",
             color: "var(--t3)",
-            padding: "10px 8px 3px",
+            padding: "16px 10px 6px",
           }}
         >
           Outreach
@@ -323,12 +311,12 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
         {/* SYSTEM */}
         <span
           style={{
-            fontSize: 9.5,
-            fontWeight: 500,
+            fontSize: 10.5,
+            fontWeight: 600,
             textTransform: "uppercase",
-            letterSpacing: "0.09em",
+            letterSpacing: "0.08em",
             color: "var(--t3)",
-            padding: "10px 8px 3px",
+            padding: "16px 10px 6px",
           }}
         >
           System

@@ -12,6 +12,8 @@ import {
   type PipelineStage,
 } from "@/lib/dashboard-metrics";
 
+import { buildDashboardView, EMPTY_DASHBOARD_VIEW } from "@/lib/dashboard-view";
+
 export { EMPTY_ATTENTION, EMPTY_REVENUE_METRICS };
 export type { AttentionItem, DashboardAttention, DashboardRevenueMetrics };
 
@@ -460,7 +462,10 @@ export async function getDashboardStats() {
           : 0,
     }));
 
-    return { counts, dueLeads, recentReplies, hotLeadRows, campaignPerformance, revenue, attention };
+    // Everything the redesigned dashboard renders (board, action center, conversations, charts).
+    const view = buildDashboardView(leads, messages, derivePipelineStage);
+
+    return { counts, dueLeads, recentReplies, hotLeadRows, campaignPerformance, revenue, attention, view };
   } catch (error) {
     logDataLoaderFailure("getDashboardStats", error);
     return {
@@ -477,6 +482,7 @@ export async function getDashboardStats() {
       campaignPerformance: [],
       revenue: EMPTY_REVENUE_METRICS,
       attention: EMPTY_ATTENTION,
+      view: EMPTY_DASHBOARD_VIEW,
     };
   }
 }

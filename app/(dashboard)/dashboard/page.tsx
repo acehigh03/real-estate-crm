@@ -1,18 +1,27 @@
 import { createClient } from "@/lib/supabase/server";
 import { EMPTY_ATTENTION, EMPTY_REVENUE_METRICS, getDashboardStats } from "@/lib/data";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
+import { makeDemoView } from "@/components/dashboard/demo-view";
+import { EMPTY_DASHBOARD_VIEW } from "@/lib/dashboard-view";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ demo?: string }>;
+}) {
+  const { demo } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   const email = user?.email ?? "";
-  const namePart = email.split("@")[0] ?? "";
+  // "senay24@gmail.com" -> "Senay": drop digits, split on separators, capitalise.
+  const namePart = (email.split("@")[0] ?? "").replace(/\d+/g, "");
   const userName =
     namePart
       .split(/[._-]/)
+      .filter(Boolean)
       .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
       .join(" ") || "there";
   const userInitials = namePart
@@ -34,18 +43,26 @@ export default async function DashboardPage() {
   let campaignPerformance = [] as Awaited<ReturnType<typeof getDashboardStats>>["campaignPerformance"];
   let revenue = EMPTY_REVENUE_METRICS;
   let attention = EMPTY_ATTENTION;
+  let view = EMPTY_DASHBOARD_VIEW;
 
-  try {
-    ({ counts, dueLeads, recentReplies, hotLeadRows, campaignPerformance, revenue, attention } =
-      await getDashboardStats());
-  } catch (error) {
-    console.error("dashboard page data failed:", error);
+  // ?demo=1 previews the layout with fictional sample data. It is built in memory for this
+  // request only — nothing is written anywhere — and real accounts never get it unasked.
+  const isDemo = demo === "1";
+  if (isDemo) {
+    view = makeDemoView(new Date());
+  } else {
+    try {
+      ({ counts, dueLeads, recentReplies, hotLeadRows, campaignPerformance, revenue, attention, view } =
+        await getDashboardStats());
+    } catch (error) {
+      console.error("dashboard page data failed:", error);
+    }
   }
 
   return (
     <DashboardClient
       userName={userName}
-      userInitials={userInitials || "SB"}
+      userInitials={userInitials || "•"}
       counts={counts}
       dueLeads={dueLeads}
       recentReplies={recentReplies}
@@ -53,6 +70,7 @@ export default async function DashboardPage() {
       campaignPerformance={campaignPerformance}
       revenue={revenue}
       attention={attention}
+      view={view}
     />
   );
 }

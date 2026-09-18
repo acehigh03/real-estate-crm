@@ -77,7 +77,7 @@
 
 /* ── Light theme ────────────────────────────────────────────────────────── */
 .lk {
-  --bg: #f0ede8;
+  --bg: #f6f6f4;
   --s1: #ffffff;
   --s2: #f7f8fc;
   --s3: #eef0f7;
@@ -373,5 +373,50 @@ summary:focus-visible {
   .topbar-crumb,
   .topbar-secondary {
     display: none !important;
+  }
+}
+
+/* ── Dashboard: white cards on a very light warm-gray canvas, hairline borders, subtle depth ── */
+.dash-card {
+  background: var(--s1);
+  border: 1px solid var(--b1);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+.lk .dash-card-lift {
+  transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+}
+.lk .dash-card-lift:hover {
+  border-color: var(--b2);
+  box-shadow: 0 4px 14px rgba(16, 24, 40, 0.08);
+}
+.dk .dash-card {
+  box-shadow: none;
+}
+.kanban {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scroll-snap-type: x proximity;
+}
+.kanban-col {
+  flex: 0 0 188px;
+  scroll-snap-align: start;
+}
+@media (max-width: 767px) {
+  .kanban-col {
+    flex-basis: 78vw;
+    scroll-snap-align: center;
+  }
+  .kanban {
+    scroll-snap-type: x mandatory;
+  }
+}
+
+/* Action Center: two rows per group below desktop width, three on desktop */
+@media (max-width: 1279px) {
+  .action-list > li:nth-child(n + 3) {
+    display: none;
   }
 }
