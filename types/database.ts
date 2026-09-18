@@ -14,6 +14,9 @@ export type LeadStage =
 export type LeadPriority = "high" | "medium" | "low";
 export type MessageClassification = "HOT" | "WARM" | "NOT_INTERESTED" | "STOP_DNC" | "NEEDS_REVIEW";
 export type CampaignType = "cash_offer" | "foreclosure_help" | "probate" | "tax_sale" | "custom";
+export type DripWorkflowStatus = "draft" | "active" | "paused" | "archived";
+export type DripEnrollmentStatus = "active" | "paused" | "completed" | "cancelled";
+export type DripExecutionStatus = "queued" | "processing" | "sent" | "delivered" | "failed" | "skipped" | "cancelled";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -323,6 +326,30 @@ export interface Database {
           status?: string;
           sent_at?: string | null;
         };
+        Relationships: [];
+      };
+      drip_workflows: {
+        Row: { id: string; user_id: string; name: string; status: DripWorkflowStatus; continue_after_reply: boolean; created_at: string; updated_at: string };
+        Insert: { id?: string; user_id: string; name: string; status?: DripWorkflowStatus; continue_after_reply?: boolean };
+        Update: Partial<Database["public"]["Tables"]["drip_workflows"]["Insert"]>;
+        Relationships: [];
+      };
+      drip_steps: {
+        Row: { id: string; workflow_id: string; step_number: number; delay_minutes: number; message: string; created_at: string; updated_at: string };
+        Insert: { id?: string; workflow_id: string; step_number: number; delay_minutes?: number; message: string };
+        Update: Partial<Database["public"]["Tables"]["drip_steps"]["Insert"]>;
+        Relationships: [];
+      };
+      drip_enrollments: {
+        Row: { id: string; user_id: string; workflow_id: string; lead_id: string; status: DripEnrollmentStatus; enrolled_at: string; cancelled_at: string | null; cancel_reason: string | null; last_reply_at_enrollment: string | null; created_at: string; updated_at: string };
+        Insert: { id?: string; user_id: string; workflow_id: string; lead_id: string; status?: DripEnrollmentStatus; enrolled_at?: string; cancelled_at?: string | null; cancel_reason?: string | null; last_reply_at_enrollment?: string | null };
+        Update: Partial<Database["public"]["Tables"]["drip_enrollments"]["Insert"]>;
+        Relationships: [];
+      };
+      drip_executions: {
+        Row: { id: string; user_id: string; enrollment_id: string; step_id: string; scheduled_for: string; sent_at: string | null; status: DripExecutionStatus; rendered_message: string | null; telnyx_message_id: string | null; error: string | null; created_at: string; updated_at: string };
+        Insert: { id?: string; user_id: string; enrollment_id: string; step_id: string; scheduled_for: string; sent_at?: string | null; status?: DripExecutionStatus; rendered_message?: string | null; telnyx_message_id?: string | null; error?: string | null };
+        Update: Partial<Database["public"]["Tables"]["drip_executions"]["Insert"]>;
         Relationships: [];
       };
     };
