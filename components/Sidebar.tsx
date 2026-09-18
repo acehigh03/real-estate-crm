@@ -18,6 +18,7 @@ import {
   Kanban,
   FileUp,
   Settings,
+  Database,
 } from "lucide-react";
 
 import { useTheme } from "@/lib/theme-context";
@@ -33,6 +34,7 @@ const WORKSPACE = [
   { label: "Calendar", icon: Calendar, href: "/calendar" },
   { label: "Scheduled", icon: Clock, href: "/scheduled", chip: "3", chipColor: "blu" },
   { label: "Call Logs", icon: Phone, href: "/call-logs" },
+  { label: "Scraper", icon: Database, href: "/scraper" },
 ];
 
 const OUTREACH = [
@@ -152,6 +154,7 @@ const HREF_TO_LABEL: Record<string, string> = {
   "/pipeline":       "Pipeline",
   "/import":         "Import CSV",
   "/settings":       "Settings",
+  "/scraper":        "Scraper",
 };
 
 export function Sidebar({ activeItem }: SidebarProps) {
