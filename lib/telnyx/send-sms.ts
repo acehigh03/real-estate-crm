@@ -17,11 +17,40 @@ export class TelnyxSendError extends Error {
 
 const TELNYX_TIMEOUT_MS = 15_000;
 
+/**
+ * Reads an env var the way a human meant it. Values pasted into a host dashboard often carry
+ * surrounding quotes, spaces or a trailing newline; any of those turns a valid Telnyx key into
+ * a 401 ("Bearer \"KEY...\"") or an invalid header.
+ */
+function readEnv(...names: string[]) {
+  for (const name of names) {
+    const raw = process.env[name];
+    if (raw === undefined) continue;
+    const cleaned = raw.trim().replace(/^(["'])([\s\S]*)\1$/, "$2").trim();
+    if (cleaned) return cleaned;
+  }
+  return undefined;
+}
+
 export async function sendTelnyxMessage({ to, text }: SendTelnyxMessageParams) {
-  const apiKey = process.env.TELNYX_API_KEY;
-  const fromNumber =
-    process.env.TELNYX_PHONE_NUMBER ?? process.env.TELNYX_FROM_NUMBER;
-  const messagingProfileId = process.env.TELNYX_MESSAGING_PROFILE_ID;
+  const apiKey = readEnv("TELNYX_API_KEY");
+  const fromNumber = readEnv("TELNYX_PHONE_NUMBER", "TELNYX_FROM_NUMBER");
+  const messagingProfileId = readEnv("TELNYX_MESSAGING_PROFILE_ID");
+
+  // TEMP DEBUG (remove once production sending is confirmed): shows what THIS runtime sees.
+  // The first 15 chars are the public key id ("KEY" + hex), not the secret half after "_".
+  console.log("[telnyx][debug] before send", {
+    keyPrefix: apiKey?.slice(0, 15) ?? null,
+    keyLength: apiKey?.length ?? 0,
+    rawKeyLength: process.env.TELNYX_API_KEY?.length ?? 0, // differs from keyLength if the raw value had quotes/whitespace
+    keyLooksValid: Boolean(apiKey && /^KEY[0-9A-Fa-f]+_\w+$/.test(apiKey)),
+    from: fromNumber ?? null,
+    fromIsE164: Boolean(fromNumber && /^\+[1-9]\d{7,14}$/.test(fromNumber)),
+    to,
+    messagingProfileId: messagingProfileId ?? null,
+    envName: process.env.TELNYX_PHONE_NUMBER ? "TELNYX_PHONE_NUMBER" : process.env.TELNYX_FROM_NUMBER ? "TELNYX_FROM_NUMBER" : null,
+    vercelEnv: process.env.VERCEL_ENV ?? "local",
+  });
 
   if (!apiKey || !fromNumber) {
     console.error("[telnyx] send aborted: TELNYX_API_KEY and/or TELNYX_PHONE_NUMBER is not set");

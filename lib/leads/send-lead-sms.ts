@@ -16,9 +16,12 @@ export type SendLeadSmsResult =
 /** Telnyx errors that a user can act on (bad number, opted out, ...) are passed through. */
 function telnyxFailureMessage(error: TelnyxSendError) {
   if (error.status === 400 || error.status === 422) return `Telnyx rejected the message: ${error.message}`;
-  if (error.status === 401 || error.status === 403) {
+  // Only 401 means bad credentials. Telnyx also uses 403 for account/number/compliance blocks
+  // (e.g. unregistered 10DLC), so surface its own explanation instead of blaming the key.
+  if (error.status === 401) {
     return "The SMS provider rejected our credentials. Please contact support.";
   }
+  if (error.status === 403) return `Telnyx blocked this message: ${error.message}`;
   if (error.status === 429) return "Too many messages sent too quickly. Please wait a moment and retry.";
   return "Unable to send the text right now. Please try again.";
 }
@@ -55,7 +58,7 @@ export async function sendSmsToLead({
     telnyxMessage = await sendTelnyxMessage({ to, text: body });
   } catch (error) {
     if (error instanceof TelnyxSendError) {
-      return { ok: false, status: error.status >= 500 || error.status === 401 || error.status === 403 ? 502 : 422, error: telnyxFailureMessage(error) };
+      return { ok: false, status: error.status >= 500 || error.status === 401 ? 502 : 422, error: telnyxFailureMessage(error) };
     }
     logError("send-lead-sms", error, { leadId: lead.id, step: "telnyx send" });
     return { ok: false, status: 502, error: "Unable to send the text right now. Please try again." };
