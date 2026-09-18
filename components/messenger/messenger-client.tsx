@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { Topbar } from "@/components/Topbar";
+import { generateInboxDraftReply } from "@/lib/ai/classify-lead";
 import { createClient } from "@/lib/supabase/browser";
 import type { Database } from "@/types/database";
 
@@ -745,18 +746,24 @@ function ChatThread({
 
 function AIDraft({
   lead,
+  lastInboundBody,
   onApprove,
 }: {
   lead: Lead;
+  lastInboundBody: string | null;
   onApprove: (text: string) => void;
 }) {
-  const draft = `Hey ${lead.first_name} — confirming 2pm at ${lead.property_address}. I'll have the contract printed; if the number works we can sign on the spot. Sound good?`;
+  // Same suggestion the Inbox uses: built from the seller's actual last message and address.
+  const draft = generateInboxDraftReply({
+    propertyAddress: lead.property_address,
+    lastInboundBody,
+    classification: lead.classification,
+  });
   return (
     <div
       style={{
-        background:
-          "linear-gradient(180deg, rgba(176,139,255,0.07), rgba(176,139,255,0.02))",
-        border: "1px solid rgba(176,139,255,0.20)",
+        background: "var(--s2)",
+        border: "1px solid var(--b1)",
         borderRadius: 8,
         padding: "10px 12px",
         display: "flex",
@@ -770,15 +777,15 @@ function AIDraft({
           fontFamily: "var(--font-mono)",
           fontWeight: 600,
           letterSpacing: "0.07em",
-          background: "var(--purb)",
-          color: "var(--pur)",
+          background: "var(--gd)",
+          color: "var(--g)",
           padding: "2px 7px",
           borderRadius: 99,
           flexShrink: 0,
           marginTop: 1,
         }}
       >
-        AI · DRAFT
+        SUGGESTED REPLY
       </span>
       <div style={{ flex: 1, fontSize: 12, color: "var(--t1)", lineHeight: 1.5 }}>
         {draft}
@@ -789,7 +796,7 @@ function AIDraft({
           fontSize: 11,
           fontWeight: 600,
           background: "var(--g)",
-          color: "#0a1812",
+          color: "var(--on-g)",
           border: "none",
           borderRadius: 5,
           padding: "5px 10px",
@@ -808,10 +815,12 @@ function AIDraft({
 
 function Composer({
   lead,
+  lastInboundBody,
   onSend,
   sending,
 }: {
   lead: Lead;
+  lastInboundBody: string | null;
   onSend: (text: string) => Promise<void>;
   sending: boolean;
 }) {
@@ -845,7 +854,7 @@ function Composer({
         gap: 10,
       }}
     >
-      <AIDraft lead={lead} onApprove={(d) => setText(d)} />
+      <AIDraft lead={lead} lastInboundBody={lastInboundBody} onApprove={(d) => setText(d)} />
 
       {/* Quick replies */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -974,11 +983,7 @@ function Composer({
         <span>
           {text.length}/160 chars · {segments} segment{segments !== 1 ? "s" : ""}
         </span>
-        <span>
-          Sending from{" "}
-          <span style={{ color: "var(--g)" }}>+1 (713) 565-0807</span> · A2P
-          registered
-        </span>
+        <span>Opt-out language is added automatically</span>
       </div>
     </div>
   );
@@ -1206,7 +1211,12 @@ export function MessengerClient({
               {sendError}
             </div>
           ) : null}
-          <Composer lead={selectedLead} onSend={handleSend} sending={sending} />
+          <Composer
+            lead={selectedLead}
+            lastInboundBody={[...threadMessages].reverse().find((m) => m.direction === "inbound")?.body ?? null}
+            onSend={handleSend}
+            sending={sending}
+          />
         </section>
       </div>
 

@@ -11,7 +11,7 @@ export default async function LoginPage({
     <main className="min-h-screen">
       <div className="grid min-h-screen lg:grid-cols-[1.1fr_0.9fr]">
         {/* Left: dark panel */}
-        <section className="relative flex flex-col justify-between bg-[linear-gradient(160deg,#1e2a3a_0%,#1a2f4a_55%,#162540_100%)] px-10 py-10 text-white lg:px-14">
+        <section className="relative flex flex-col justify-center bg-[#1a2332] px-6 py-7 text-white lg:px-14 lg:py-10">
           {/* Logo */}
           <div>
             <div className="flex items-center gap-3">
@@ -20,29 +20,22 @@ export default async function LoginPage({
               </div>
               <div>
                 <p className="text-[14px] font-semibold text-white">sellingmy.casa</p>
-                <p className="text-[11px] text-white/45">Real Estate CRM</p>
+                <p className="text-[11px] text-white/45">Seller Acquisition Command Center</p>
               </div>
             </div>
 
-            {/* Badge */}
-            <div className="mt-10">
-              <span className="inline-flex items-center rounded-full bg-[#00c08b]/15 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-[#00c08b]">
-                Real Estate CRM
-              </span>
-            </div>
-
-            <h1 className="mt-5 max-w-md text-[2.25rem] font-semibold leading-[1.2] tracking-tight text-white">
-              Manage seller leads, follow-ups, and SMS in one place.
+            <h1 className="mt-6 max-w-md text-[1.6rem] lg:mt-12 lg:text-[2.25rem] font-semibold leading-[1.2] tracking-tight text-white">
+              The seller-acquisition command center for real estate investors
             </h1>
-            <p className="mt-4 text-[15px] text-white/55">
-              Built for investors who move fast.
+            <p className="mt-3 max-w-md text-[14px] text-white/60 lg:mt-4 lg:text-[15px]">
+              Find motivated sellers, reply instantly, and move deals to contract — all in one place.
             </p>
 
-            <div className="mt-8 space-y-3">
+            <div className="mt-5 space-y-2.5 lg:mt-8 lg:space-y-3">
               {[
-                "Supabase-powered lead and auth workflow",
-                "Telnyx SMS with STOP compliance built in",
-                "Daily seller pipeline and follow-up tracking",
+                "Never miss a motivated seller",
+                "Every text, call, and follow-up in one place",
+                "Know which deal to work next",
               ].map((point) => (
                 <div key={point} className="flex items-center gap-3 text-[14px] text-white/70">
                   <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#00c08b]/20">
@@ -53,28 +46,14 @@ export default async function LoginPage({
               ))}
             </div>
           </div>
-
-          {/* Stats row */}
-          <div className="grid max-w-sm grid-cols-3 gap-3">
-            {[
-              { label: "Leads", value: "∞" },
-              { label: "Replies", value: "Live" },
-              { label: "Hot Leads", value: "Auto" },
-            ].map((stat) => (
-              <div key={stat.label} className="rounded-[8px] border border-white/10 bg-white/5 px-4 py-4">
-                <p className="text-[11px] text-white/45">{stat.label}</p>
-                <p className="mt-1.5 text-[20px] font-semibold text-white">{stat.value}</p>
-              </div>
-            ))}
-          </div>
         </section>
 
         {/* Right: sign-in form */}
-        <section className="flex items-center justify-center bg-[#f7f8fa] px-6 py-10 lg:px-10">
+        <section className="flex items-center justify-center bg-[#f7f8fa] px-4 py-8 lg:px-10 lg:py-10">
           <div className="w-full max-w-sm rounded-xl border border-[#e8edf2] bg-white p-8 shadow-sm">
             <h2 className="text-[22px] font-semibold text-[#1a1f36]">Sign in</h2>
             <p className="mt-1.5 text-[13px] text-[#6b7c93]">
-              Use your email and password to access the CRM.
+              Sign in to see which sellers need you today.
             </p>
             <div className="mt-6">
               <LoginForm error={params.error} />

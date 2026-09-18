@@ -336,7 +336,7 @@ export function LeadsClient({ leads, notes, followups, campaigns }: LeadsClientP
                     : importResult.queued > 0
                       ? `${importResult.queued} SMS queued for next send window.`
                       : importResult.imported > 0
-                        ? "Leads imported. Telnyx not configured — no SMS sent."
+                        ? "Leads imported. Texting isn't set up yet, so no messages were sent."
                         : "No new leads were found in the CSV."}
                   {importResult.skipped > 0 ? ` ${importResult.skipped} already existed.` : ""}
                 </p>

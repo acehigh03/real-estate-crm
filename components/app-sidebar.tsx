@@ -69,7 +69,7 @@ export function AppSidebar({
           </div>
           <div className="group-data-[collapsible=icon]:hidden">
             <p className="text-[14px] font-semibold leading-tight text-[#1a1f36]">sellingmy.casa</p>
-            <p className="text-[11px] leading-tight text-[#6b7c93]">Real Estate CRM</p>
+            <p className="text-[11px] leading-tight text-[#6b7c93]">Seller Acquisition Command Center</p>
           </div>
         </div>
       </SidebarHeader>

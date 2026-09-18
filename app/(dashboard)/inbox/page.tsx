@@ -5,9 +5,9 @@ import { InboxClient } from "@/components/inbox/inbox-client";
 export default async function InboxPage({
   searchParams,
 }: {
-  searchParams: Promise<{ new?: string }>;
+  searchParams: Promise<{ new?: string; lead?: string }>;
 }) {
-  const { new: openComposer } = await searchParams;
+  const { new: openComposer, lead: leadParam } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -30,6 +30,7 @@ export default async function InboxPage({
       initialCampaigns={campaigns}
       userId={user?.id ?? ""}
       autoOpenComposer={openComposer === "1"}
+      initialLeadId={leadParam ?? null}
     />
   );
 }

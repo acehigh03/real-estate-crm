@@ -1,20 +1,27 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { format, formatDistanceToNowStrict } from "date-fns";
 import {
-  Users,
-  Flame,
-  MessageSquare,
-  AlertTriangle,
-  Activity,
-  Rss,
-  TrendingUp,
   ArrowRight,
+  CalendarClock,
+  CheckCircle2,
+  DollarSign,
+  MessageSquare,
+  Phone,
+  Send,
+  Timer,
 } from "lucide-react";
 
-import { Card } from "@/components/Card";
-import { Topbar } from "@/components/Topbar";
+import {
+  EMPTY_ATTENTION,
+  EMPTY_REVENUE_METRICS,
+  type AttentionItem,
+  type DashboardAttention,
+  type DashboardRevenueMetrics,
+} from "@/lib/dashboard-metrics";
+import { fallbackAddress, leadDisplayName, messageSnippet } from "@/lib/utils";
 import type { Database } from "@/types/database";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
@@ -43,727 +50,494 @@ interface Props {
     total_leads: number;
     conversionRate: number;
   }>;
+  revenue?: DashboardRevenueMetrics;
+  attention?: DashboardAttention;
 }
 
-// ── Stat bar hook ──────────────────────────────────────────────────────────
-function useBarFill(target: number) {
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const t = setTimeout(() => setWidth(target), 120);
-    return () => clearTimeout(t);
-  }, [target]);
-  return width;
+const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+
+// Relative times depend on "now", so render a stable date until the browser has mounted.
+function useMounted() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  return mounted;
 }
 
-// ── Panel header ───────────────────────────────────────────────────────────
-function PanelHeader({
-  icon: Icon,
-  iconColor,
-  title,
-  right,
+function Since({ iso, mounted }: { iso: string | null | undefined; mounted: boolean }) {
+  if (!iso) return <>—</>;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return <>—</>;
+  return <>{mounted ? formatDistanceToNowStrict(date) : format(date, "MMM d")}</>;
+}
+
+// ── Buttons: one solid emerald action per row, everything else outlined ─────
+function ActionLink({
+  href,
+  children,
+  variant = "secondary",
+  icon,
 }: {
-  icon: React.ElementType;
-  iconColor: string;
-  title: string;
-  right?: React.ReactNode;
+  href: string;
+  children: React.ReactNode;
+  variant?: "primary" | "secondary";
+  icon?: React.ReactNode;
 }) {
+  const primary = variant === "primary";
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "14px 16px 10px",
-        borderBottom: "1px solid var(--b0)",
-      }}
+    <Link
+      href={href}
+      className="inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3.5 text-[13px] font-medium no-underline transition hover:opacity-90"
+      style={
+        primary
+          ? { background: "var(--g)", color: "var(--on-g)" }
+          : { background: "var(--s1)", color: "var(--t1)", border: "1px solid var(--b2)" }
+      }
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-        <Icon size={13} style={{ color: iconColor }} />
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--t1)" }}>{title}</span>
-      </div>
-      {right}
-    </div>
+      {icon}
+      {children}
+    </Link>
   );
 }
 
-// ── Stat card ──────────────────────────────────────────────────────────────
-function StatCard({
-  label,
-  icon: Icon,
-  iconBg,
-  iconColor,
-  value,
-  footer,
-  pct,
-  barColor,
-}: {
-  label: string;
-  icon: React.ElementType;
-  iconBg: string;
-  iconColor: string;
-  value: number | string;
-  footer: string;
-  pct: number;
-  barColor: string;
-}) {
-  const barW = useBarFill(pct);
-
+function CallLink({ lead, variant = "secondary" }: { lead: Lead; variant?: "primary" | "secondary" }) {
+  if (!lead.phone) return null;
   return (
-    <Card style={{ padding: "14px 16px", display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 10.5, fontWeight: 500, color: "var(--t3)", letterSpacing: "0.02em" }}>
+    <ActionLink href={`tel:${lead.phone}`} variant={variant} icon={<Phone size={13} aria-hidden />}>
+      Call Lead
+    </ActionLink>
+  );
+}
+
+// ── Command card: a number, what it means, and where to act on it ──────────
+function CommandCard({
+  label,
+  value,
+  caption,
+  action,
+  href,
+  icon: Icon,
+  tone,
+  emphasize,
+  className = "",
+}: {
+  className?: string;
+  label: string;
+  value: string;
+  caption: string;
+  action: string;
+  href: string;
+  icon: React.ElementType;
+  tone: string;
+  emphasize?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`crm-panel group flex flex-col gap-2.5 p-4 no-underline transition hover:shadow-md ${className}`}
+      style={emphasize ? { borderColor: "var(--g)", boxShadow: "0 0 0 1px var(--g)" } : undefined}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[12px] font-medium" style={{ color: "var(--t2)" }}>
           {label}
         </span>
-        <div
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: 7,
-            background: iconBg,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon size={13} style={{ color: iconColor }} />
+        <Icon size={16} aria-hidden style={{ color: tone }} />
+      </div>
+      <div className="text-[30px] font-semibold leading-none tracking-tight" style={{ color: "var(--t1)" }}>
+        {value}
+      </div>
+      <p className="text-[12px] leading-snug" style={{ color: "var(--t2)" }}>
+        {caption}
+      </p>
+      <span className="inline-flex items-center gap-1 text-[12.5px] font-medium" style={{ color: "var(--g)" }}>
+        {action}
+        <ArrowRight size={13} aria-hidden className="transition group-hover:translate-x-0.5" />
+      </span>
+    </Link>
+  );
+}
+
+const REASON_STYLES = {
+  reply: { bg: "var(--blud)", color: "var(--blu)" },
+  overdue: { bg: "var(--redd)", color: "var(--red)" },
+  offer: { bg: "var(--ambd)", color: "var(--amb)" },
+} as const;
+
+type Reason = keyof typeof REASON_STYLES;
+
+interface AttentionRow {
+  key: string;
+  reason: Reason;
+  reasonLabel: React.ReactNode;
+  item: AttentionItem;
+}
+
+function AttentionListRow({ row, mounted }: { row: AttentionRow; mounted: boolean }) {
+  const { lead, lastMessage } = row.item;
+  const style = REASON_STYLES[row.reason];
+  const name = leadDisplayName(lead);
+
+  return (
+    <li className="flex flex-col gap-3 px-4 py-4 xl:flex-row xl:items-center xl:justify-between" style={{ borderTop: "1px solid var(--b1)" }}>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <Link href={`/leads/${lead.id}`} className="text-[14px] font-semibold no-underline hover:underline" style={{ color: "var(--t1)" }}>
+            {name}
+          </Link>
+          <span className="whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ background: style.bg, color: style.color }}>
+            {row.reasonLabel}
+          </span>
         </div>
+        <p className="mt-0.5 truncate text-[12px]" style={{ color: "var(--t2)" }}>
+          {fallbackAddress(lead.property_address)}
+        </p>
+        {lastMessage ? (
+          <p className="mt-1.5 line-clamp-2 text-[13px]" style={{ color: "var(--t1)" }}>
+            <span style={{ color: "var(--t3)" }}>{lastMessage.direction === "inbound" ? "Seller: " : "You: "}</span>
+            {messageSnippet(lastMessage.body, 110)}
+            <span style={{ color: "var(--t3)" }}>
+              {" · "}
+              <Since iso={lastMessage.created_at} mounted={mounted} />
+              {mounted ? " ago" : ""}
+            </span>
+          </p>
+        ) : null}
       </div>
-      <div
-        style={{
-          fontSize: 28,
-          fontFamily: "var(--font-mono)",
-          fontWeight: 600,
-          letterSpacing: "-0.05em",
-          color: "var(--t1)",
-          marginTop: 10,
-          lineHeight: 1,
-        }}
-      >
-        {typeof value === "number" ? value.toLocaleString() : value}
+
+      <div className="flex shrink-0 flex-wrap gap-2">
+        {row.reason === "reply" ? (
+          <>
+            <ActionLink href={`/inbox?lead=${lead.id}`} variant="primary" icon={<MessageSquare size={13} aria-hidden />}>
+              Draft Reply
+            </ActionLink>
+            <CallLink lead={lead} />
+          </>
+        ) : row.reason === "overdue" ? (
+          <>
+            <ActionLink href={`/leads/${lead.id}?tab=tasks#deal-workspace`} variant="primary" icon={<CalendarClock size={13} aria-hidden />}>
+              Set Follow-up
+            </ActionLink>
+            <CallLink lead={lead} />
+          </>
+        ) : (
+          <>
+            <CallLink lead={lead} variant="primary" />
+            <ActionLink href={`/leads/${lead.id}?tab=tasks#deal-workspace`} icon={<CalendarClock size={13} aria-hidden />}>
+              Set Follow-up
+            </ActionLink>
+          </>
+        )}
       </div>
-      <div
-        style={{
-          fontSize: 10,
-          fontFamily: "var(--font-mono)",
-          color: "var(--t3)",
-          marginTop: 6,
-        }}
-      >
-        {footer}
+    </li>
+  );
+}
+
+function Panel({
+  title,
+  right,
+  children,
+}: {
+  title: string;
+  right?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="crm-panel overflow-hidden">
+      <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+        <h2 className="text-[14px] font-semibold" style={{ color: "var(--t1)" }}>
+          {title}
+        </h2>
+        {right}
       </div>
-      <div
-        style={{
-          height: 2,
-          background: "var(--b1)",
-          borderRadius: 2,
-          marginTop: 12,
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            height: "100%",
-            width: `${barW}%`,
-            background: barColor,
-            borderRadius: 2,
-            transition: "width 0.7s cubic-bezier(.4,0,.2,1)",
-          }}
+      {children}
+    </section>
+  );
+}
+
+export function DashboardClient({
+  userName,
+  counts,
+  campaignPerformance,
+  revenue = EMPTY_REVENUE_METRICS,
+  attention = EMPTY_ATTENTION,
+}: Props) {
+  const mounted = useMounted();
+  const firstName = userName.split(" ")[0] || "there";
+  const { needsReplyCount, overdueCount } = attention;
+
+  // One list, most urgent reason first; a seller appears once even if they qualify for several.
+  const seen = new Set<string>();
+  const rows: AttentionRow[] = [];
+  const push = (items: AttentionItem[], reason: Reason, label: (item: AttentionItem) => React.ReactNode) => {
+    for (const item of items) {
+      if (seen.has(item.lead.id)) continue;
+      seen.add(item.lead.id);
+      rows.push({ key: `${reason}-${item.lead.id}`, reason, reasonLabel: label(item), item });
+    }
+  };
+  push(attention.needsReply, "reply", () => "Replied — waiting on you");
+  push(attention.overdue, "overdue", (item) => (
+    <>
+      Follow-up overdue <Since iso={item.lead.next_follow_up_at} mounted={mounted} />
+    </>
+  ));
+  push(attention.awaitingOffers, "offer", () => "Offer sent — no reply yet");
+  const visibleRows = rows.slice(0, 8);
+
+  const headline =
+    needsReplyCount > 0
+      ? `${needsReplyCount} ${needsReplyCount === 1 ? "seller is" : "sellers are"} waiting on your reply`
+      : overdueCount > 0
+        ? `${overdueCount} ${overdueCount === 1 ? "follow-up is" : "follow-ups are"} overdue`
+        : counts.totalLeads === 0
+          ? "Add your first leads"
+          : "You're all caught up";
+
+  const firstReply = attention.needsReply[0]?.lead;
+  const firstOverdue = attention.overdue[0]?.lead;
+  const firstOffer = attention.awaitingOffers[0]?.lead;
+  const firstHot = attention.hotNoOffer[0]?.lead;
+
+  // Rule-based next steps built from the counts above — no invented data.
+  const insights: Array<{ key: string; text: React.ReactNode; action: React.ReactNode }> = [];
+  if (needsReplyCount > 0 && firstReply) {
+    insights.push({
+      key: "reply",
+      text: (
+        <>
+          {needsReplyCount} {needsReplyCount === 1 ? "seller has" : "sellers have"} replied and{" "}
+          {needsReplyCount === 1 ? "is" : "are"} still waiting. The longest wait is{" "}
+          <strong><Since iso={attention.needsReply[0].lastMessage?.created_at} mounted={mounted} /></strong>.
+        </>
+      ),
+      action: <ActionLink href={`/inbox?lead=${firstReply.id}`} variant="primary">Draft Reply</ActionLink>,
+    });
+  }
+  if (overdueCount > 0 && firstOverdue) {
+    insights.push({
+      key: "overdue",
+      text: (
+        <>
+          {overdueCount} {overdueCount === 1 ? "follow-up is" : "follow-ups are"} past due.
+        </>
+      ),
+      action: <ActionLink href={`/leads/${firstOverdue.id}?tab=tasks#deal-workspace`}>Set 24hr Follow-up</ActionLink>,
+    });
+  }
+  if (attention.awaitingOffers.length > 0 && firstOffer) {
+    insights.push({
+      key: "offer",
+      text: <>{revenue.offersAwaitingResponse} {revenue.offersAwaitingResponse === 1 ? "offer has" : "offers have"} no response yet.</>,
+      action: <CallLink lead={firstOffer} />,
+    });
+  }
+  if (attention.hotNoOfferCount > 0 && firstHot) {
+    insights.push({
+      key: "hot",
+      text: <>{attention.hotNoOfferCount} hot {attention.hotNoOfferCount === 1 ? "lead has" : "leads have"} no offer yet.</>,
+      action: <ActionLink href={`/leads/${firstHot.id}?tab=offer#deal-workspace`}>Create Offer</ActionLink>,
+    });
+  }
+
+  const stageRows = [
+    ["New Leads", "New"],
+    ["Contacted", "Contacted"],
+    ["Replied", "Replied"],
+    ["Qualified", "Qualified"],
+    ["Offer Sent", "Offer sent"],
+  ] as const;
+
+  return (
+    <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-5 px-4 py-5 sm:px-6 sm:py-6">
+      {/* Header: what needs you, and the one button to start */}
+      <header className="order-1 flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <p className="crm-section-kicker">Hi {firstName}</p>
+          <h1 className="mt-1 text-[22px] font-semibold leading-tight tracking-tight sm:text-[26px]" style={{ color: "var(--t1)" }}>
+            {headline}
+          </h1>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ActionLink
+            href={firstReply ? `/inbox?lead=${firstReply.id}` : "/inbox"}
+            variant="primary"
+            icon={<MessageSquare size={14} aria-hidden />}
+          >
+            {needsReplyCount > 0 ? `Reply to Leads (${needsReplyCount})` : "Open Inbox"}
+          </ActionLink>
+          <ActionLink href="/import">Import Leads</ActionLink>
+        </div>
+      </header>
+
+      {/* Command center */}
+      <div className="order-3 grid grid-cols-2 gap-3 md:order-2 md:grid-cols-3 xl:grid-cols-5">
+        <CommandCard
+          label="Unread replies"
+          value={String(needsReplyCount)}
+          caption={needsReplyCount > 0 ? "Sellers waiting on your answer" : "No one is waiting on you"}
+          action="Open Inbox"
+          href={firstReply ? `/inbox?lead=${firstReply.id}` : "/inbox"}
+          icon={MessageSquare}
+          tone="var(--g)"
+          emphasize={needsReplyCount > 0}
+          className="col-span-2 xl:col-span-1"
+        />
+        <CommandCard
+          label="Overdue follow-ups"
+          value={String(overdueCount)}
+          caption={overdueCount > 0 ? "Past their follow-up date" : "Every follow-up is on schedule"}
+          action="Set Follow-up"
+          href={firstOverdue ? `/leads/${firstOverdue.id}?tab=tasks#deal-workspace` : "/leads"}
+          icon={Timer}
+          tone="var(--red)"
+        />
+        <CommandCard
+          label="Deals at risk"
+          value={String(revenue.dealsAtRisk)}
+          caption="Sale or auction within 30 days. Not tracked yet."
+          action="Review foreclosures"
+          href="/foreclosures"
+          icon={CalendarClock}
+          tone="var(--amb)"
+        />
+        <CommandCard
+          label="Offers awaiting response"
+          value={String(revenue.offersAwaitingResponse)}
+          caption="Offer sent, no reply yet"
+          action={revenue.offersAwaitingResponse > 0 ? "Follow up" : "Open Pipeline"}
+          href={firstOffer ? `/leads/${firstOffer.id}?tab=tasks#deal-workspace` : "/pipeline"}
+          icon={Send}
+          tone="var(--blu)"
+        />
+        <CommandCard
+          label="Estimated pipeline value"
+          value={money.format(revenue.pipelineValue)}
+          caption="Deal values aren't tracked yet."
+          action="Open Pipeline"
+          href="/pipeline"
+          icon={DollarSign}
+          tone="var(--g)"
         />
       </div>
-    </Card>
-  );
-}
 
-// ── Activity feed ──────────────────────────────────────────────────────────
-type FeedItem = {
-  id: number;
-  color: string;
-  text: string;
-  time: string;
-  opacity?: number;
-};
-
-const INITIAL_FEED: FeedItem[] = [
-  { id: 1, color: "var(--blu)", text: "Darnell Williams replied to your message", time: "Just now" },
-  { id: 2, color: "var(--g)", text: "Marcus Trevino added to pipeline", time: "4m ago" },
-  { id: 3, color: "var(--amb)", text: "Jerome Castillo opened your text", time: "9m ago" },
-  { id: 4, color: "var(--pur)", text: "AI drafted response for Patricia Okonkwo", time: "14m ago" },
-  { id: 5, color: "var(--g)", text: "LGBS campaign sent to 89 contacts", time: "22m ago" },
-  { id: 6, color: "var(--red)", text: "Gloria Sampson — follow-up overdue 8 days", time: "1h ago" },
-];
-
-const INCOMING: Omit<FeedItem, "id">[] = [
-  { color: "var(--blu)", text: "New reply from Jerome Castillo", time: "Just now" },
-  { color: "var(--g)", text: "Lead scored HOT: Darnell Williams", time: "Just now" },
-  { color: "var(--pur)", text: "AI insight ready for Marcus Trevino", time: "Just now" },
-  { color: "var(--amb)", text: "Follow-up reminder: Patricia Okonkwo", time: "Just now" },
-];
-
-function LiveFeed() {
-  const [items, setItems] = useState<FeedItem[]>(INITIAL_FEED);
-  const counterRef = useRef(100);
-
-  useEffect(() => {
-    let idx = 0;
-    const iv = setInterval(() => {
-      const next = INCOMING[idx % INCOMING.length];
-      idx++;
-      setItems((prev) => {
-        const newItem: FeedItem = { ...next, id: counterRef.current++, opacity: 0 };
-        const updated = [newItem, ...prev].slice(0, 7);
-        return updated;
-      });
-      // fade in
-      setTimeout(() => {
-        setItems((prev) =>
-          prev.map((item) =>
-            item.opacity === 0 ? { ...item, opacity: 1 } : item
-          )
-        );
-      }, 50);
-    }, 6000);
-    return () => clearInterval(iv);
-  }, []);
-
-  return (
-    <div style={{ overflowY: "auto", display: "flex", flexDirection: "column" }}>
-      {items.map((item, i) => (
-        <div
-          key={item.id}
-          style={{
-            display: "flex",
-            gap: 10,
-            padding: "8px 16px",
-            background: "transparent",
-            opacity: item.opacity === 0 ? 0 : 1,
-            transition: "opacity 0.4s",
-            cursor: "default",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--s2)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-        >
-          {/* Timeline pip */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <span
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: "50%",
-                background: item.color,
-                flexShrink: 0,
-              }}
-            />
-            {i < items.length - 1 && (
-              <span
-                style={{
-                  width: 1,
-                  flex: 1,
-                  background: "var(--b1)",
-                  margin: "3px 0",
-                }}
-              />
-            )}
-          </div>
-          {/* Content */}
-          <div>
-            <div style={{ fontSize: 11.5, color: "var(--t1)" }}>{item.text}</div>
-            <div
-              style={{
-                fontSize: 10,
-                fontFamily: "var(--font-mono)",
-                color: "var(--t3)",
-                marginTop: 2,
-              }}
-            >
-              {item.time}
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── Main dashboard ─────────────────────────────────────────────────────────
-export function DashboardClient({ counts }: Props) {
-  const heatLeads = [
-    { name: "Darnell Williams", addr: "4812 Almeda Rd", pct: 94, color: "var(--red)", days: "23d" },
-    { name: "Jerome Castillo", addr: "1148 Griggs Rd", pct: 80, color: "var(--red)", days: "30d" },
-    { name: "Marcus Trevino", addr: "2234 Cullen Blvd", pct: 60, color: "var(--amb)", days: "58d" },
-    { name: "Patricia Okonkwo", addr: "9201 Fondren Rd", pct: 45, color: "var(--amb)", days: "72d" },
-    { name: "Gloria Sampson", addr: "6710 Scott St", pct: 27, color: "var(--g)", days: "103d" },
-  ];
-
-  const convos = [
-    { init: "DW", name: "Darnell Williams", msg: "yeah that works", time: "11:45am", badge: "HOT", badgeColor: "var(--red)", badgeBg: "var(--redd)" },
-    { init: "JC", name: "Jerome Castillo", msg: "Let me think about it", time: "4:00pm", badge: "WARM", badgeColor: "var(--amb)", badgeBg: "var(--ambd)" },
-    { init: "PO", name: "Patricia Okonkwo", msg: "I already have an agent", time: "Yesterday", badge: "WARM", badgeColor: "var(--amb)", badgeBg: "var(--ambd)" },
-    { init: "MT", name: "Marcus Trevino", msg: "No reply yet", time: "Today 8am", badge: "NEW", badgeColor: "var(--g)", badgeBg: "var(--gd)" },
-    { init: "GS", name: "Gloria Sampson", msg: "not interested", time: "8d ago", badge: "COLD", badgeColor: "var(--t3)", badgeBg: "var(--b1)" },
-  ];
-
-  const stages = [
-    { name: "New → Contacted", pct: 42, color: "var(--blu)", days: "1.2d" },
-    { name: "Contacted → Warm", pct: 68, color: "var(--pur)", days: "3.8d" },
-    { name: "Warm → Offer", pct: 54, color: "var(--amb)", days: "5.1d" },
-    { name: "Offer → Contract", pct: 28, color: "var(--g)", days: "2.4d" },
-  ];
-
-  const miniMetrics = [
-    { label: "Total texts sent", value: "53,933", footer: "In 6,564 · Out 47,369", color: "var(--g)" },
-    { label: "Reply rate", value: "12.7%", footer: "↑ 2.4× industry avg", color: "var(--pur)", footerColor: "var(--g)" },
-    { label: "Total calls", value: "131", footer: "In 117 · Out 14", color: "var(--blu)" },
-    { label: "AI queue", value: "0", footer: "all clear", color: "var(--t3)", footerColor: "var(--g)" },
-  ];
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: 0, flex: 1 }}>
-      <Topbar page="Dashboard" />
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(12, 1fr)",
-          gridAutoRows: "54px",
-          gap: 10,
-          padding: "16px 20px",
-          paddingBottom: 20,
-        }}
-      >
-        {/* ── HERO ──────────────────────────────── col 1-8, row 1-2 */}
-        <Card
-          noLift
-          style={{ gridColumn: "1 / 9", gridRow: "1 / 4", padding: "22px 24px 20px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: 10,
-                fontFamily: "var(--font-mono)",
-                fontWeight: 500,
-                color: "var(--t3)",
-                textTransform: "uppercase",
-                letterSpacing: "0.07em",
-                marginBottom: 8,
-              }}
-            >
-              Mon, May 11, 2026 · Harris County
-            </div>
-            <div
-              style={{
-                fontSize: 19,
-                fontWeight: 600,
-                letterSpacing: "-0.035em",
-                color: "var(--t1)",
-              }}
-            >
-              Good morning,{" "}
-              <span style={{ color: "var(--g)" }}>Senay</span>
-            </div>
-            <div style={{ fontSize: 12, color: "var(--t2)", marginTop: 4 }}>
-              14 unread replies · 3 follow-ups overdue · Next foreclosure sale Jun 3
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 7, marginTop: 16 }}>
-            <Link
-              href="/inbox"
-              style={{
-                height: 30,
-                padding: "0 14px",
-                borderRadius: 6,
-                background: "var(--t1)",
-                color: "var(--bg)",
-                fontSize: 12,
-                fontWeight: 500,
-                display: "inline-flex",
-                alignItems: "center",
-                textDecoration: "none",
-              }}
-            >
-              Open Inbox
-            </Link>
-            <Link
-              href="/leads"
-              style={{
-                height: 30,
-                padding: "0 14px",
-                borderRadius: 6,
-                border: "1px solid var(--b2)",
-                background: "transparent",
-                color: "var(--t2)",
-                fontSize: 12,
-                fontWeight: 500,
-                display: "inline-flex",
-                alignItems: "center",
-                textDecoration: "none",
-              }}
-            >
-              Follow-ups
-            </Link>
-            <Link
-              href="/leads"
-              style={{
-                height: 30,
-                padding: "0 14px",
-                borderRadius: 6,
-                border: "1px solid var(--b2)",
-                background: "transparent",
-                color: "var(--t2)",
-                fontSize: 12,
-                fontWeight: 500,
-                display: "inline-flex",
-                alignItems: "center",
-                textDecoration: "none",
-              }}
-            >
-              Import Leads
-            </Link>
-          </div>
-        </Card>
-
-        {/* ── STAT CARDS ────────────────────────── each col 2, row 2 */}
-        <div style={{ gridColumn: "9 / 11", gridRow: "1 / 3" }}>
-          <StatCard
-            label="Total Leads"
-            icon={Users}
-            iconBg="var(--gd)"
-            iconColor="var(--g)"
-            value={counts.totalLeads}
-            footer={`+${Math.round(counts.totalLeads * 0.08)} this week`}
-            pct={73}
-            barColor="var(--g)"
-          />
-        </div>
-        <div style={{ gridColumn: "11 / 13", gridRow: "1 / 3" }}>
-          <StatCard
-            label="Hot Leads"
-            icon={Flame}
-            iconBg="var(--ambd)"
-            iconColor="var(--amb)"
-            value={counts.hotLeads}
-            footer={`${Math.round((counts.hotLeads / Math.max(counts.totalLeads, 1)) * 100)}% of total`}
-            pct={31}
-            barColor="var(--amb)"
-          />
-        </div>
-
-        {/* Row 2 stat cards — span cols 9-10 and 11-12, row 3-4 */}
-        <div style={{ gridColumn: "9 / 11", gridRow: "3 / 5" }}>
-          <StatCard
-            label="New Replies"
-            icon={MessageSquare}
-            iconBg="var(--blud)"
-            iconColor="var(--blu)"
-            value={counts.repliesReceived}
-            footer="Last 24 hours"
-            pct={14}
-            barColor="var(--blu)"
-          />
-        </div>
-        <div style={{ gridColumn: "11 / 13", gridRow: "3 / 5" }}>
-          <StatCard
-            label="Overdue"
-            icon={AlertTriangle}
-            iconBg="var(--redd)"
-            iconColor="var(--red)"
-            value={counts.dueToday}
-            footer="Follow-ups past due"
-            pct={42}
-            barColor="var(--red)"
-          />
-        </div>
-
-        {/* ── URGENCY HEAT MAP ──────────────────── col 1-4, row 3-5 */}
-        <Card noLift style={{ gridColumn: "1 / 5", gridRow: "4 / 7" }}>
-          <PanelHeader
-            icon={Activity}
-            iconColor="var(--red)"
-            title="Urgency Heat Map"
-            right={
-              <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--t3)" }}>
-                days to sale
-              </span>
-            }
-          />
-          <div style={{ padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: 9 }}>
-            {heatLeads.map((lead) => (
-              <div key={lead.name} style={{ display: "grid", gridTemplateColumns: "1fr 80px 32px", gap: 8, alignItems: "center" }}>
-                <div>
-                  <div style={{ fontSize: 11.5, fontWeight: 500, color: "var(--t1)" }}>{lead.name}</div>
-                  <div style={{ fontSize: 10, color: "var(--t3)" }}>{lead.addr}</div>
-                </div>
-                <div style={{ height: 4, background: "var(--b1)", borderRadius: 4, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${lead.pct}%`, background: lead.color, borderRadius: 4 }} />
-                </div>
-                <div style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--t3)", textAlign: "right" }}>
-                  {lead.days}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* ── AI INSIGHT ────────────────────────── col 5-8, row 3-5 */}
-        <Card noLift style={{ gridColumn: "5 / 9", gridRow: "4 / 7", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span
-              style={{
-                fontSize: 9.5,
-                fontFamily: "var(--font-mono)",
-                textTransform: "uppercase",
-                letterSpacing: "0.07em",
-                background: "var(--purb)",
-                color: "var(--pur)",
-                borderRadius: 99,
-                padding: "2px 8px",
-                fontWeight: 500,
-              }}
-            >
-              AI · Insight
-            </span>
-            <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--t3)" }}>
-              updated 4m ago
-            </span>
-          </div>
-
-          <div>
-            <div style={{ fontSize: 9.5, fontFamily: "var(--font-mono)", fontWeight: 600, textTransform: "uppercase", color: "var(--t3)", letterSpacing: "0.07em", marginBottom: 6 }}>
-              Lead Signal
-            </div>
-            <div style={{ fontSize: 12.5, lineHeight: 1.6, letterSpacing: "-0.01em", color: "var(--t1)" }}>
-              Darnell Williams replied 3× faster than average and used buyer-intent language. Accept probability is high if contacted in the next{" "}
-              <span style={{ background: "var(--gd)", color: "var(--g)", borderRadius: 3, padding: "0 4px" }}>
-                48 hours
-              </span>
-              .
-            </div>
-          </div>
-
-          <div style={{ height: 1, background: "var(--b0)" }} />
-
-          <div>
-            <div style={{ fontSize: 9.5, fontFamily: "var(--font-mono)", fontWeight: 600, textTransform: "uppercase", color: "var(--t3)", letterSpacing: "0.07em", marginBottom: 6 }}>
-              Campaign Signal
-            </div>
-            <div style={{ fontSize: 12.5, lineHeight: 1.6, letterSpacing: "-0.01em", color: "var(--t1)" }}>
-              LGBS blast hit{" "}
-              <span style={{ background: "var(--gd)", color: "var(--g)", borderRadius: 3, padding: "0 4px" }}>
-                12.7% reply rate
-              </span>{" "}
-              — 2.4× industry avg. 89 contacts unsent. Estimated ~11 new convos if sent today.
-            </div>
-          </div>
-
-          <div style={{ height: 1, background: "var(--b0)" }} />
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            {[
-              { label: "Message Darnell now", href: "/inbox" },
-              { label: "Launch remaining LGBS batch", href: "/campaigns" },
-            ].map((action) => (
-              <Link
-                key={action.label}
-                href={action.href}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  fontSize: 11.5,
-                  fontWeight: 500,
-                  color: "var(--blu)",
-                  padding: "5px 8px",
-                  borderRadius: 6,
-                  textDecoration: "none",
-                  transition: "background 0.12s, color 0.12s",
-                }}
-                className="ai-action-link"
-              >
-                {action.label}
-                <ArrowRight size={11} className="ai-arrow" />
+      <div className="order-2 grid gap-5 md:order-3 xl:grid-cols-[minmax(0,1fr)_340px]">
+        {/* Who to work, right now */}
+        <Panel
+          title="Needs attention now"
+          right={
+            rows.length > visibleRows.length ? (
+              <Link href="/leads" className="text-[12.5px] font-medium no-underline" style={{ color: "var(--g)" }}>
+                View all leads
               </Link>
-            ))}
-          </div>
-        </Card>
-
-        {/* ── PIPELINE VELOCITY ─────────────────── col 1-4, row 6-8 */}
-        <Card noLift style={{ gridColumn: "1 / 5", gridRow: "7 / 10" }}>
-          <PanelHeader
-            icon={TrendingUp}
-            iconColor="var(--g)"
-            title="Pipeline Velocity"
-            right={
-              <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--t3)" }}>
-                avg days / stage
-              </span>
-            }
-          />
-          <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                <span style={{ fontSize: 24, fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--g)" }}>4.2</span>
-                <span style={{ fontSize: 13, color: "var(--t2)" }}>days avg</span>
-              </div>
-              <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--g)" }}>↑ 18% faster</span>
+            ) : undefined
+          }
+        >
+          {visibleRows.length > 0 ? (
+            <ul>
+              {visibleRows.map((row) => (
+                <AttentionListRow key={row.key} row={row} mounted={mounted} />
+              ))}
+            </ul>
+          ) : (
+            <div className="flex flex-col items-center gap-3 px-6 py-12 text-center" style={{ borderTop: "1px solid var(--b1)" }}>
+              <CheckCircle2 size={22} aria-hidden style={{ color: "var(--g)" }} />
+              <p className="text-[14px] font-medium" style={{ color: "var(--t1)" }}>
+                {counts.totalLeads === 0 ? "No leads yet" : "No sellers need you right now"}
+              </p>
+              <p className="max-w-sm text-[13px]" style={{ color: "var(--t2)" }}>
+                {counts.totalLeads === 0
+                  ? "Import a list of motivated sellers to start conversations."
+                  : "New replies and overdue follow-ups will show up here."}
+              </p>
+              <ActionLink href="/import" variant="primary">
+                Import Leads
+              </ActionLink>
             </div>
-            {stages.map((stage) => (
-              <div key={stage.name} style={{ display: "grid", gridTemplateColumns: "120px 1fr 32px", gap: 8, alignItems: "center" }}>
-                <span style={{ fontSize: 11, color: "var(--t2)" }}>{stage.name}</span>
-                <div style={{ height: 3, background: "var(--b1)", borderRadius: 3, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${stage.pct}%`, background: stage.color, borderRadius: 3 }} />
-                </div>
-                <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--t3)", textAlign: "right" }}>
-                  {stage.days}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Card>
+          )}
+        </Panel>
 
-        {/* ── LIVE ACTIVITY FEED ────────────────── col 5-8, row 6-9 */}
-        <Card noLift style={{ gridColumn: "5 / 9", gridRow: "7 / 11" }}>
-          <PanelHeader
-            icon={Rss}
-            iconColor="var(--blu)"
-            title="Live Activity"
-            right={
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <span
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: "50%",
-                    background: "var(--g)",
-                    animation: "pulse 2.4s infinite",
-                  }}
-                />
-                <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--t3)" }}>live</span>
-              </div>
-            }
-          />
-          <LiveFeed />
-        </Card>
+        <div className="flex flex-col gap-5">
+          {insights.length > 0 ? (
+            <Panel title="What to do next">
+              <ul>
+                {insights.map((insight) => (
+                  <li key={insight.key} className="flex flex-col gap-2.5 px-4 py-3.5" style={{ borderTop: "1px solid var(--b1)" }}>
+                    <p className="text-[13px] leading-snug" style={{ color: "var(--t1)" }}>
+                      {insight.text}
+                    </p>
+                    <div>{insight.action}</div>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          ) : null}
 
-        {/* ── RECENT CONVERSATIONS ──────────────── col 9-13, row 5-9 */}
-        <Card noLift style={{ gridColumn: "9 / 13", gridRow: "5 / 10" }}>
-          <PanelHeader
-            icon={MessageSquare}
-            iconColor="var(--blu)"
-            title="Recent Conversations"
+          <Panel
+            title="Pipeline"
             right={
-              <Link
-                href="/inbox"
-                style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--blu)", textDecoration: "none" }}
-              >
-                View all
+              <Link href="/pipeline" className="text-[12.5px] font-medium no-underline" style={{ color: "var(--g)" }}>
+                Open
               </Link>
             }
-          />
-          <div>
-            {convos.map((c) => (
-              <div
-                key={c.name}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "9px 16px",
-                  cursor: "pointer",
-                  transition: "background 0.1s",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--s2)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-              >
-                {/* Avatar */}
-                <div
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 8,
-                    background: c.badgeBg,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <span style={{ fontSize: 9.5, fontWeight: 600, fontFamily: "var(--font-mono)", color: c.badgeColor }}>
-                    {c.init}
-                  </span>
-                </div>
-                {/* Info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: "var(--t1)" }}>{c.name}</div>
-                  <div style={{ fontSize: 11, color: "var(--t3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {c.msg}
-                  </div>
-                </div>
-                {/* Right */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3, flexShrink: 0 }}>
-                  <span style={{ fontSize: 9.5, fontFamily: "var(--font-mono)", color: "var(--t3)" }}>{c.time}</span>
-                  <span
-                    style={{
-                      fontSize: 9,
-                      fontFamily: "var(--font-mono)",
-                      fontWeight: 600,
-                      borderRadius: 4,
-                      padding: "1px 5px",
-                      background: c.badgeBg,
-                      color: c.badgeColor,
-                    }}
-                  >
-                    {c.badge}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* ── PIPELINE VELOCITY row 8 uses col 1-4 already */}
-        {/* Row 9 spacer for pipeline velocity (already spans row 6-8, 3 rows = 162px) */}
-
-        {/* ── MINI METRICS ─────────────────────── row 9, 4× col 3 */}
-        {miniMetrics.map((m, i) => (
-          <Card
-            key={m.label}
-            style={{
-              gridColumn: `${1 + i * 3} / ${1 + i * 3 + 3}`,
-              gridRow: "11 / 13",
-              padding: "16px 18px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-            }}
           >
-            <div style={{ fontSize: 10.5, fontWeight: 500, color: "var(--t3)", letterSpacing: "0.02em" }}>
-              {m.label}
-            </div>
-            <div style={{ fontSize: 21, fontFamily: "var(--font-mono)", fontWeight: 600, letterSpacing: "-0.04em", color: m.color, marginTop: 8 }}>
-              {m.value}
-            </div>
-            <div style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: m.footerColor ?? "var(--t3)", marginTop: 5 }}>
-              {m.footer}
-            </div>
-          </Card>
-        ))}
+            <ul>
+              {stageRows.map(([stage, label]) => (
+                <li key={stage} style={{ borderTop: "1px solid var(--b1)" }}>
+                  <Link href="/pipeline" className="flex items-center justify-between px-4 py-2.5 text-[13px] no-underline hover:bg-[var(--s2)]" style={{ color: "var(--t1)" }}>
+                    <span>{label}</span>
+                    <span className="font-semibold tabular-nums">{attention.stageCounts[stage]}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            {/* Secondary: overall volume */}
+            <dl className="grid grid-cols-3 gap-2 px-4 py-3 text-[12px]" style={{ borderTop: "1px solid var(--b1)", background: "var(--s2)" }}>
+              <div>
+                <dt style={{ color: "var(--t3)" }}>Total leads</dt>
+                <dd className="mt-0.5 text-[15px] font-semibold tabular-nums" style={{ color: "var(--t1)" }}>{counts.totalLeads}</dd>
+              </div>
+              <div>
+                <dt style={{ color: "var(--t3)" }}>Hot</dt>
+                <dd className="mt-0.5 text-[15px] font-semibold tabular-nums" style={{ color: "var(--t1)" }}>{counts.hotLeads}</dd>
+              </div>
+              <div>
+                <dt style={{ color: "var(--t3)" }}>Contacted</dt>
+                <dd className="mt-0.5 text-[15px] font-semibold tabular-nums" style={{ color: "var(--t1)" }}>{counts.contactedLeads}</dd>
+              </div>
+            </dl>
+          </Panel>
+        </div>
       </div>
 
-      <style>{`
-        .ai-action-link:hover {
-          background: var(--blud);
-          color: var(--t1);
-        }
-        .ai-action-link:hover .ai-arrow {
-          transform: translateX(2px);
-        }
-        .ai-arrow {
-          transition: transform 0.15s;
-        }
-        .nav-item:hover {
-          background: var(--s2) !important;
-          color: var(--t1) !important;
-        }
-      `}</style>
+      {campaignPerformance.length > 0 ? (
+        <div className="order-4">
+        <Panel
+          title="Campaigns"
+          right={
+            <Link href="/campaigns" className="text-[12.5px] font-medium no-underline" style={{ color: "var(--g)" }}>
+              Manage
+            </Link>
+          }
+        >
+          <ul>
+            {campaignPerformance.slice(0, 5).map((campaign) => (
+              <li
+                key={campaign.id}
+                className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3 text-[13px]"
+                style={{ borderTop: "1px solid var(--b1)" }}
+              >
+                <span className="font-medium" style={{ color: "var(--t1)" }}>{campaign.name}</span>
+                <span style={{ color: "var(--t2)" }}>
+                  {campaign.messaged_count} texted · {campaign.replied_count} replied · {campaign.hot_count} hot
+                  {campaign.messaged_count > 0
+                    ? ` · ${Math.round((campaign.replied_count / campaign.messaged_count) * 100)}% reply rate`
+                    : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+        </div>
+      ) : null}
     </div>
   );
 }

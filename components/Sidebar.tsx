@@ -25,14 +25,17 @@ import { useTheme } from "@/lib/theme-context";
 
 interface SidebarProps {
   activeItem: string;
+  /** Real count of recent inbound replies (from the database). */
+  inboxBadge?: number;
+  userEmail?: string;
 }
 
 const WORKSPACE = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { label: "Messenger", icon: MessageSquare, href: "/inbox", chip: "14", chipColor: "blu" },
-  { label: "Contacts", icon: Users, href: "/contacts", chip: "247", chipColor: "amb" },
+  { label: "Messenger", icon: MessageSquare, href: "/inbox" },
+  { label: "Contacts", icon: Users, href: "/contacts" },
   { label: "Calendar", icon: Calendar, href: "/calendar" },
-  { label: "Scheduled", icon: Clock, href: "/scheduled", chip: "3", chipColor: "blu" },
+  { label: "Scheduled", icon: Clock, href: "/scheduled" },
   { label: "Call Logs", icon: Phone, href: "/call-logs" },
   { label: "Scraper", icon: Database, href: "/scraper" },
 ];
@@ -157,12 +160,19 @@ const HREF_TO_LABEL: Record<string, string> = {
   "/scraper":        "Scraper",
 };
 
-export function Sidebar({ activeItem }: SidebarProps) {
+export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarProps) {
   const { theme, toggleTheme } = useTheme();
   const pathname = usePathname();
   const isDark = theme === "dark";
 
-  const activeLabel = HREF_TO_LABEL[pathname] ?? activeItem;
+  // Lead records (/leads, /leads/[id]) belong to Contacts; anything unmapped falls back to activeItem.
+  const activeLabel =
+    HREF_TO_LABEL[pathname] ?? (pathname.startsWith("/leads") ? "Contacts" : activeItem);
+
+  const namePart = userEmail.split("@")[0] ?? "";
+  const nameWords = namePart.split(/[._-]/).filter(Boolean);
+  const userName = nameWords.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") || "Your account";
+  const userInitials = (nameWords.map((w) => w.charAt(0).toUpperCase()).slice(0, 2).join("") || "•");
 
   return (
     <aside
@@ -205,7 +215,7 @@ export function Sidebar({ activeItem }: SidebarProps) {
             <svg width="12" height="9" viewBox="0 0 12 9" fill="none">
               <polyline
                 points="1,7 4,4 6,5.5 9,2 11,3"
-                stroke="black"
+                stroke="var(--on-g)"
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -283,7 +293,14 @@ export function Sidebar({ activeItem }: SidebarProps) {
           Workspace
         </span>
         {WORKSPACE.map((item) => (
-          <NavItem key={item.label} {...item} isActive={activeLabel === item.label} />
+          <NavItem
+            key={item.label}
+            {...item}
+            {...(item.label === "Messenger" && inboxBadge > 0
+              ? { chip: String(inboxBadge), chipColor: "grn" }
+              : {})}
+            isActive={activeLabel === item.label}
+          />
         ))}
 
         {/* OUTREACH */}
@@ -321,73 +338,44 @@ export function Sidebar({ activeItem }: SidebarProps) {
         ))}
       </nav>
 
-      {/* Footer */}
+      {/* Footer — the signed-in user */}
       <div
         style={{
           padding: "12px 14px",
           borderTop: "1px solid var(--b0)",
           display: "flex",
-          flexDirection: "column",
-          gap: 5,
+          alignItems: "center",
+          gap: 8,
+          minWidth: 0,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {/* Avatar */}
-          <div
-            style={{
-              width: 27,
-              height: 27,
-              borderRadius: 7,
-              background: "linear-gradient(135deg, var(--g), var(--blu))",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <span
-              style={{
-                fontSize: 9.5,
-                fontWeight: 600,
-                color: "#000",
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              SB
-            </span>
+        <div
+          aria-hidden
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 7,
+            background: "var(--g)",
+            color: "var(--on-g)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            fontSize: 10.5,
+            fontWeight: 600,
+          }}
+        >
+          {userInitials}
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {userName}
           </div>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--t1)" }}>
-              Senay Baraki
+          {userEmail ? (
+            <div style={{ fontSize: 10.5, color: "var(--t3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {userEmail}
             </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                marginTop: 1,
-              }}
-            >
-              <span
-                style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: "50%",
-                  background: "var(--g)",
-                  flexShrink: 0,
-                }}
-              />
-              <span
-                style={{
-                  fontSize: 10,
-                  fontFamily: "var(--font-mono)",
-                  color: "var(--t3)",
-                }}
-              >
-                Live · Telnyx
-              </span>
-            </div>
-          </div>
+          ) : null}
         </div>
       </div>
     </aside>

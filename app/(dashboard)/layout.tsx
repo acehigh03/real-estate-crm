@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { AppShell } from "@/components/AppShell";
 import { Sidebar } from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 import { getInboxBadgeCount, getCampaignCount } from "@/lib/data";
@@ -26,29 +27,13 @@ export default async function DashboardLayout({
     console.error("dashboard layout data failed:", error);
   }
 
-  void inboxBadgeCount;
   void campaignCount;
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "204px 1fr",
-        height: "100vh",
-        overflow: "hidden",
-      }}
+    <AppShell
+      sidebar={<Sidebar activeItem="Dashboard" inboxBadge={inboxBadgeCount} userEmail={user.email ?? ""} />}
     >
-      <Sidebar activeItem="Dashboard" />
-      <main
-        style={{
-          overflowY: "auto",
-          background: "var(--bg)",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {children}
-      </main>
-    </div>
+      {children}
+    </AppShell>
   );
 }

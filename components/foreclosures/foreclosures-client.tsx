@@ -36,7 +36,7 @@ export function ForeclosuresClient({ rows, tableMissing }: ForeclosuresClientPro
         <div>
           <h1 className="crm-header-title">Foreclosures</h1>
           <p className="mt-1 text-[13px] text-[#6b7c93]">
-            Review foreclosure records inside the same CRM login and save status or notes back to Supabase.
+            Review foreclosure leads and keep a status and notes on each one.
           </p>
         </div>
       </div>
@@ -44,9 +44,9 @@ export function ForeclosuresClient({ rows, tableMissing }: ForeclosuresClientPro
       <div className="flex-1 overflow-auto px-6 py-4">
         {tableMissing ? (
           <div className="crm-panel p-4">
-            <p className="text-[13px] text-[#1a1f36]">`public.foreclosure_leads` is not available yet.</p>
+            <p className="text-[13px] text-[#1a1f36]">Foreclosure leads aren't available right now.</p>
             <p className="mt-1 text-[12px] text-[#6b7c93]">
-              Run the SQL in `supabase/phase5-foreclosures.sql`, or if the CRM tables are also missing, run `supabase/schema.sql` first.
+              Please try again in a moment. If this keeps happening, contact support.
             </p>
           </div>
         ) : rows.length === 0 ? (

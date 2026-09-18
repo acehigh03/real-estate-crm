@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getDashboardStats } from "@/lib/data";
+import { EMPTY_ATTENTION, EMPTY_REVENUE_METRICS, getDashboardStats } from "@/lib/data";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
 
 export default async function DashboardPage() {
@@ -32,9 +32,11 @@ export default async function DashboardPage() {
   let recentReplies = [] as Awaited<ReturnType<typeof getDashboardStats>>["recentReplies"];
   let hotLeadRows = [] as Awaited<ReturnType<typeof getDashboardStats>>["hotLeadRows"];
   let campaignPerformance = [] as Awaited<ReturnType<typeof getDashboardStats>>["campaignPerformance"];
+  let revenue = EMPTY_REVENUE_METRICS;
+  let attention = EMPTY_ATTENTION;
 
   try {
-    ({ counts, dueLeads, recentReplies, hotLeadRows, campaignPerformance } =
+    ({ counts, dueLeads, recentReplies, hotLeadRows, campaignPerformance, revenue, attention } =
       await getDashboardStats());
   } catch (error) {
     console.error("dashboard page data failed:", error);
@@ -49,6 +51,8 @@ export default async function DashboardPage() {
       recentReplies={recentReplies}
       hotLeadRows={hotLeadRows}
       campaignPerformance={campaignPerformance}
+      revenue={revenue}
+      attention={attention}
     />
   );
 }

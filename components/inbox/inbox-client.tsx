@@ -13,6 +13,7 @@ import {
   formatClassificationColor,
   leadDisplayName,
   messageSnippet,
+  formatPhoneDisplay,
   normalizePhone,
 } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -35,6 +36,8 @@ interface InboxClientProps {
   initialCampaigns: CampaignSummary[];
   userId: string;
   autoOpenComposer?: boolean;
+  /** Conversation to open first (from a dashboard "Draft Reply" link). */
+  initialLeadId?: string | null;
 }
 
 interface StartConversationResponse {
@@ -132,6 +135,7 @@ export function InboxClient({
   initialCampaigns,
   userId,
   autoOpenComposer = false,
+  initialLeadId = null,
 }: InboxClientProps) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [messagesByLead, setMessagesByLead] = useState<Record<string, Message[]>>(() => {
@@ -149,6 +153,7 @@ export function InboxClient({
   });
 
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(() => {
+    if (initialLeadId && initialLeads.some((lead) => lead.id === initialLeadId)) return initialLeadId;
     const firstLeadWithMessages = initialLeads.find((lead) => (initialMessages.some((message) => message.lead_id === lead.id)));
     return firstLeadWithMessages?.id ?? initialLeads[0]?.id ?? null;
   });
@@ -600,7 +605,7 @@ export function InboxClient({
             </div>
           </div>
 
-          <ScrollArea className="min-h-0 flex-1">
+          <ScrollArea className="max-h-[260px] min-h-0 flex-1 xl:max-h-none">
             <div className="divide-y divide-[#eaecf0]">
               {filteredConversations.map((conversation) => {
                 const isActive = conversation.lead.id === selectedConversation.lead.id;
@@ -666,13 +671,15 @@ export function InboxClient({
                   {classificationBadge(lead.classification)}
                 </div>
                 <p className="mt-1 truncate text-xs text-[#6b7280]">
-                  {fallbackCampaignName(campaignName)} · {fallbackCampaignType(campaignType)}
+                  {campaignName
+                    ? `${fallbackCampaignName(campaignName)} · ${fallbackCampaignType(campaignType)}`
+                    : formatPhoneDisplay(lead.phone)}
                 </p>
               </div>
             </div>
           </div>
 
-          <ScrollArea className="min-h-0 flex-1 bg-[#f7f8fa] px-5 py-5">
+          <ScrollArea className="min-h-[280px] flex-1 bg-[#f7f8fa] px-5 py-5 xl:min-h-0">
             <div className="space-y-4">
               {leadMessages.map((message) => (
                 <div
@@ -707,7 +714,7 @@ export function InboxClient({
             <div className="mb-3 rounded-[10px] border border-[#00c08b]/20 bg-[#eaf9f5] p-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-medium text-[#6b7280]">AI draft reply</p>
+                  <p className="text-xs font-medium text-[#6b7280]">Suggested reply</p>
                   <p className="mt-1 text-sm text-[#0f1117]">{suggestedReply}</p>
                 </div>
                 <button
@@ -715,7 +722,7 @@ export function InboxClient({
                   onClick={() => setComposeText(suggestedReply)}
                   className="rounded-[6px] bg-[#00c08b] px-3 py-2 text-xs font-medium text-white"
                 >
-                  Approve
+                  Use reply
                 </button>
               </div>
             </div>

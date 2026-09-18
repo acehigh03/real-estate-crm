@@ -3,6 +3,17 @@ import { format } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database";
+import {
+  EMPTY_ATTENTION,
+  EMPTY_REVENUE_METRICS,
+  type AttentionItem,
+  type DashboardAttention,
+  type DashboardRevenueMetrics,
+  type PipelineStage,
+} from "@/lib/dashboard-metrics";
+
+export { EMPTY_ATTENTION, EMPTY_REVENUE_METRICS };
+export type { AttentionItem, DashboardAttention, DashboardRevenueMetrics };
 
 type Campaign = Database["public"]["Tables"]["campaigns"]["Row"];
 
@@ -12,13 +23,7 @@ type Message = Database["public"]["Tables"]["messages"]["Row"];
 type Followup = Database["public"]["Tables"]["followups"]["Row"];
 type ForeclosureLeadRow = Database["public"]["Tables"]["foreclosure_leads"]["Row"];
 
-export type PipelineStage =
-  | "New Leads"
-  | "Contacted"
-  | "Replied"
-  | "Qualified"
-  | "Offer Sent"
-  | "Dead";
+export type { PipelineStage } from "@/lib/dashboard-metrics";
 
 export interface PipelineLeadCard {
   lead: Lead;
@@ -176,6 +181,13 @@ function derivePipelineStage(lead: Lead): PipelineStage {
   }
 
   return "New Leads";
+}
+
+/** Same offer signal the pipeline uses: an "offer" tag or "offer sent" in the lead summary. */
+function hasOfferSent(lead: Lead) {
+  const tag = (lead.tag ?? "").toLowerCase();
+  const summary = (lead.notes_summary ?? "").toLowerCase();
+  return tag.includes("offer") || summary.includes("offer sent");
 }
 
 export async function requireUser() {
@@ -367,6 +379,66 @@ export async function getDashboardStats() {
             .sort((left, right) => right.created_at.localeCompare(left.created_at))[0] ?? null,
       }));
 
+    // ── Revenue metrics — real fields only ────────────────────────────────────
+    // Latest message per lead, by timestamp (independent of the order the rows arrived in).
+    const latestMessageByLead = new Map<string, Message>();
+    for (const message of messages) {
+      if (!message.lead_id) continue;
+      const current = latestMessageByLead.get(message.lead_id);
+      if (!current || message.created_at > current.created_at) {
+        latestMessageByLead.set(message.lead_id, message);
+      }
+    }
+
+    const isOpen = (lead: Lead) => !lead.is_dnc && lead.status !== "DNC" && lead.status !== "Dead";
+    const toItem = (lead: Lead): AttentionItem => ({ lead, lastMessage: latestMessageByLead.get(lead.id) ?? null });
+    const awaitingOfferLeads = leads.filter(
+      (lead) => hasOfferSent(lead) && isOpen(lead) && latestMessageByLead.get(lead.id)?.direction !== "inbound"
+    );
+
+    const revenue: DashboardRevenueMetrics = {
+      // TODO(data source): the schema has no deal value or assignment fee column on
+      // public.leads (or anywhere else). Add e.g. leads.deal_value / leads.assignment_fee,
+      // then sum it over open leads here. Until then this is intentionally 0.
+      pipelineValue: 0,
+
+      // "Offer sent" is only recorded as a tag/summary flag (no offer_sent_at). An offer is
+      // awaiting a response while the latest message on the lead is not an inbound reply.
+      offersAwaitingResponse: awaitingOfferLeads.length,
+
+      // TODO(data source): no lead has a tax-sale / auction date. It exists only as free text
+      // in foreclosure_leads.notes ("Sale Date: ...") with no key linking it to public.leads.
+      // Add leads.sale_date (or a foreclosure_leads.lead_id link) to count deadlines <= 30 days.
+      dealsAtRisk: 0,
+    };
+
+    const nowIso = new Date().toISOString();
+    const needsReplyAll = leads
+      .filter(isOpen)
+      .map(toItem)
+      .filter((item) => item.lastMessage?.direction === "inbound")
+      .sort((a, b) => (a.lastMessage?.created_at ?? "").localeCompare(b.lastMessage?.created_at ?? ""));
+    const overdueAll = leads
+      .filter((lead) => isOpen(lead) && lead.next_follow_up_at && lead.next_follow_up_at < nowIso)
+      .map(toItem)
+      .sort((a, b) => (a.lead.next_follow_up_at ?? "").localeCompare(b.lead.next_follow_up_at ?? ""));
+
+    const hotNoOfferAll = leads.filter((lead) => isOpen(lead) && lead.classification === "HOT" && !hasOfferSent(lead));
+
+    const stageCounts = { ...EMPTY_ATTENTION.stageCounts };
+    for (const lead of leads) stageCounts[derivePipelineStage(lead)] += 1;
+
+    const attention: DashboardAttention = {
+      needsReply: needsReplyAll.slice(0, 10),
+      needsReplyCount: needsReplyAll.length,
+      overdue: overdueAll.slice(0, 10),
+      overdueCount: overdueAll.length,
+      awaitingOffers: awaitingOfferLeads.map(toItem).slice(0, 10),
+      hotNoOffer: hotNoOfferAll.map(toItem).slice(0, 10),
+      hotNoOfferCount: hotNoOfferAll.length,
+      stageCounts,
+    };
+
     const campaignPerformance = campaigns.map((campaign) => ({
       ...campaign,
       conversionRate:
@@ -375,7 +447,7 @@ export async function getDashboardStats() {
           : 0,
     }));
 
-    return { counts, dueLeads, recentReplies, hotLeadRows, campaignPerformance };
+    return { counts, dueLeads, recentReplies, hotLeadRows, campaignPerformance, revenue, attention };
   } catch (error) {
     logDataLoaderFailure("getDashboardStats", error);
     return {
@@ -390,6 +462,8 @@ export async function getDashboardStats() {
       recentReplies: [],
       hotLeadRows: [],
       campaignPerformance: [],
+      revenue: EMPTY_REVENUE_METRICS,
+      attention: EMPTY_ATTENTION,
     };
   }
 }

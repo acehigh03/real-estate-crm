@@ -67,6 +67,7 @@
   --red: #e8697a;
   --redd: #e8697a14;
   --redb: #e8697a2a;
+  --on-g: #04150d;
   --pur: #9b7ef8;
   --purd: #9b7ef814;
   --purb: #9b7ef82a;
@@ -99,6 +100,7 @@
   --red: #bf3045;
   --redd: #bf304510;
   --redb: #bf304524;
+  --on-g: #ffffff;
   --pur: #6535d4;
   --purd: #6535d410;
   --purb: #6535d424;
@@ -249,8 +251,8 @@
   }
   .crm-button-primary {
     border-radius: 6px;
-    background: var(--t1);
-    color: var(--bg);
+    background: var(--g);
+    color: var(--on-g);
     @apply px-4 py-2 text-[13px] font-medium transition hover:opacity-90;
   }
   .crm-chat-bubble-inbound {
@@ -293,4 +295,83 @@
 }
 .typing-dot:nth-child(3) {
   animation-delay: 0.4s;
+}
+
+
+/* ── App shell: fixed sidebar on desktop, slide-in drawer on phones ───────── */
+.app-shell {
+  display: grid;
+  grid-template-columns: 204px minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+.app-main {
+  overflow-y: auto;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.app-mobile-bar,
+.app-scrim {
+  display: none;
+}
+@media (max-width: 767px) {
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 48px minmax(0, 1fr);
+  }
+  .app-mobile-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    background: var(--s1);
+    border-bottom: 1px solid var(--b1);
+  }
+  .app-sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 220px;
+    z-index: 50;
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.2s ease, visibility 0.2s;
+  }
+  .app-sidebar.is-open {
+    transform: none;
+    visibility: visible;
+  }
+  .app-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    border: 0;
+    background: rgba(14, 18, 32, 0.45);
+  }
+}
+@media (min-width: 768px) {
+  .app-sidebar {
+    min-height: 0;
+  }
+}
+
+/* Keyboard focus that is visible on every theme */
+a:focus-visible,
+button:focus-visible,
+[role="tab"]:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--g);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .topbar-crumb,
+  .topbar-secondary {
+    display: none !important;
+  }
 }
