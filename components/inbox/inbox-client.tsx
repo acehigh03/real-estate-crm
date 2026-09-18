@@ -34,6 +34,37 @@ interface InboxClientProps {
   initialMessages: Message[];
   initialCampaigns: CampaignSummary[];
   userId: string;
+  autoOpenComposer?: boolean;
+}
+
+interface StartConversationResponse {
+  success?: boolean;
+  error?: string;
+  warning?: string | null;
+  lead?: Lead;
+  message?: Message | null;
+}
+
+const POLL_INTERVAL_MS = 10_000;
+
+/**
+ * Adds or replaces a message in a thread and keeps it ordered. Optimistic "temp-" bubbles are
+ * dropped when the real row arrives; the stored body has the STOP footer appended, so the
+ * optimistic text is matched as a prefix rather than compared for equality.
+ */
+function mergeMessage(existing: Message[], incoming: Message): Message[] {
+  const withoutDuplicates = existing.filter(
+    (entry) =>
+      entry.id !== incoming.id &&
+      !(
+        entry.id.startsWith("temp-") &&
+        entry.direction === incoming.direction &&
+        incoming.body.startsWith(entry.body)
+      )
+  );
+  return [...withoutDuplicates, incoming].sort((left, right) =>
+    left.created_at.localeCompare(right.created_at)
+  );
 }
 
 function initials(lead: Lead) {
@@ -95,7 +126,13 @@ function HiddenLeadFields({
   );
 }
 
-export function InboxClient({ initialLeads, initialMessages, initialCampaigns, userId }: InboxClientProps) {
+export function InboxClient({
+  initialLeads,
+  initialMessages,
+  initialCampaigns,
+  userId,
+  autoOpenComposer = false,
+}: InboxClientProps) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [messagesByLead, setMessagesByLead] = useState<Record<string, Message[]>>(() => {
     const grouped: Record<string, Message[]> = {};
@@ -121,7 +158,7 @@ export function InboxClient({ initialLeads, initialMessages, initialCampaigns, u
   const [error, setError] = useState<string | null>(null);
   const [notesDraft, setNotesDraft] = useState("");
   const [followUpDraft, setFollowUpDraft] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(autoOpenComposer);
   const [manualPhone, setManualPhone] = useState("");
   const [manualName, setManualName] = useState("");
   const [modalMessage, setModalMessage] = useState("");
@@ -130,38 +167,94 @@ export function InboxClient({ initialLeads, initialMessages, initialCampaigns, u
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const upsertMessage = useCallback((message: Message) => {
+    if (!message.lead_id) return;
+    const leadId = message.lead_id;
+    setMessagesByLead((current) => ({
+      ...current,
+      [leadId]: mergeMessage(current[leadId] ?? [], message),
+    }));
+  }, []);
+
+  const upsertLead = useCallback((lead: Lead) => {
+    setLeads((current) =>
+      current.some((entry) => entry.id === lead.id)
+        ? current.map((entry) => (entry.id === lead.id ? lead : entry))
+        : [lead, ...current]
+    );
+  }, []);
+
+  // Live updates: new/updated messages and lead changes (e.g. a reply re-classifying a lead)
+  // stream in without a refresh. If realtime can't connect, fall back to polling so the
+  // inbox still stays current. Everything is torn down on unmount.
   useEffect(() => {
+    if (!userId) return;
+
     const supabase = createClient();
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+    const poll = async () => {
+      const [messageResult, leadResult] = await Promise.all([
+        supabase
+          .from("messages")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(200),
+        supabase.from("leads").select("*").eq("user_id", userId),
+      ]);
+      if (messageResult.error) console.error("[inbox] poll messages failed:", messageResult.error.message);
+      else (messageResult.data ?? []).forEach(upsertMessage);
+      if (leadResult.error) console.error("[inbox] poll leads failed:", leadResult.error.message);
+      else (leadResult.data ?? []).forEach(upsertLead);
+    };
+
+    const startPolling = () => {
+      if (pollTimer) return;
+      void poll();
+      pollTimer = setInterval(() => void poll(), POLL_INTERVAL_MS);
+    };
+    const stopPolling = () => {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = null;
+    };
+
     const channel = supabase
-      .channel("inbox-messages")
+      .channel(`inbox-${userId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
+        { event: "*", schema: "public", table: "messages", filter: `user_id=eq.${userId}` },
         (payload) => {
-          const message = payload.new as Message;
-          if (!message.lead_id) return;
-          setMessagesByLead((current) => {
-            const existing = current[message.lead_id!] ?? [];
-            const deduped = existing.filter(
-              (entry) =>
-                entry.id !== message.id &&
-                !(entry.id.startsWith("temp-") && entry.body === message.body)
-            );
-            return {
-              ...current,
-              [message.lead_id!]: [...deduped, message].sort((left, right) =>
-                left.created_at.localeCompare(right.created_at)
-              ),
-            };
-          });
+          if (payload.eventType === "DELETE") return;
+          upsertMessage(payload.new as Message);
         }
       )
-      .subscribe();
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "leads", filter: `user_id=eq.${userId}` },
+        (payload) => {
+          if (payload.eventType === "DELETE") {
+            const removedId = (payload.old as { id?: string }).id;
+            if (removedId) setLeads((current) => current.filter((entry) => entry.id !== removedId));
+            return;
+          }
+          upsertLead(payload.new as Lead);
+        }
+      )
+      .subscribe((status, error) => {
+        if (status === "SUBSCRIBED") {
+          stopPolling();
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          console.error(`[inbox] realtime ${status}; falling back to polling`, error?.message ?? "");
+          startPolling();
+        }
+      });
 
     return () => {
-      supabase.removeChannel(channel);
+      stopPolling();
+      void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [userId, upsertLead, upsertMessage]);
 
   const conversations = useMemo<ConversationData[]>(() => {
     return leads
@@ -223,9 +316,9 @@ export function InboxClient({ initialLeads, initialMessages, initialCampaigns, u
   }, []);
 
   const startConversation = useCallback(async () => {
-    const normalizedPhone = normalizePhone(manualPhone);
-    if (!normalizedPhone) {
-      setModalError("Phone number is required.");
+    const phoneDigits = manualPhone.replace(/\D/g, "");
+    if (phoneDigits.length < 10) {
+      setModalError("Enter a valid phone number, e.g. (713) 555-0123.");
       return;
     }
     if (!modalMessage.trim()) {
@@ -236,182 +329,46 @@ export function InboxClient({ initialLeads, initialMessages, initialCampaigns, u
     setIsCreatingLead(true);
     setModalError(null);
 
-    const supabase = createClient();
-    const { data: existingLead, error: existingLeadError } = await supabase
-      .from("leads")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("phone", normalizedPhone)
-      .maybeSingle();
-
-    if (existingLeadError) {
-      setModalError(existingLeadError.message);
-      setIsCreatingLead(false);
-      return;
-    }
-
-    const existingLeadRecord = existingLead as Lead | null;
-
-    if (existingLeadRecord) {
-      let leadRecord = existingLeadRecord;
-      setLeads((current) => {
-        if (current.some((lead) => lead.id === existingLeadRecord.id)) return current;
-        return [existingLeadRecord, ...current];
-      });
-      const tempId = `temp-${Date.now()}`;
-      const tempMessage: Message = {
-        id: tempId,
-        body: modalMessage.trim(),
-        direction: "outbound",
-        lead_id: leadRecord.id,
-        created_at: new Date().toISOString(),
-        user_id: userId,
-        status: "sending",
-        telnyx_message_id: null,
-        to_number: leadRecord.phone,
-        classification: null,
-        phone: null,
-      };
-
-      setSelectedLeadId(leadRecord.id);
-      setMessagesByLead((current) => ({
-        ...current,
-        [leadRecord.id]: [...(current[leadRecord.id] ?? []), tempMessage],
-      }));
-
-      try {
-        const response = await fetch("/api/telnyx/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            to: leadRecord.phone,
-            message: modalMessage.trim(),
-            lead_id: leadRecord.id,
-          }),
-        });
-
-        if (!response.ok) {
-          const payload = await response.json().catch(() => ({}));
-          setModalError(payload.error ?? "Failed to send message.");
-          setMessagesByLead((current) => ({
-            ...current,
-            [leadRecord.id]: (current[leadRecord.id] ?? []).filter((message) => message.id !== tempId),
-          }));
-          setIsCreatingLead(false);
-          return;
-        }
-      } catch {
-        setModalError("Failed to send message.");
-        setMessagesByLead((current) => ({
-          ...current,
-          [leadRecord.id]: (current[leadRecord.id] ?? []).filter((message) => message.id !== tempId),
-        }));
-        setIsCreatingLead(false);
-        return;
-      }
-
-      closeModal();
-      setIsCreatingLead(false);
-      return;
-    }
-
-    const trimmedName = manualName.trim();
-    const [firstNameRaw, ...restName] = trimmedName ? trimmedName.split(/\s+/) : [];
-    const firstName = firstNameRaw || "";
-    const lastName = restName.join(" ");
-    const newLead = {
-      user_id: userId,
-      first_name: firstName,
-      last_name: lastName,
-      phone: normalizedPhone,
-      property_address: "",
-      mailing_address: null,
-      email: null,
-      lead_source: "Manual Inbox",
-      status: "Contacted",
-      classification: "UNKNOWN",
-      motivation_score: 25,
-      notes_summary: null,
-      next_follow_up_at: null,
-      tag: null,
-      last_contacted_at: null,
-    } satisfies Database["public"]["Tables"]["leads"]["Insert"];
-
-    const leadInsertQuery = supabase.from("leads") as unknown as {
-      insert: (values: Database["public"]["Tables"]["leads"]["Insert"]) => {
-        select: (columns: string) => {
-          single: () => Promise<{ data: Lead | null; error: { message: string } | null }>;
-        };
-      };
-    };
-
-    const { data: insertedLead, error: insertError } = await leadInsertQuery
-      .insert(newLead)
-      .select("*")
-      .single();
-
-    if (insertError || !insertedLead) {
-      setModalError(insertError?.message ?? "Failed to create lead.");
-      setIsCreatingLead(false);
-      return;
-    }
-
-    setLeads((current) => [insertedLead, ...current]);
-    const tempId = `temp-${Date.now()}`;
-    const tempMessage: Message = {
-      id: tempId,
-      body: modalMessage.trim(),
-      direction: "outbound",
-      lead_id: insertedLead.id,
-      created_at: new Date().toISOString(),
-      user_id: userId,
-      status: "sending",
-      telnyx_message_id: null,
-      to_number: insertedLead.phone,
-      classification: null,
-      phone: null,
-    };
-
-    setSelectedLeadId(insertedLead.id);
-    setMessagesByLead((current) => ({
-      ...current,
-      [insertedLead.id]: [...(current[insertedLead.id] ?? []), tempMessage],
-    }));
-
     try {
-      const response = await fetch("/api/telnyx/send", {
+      // The server finds-or-creates the lead, sends the SMS through Telnyx and records it.
+      const response = await fetch("/api/leads/start-conversation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          to: insertedLead.phone,
-          message: modalMessage.trim(),
-          lead_id: insertedLead.id,
+          phone: manualPhone,
+          name: manualName,
+          message: modalMessage,
         }),
       });
+      const payload = (await response.json().catch(() => ({}))) as StartConversationResponse;
 
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        setModalError(payload.error ?? "Failed to send message.");
-        setMessagesByLead((current) => ({
-          ...current,
-          [insertedLead.id]: (current[insertedLead.id] ?? []).filter((message) => message.id !== tempId),
-        }));
-        setIsCreatingLead(false);
+      // The lead may exist even when the text failed (it shows up as "New" in the pipeline).
+      if (payload.lead) {
+        upsertLead(payload.lead);
+        setSelectedLeadId(payload.lead.id);
+        setSearch("");
+      }
+
+      if (!response.ok || !payload.lead) {
+        setModalError(
+          payload.error ??
+            (response.status === 401
+              ? "Your session expired. Please sign in again."
+              : "Couldn't start the conversation. Please try again.")
+        );
         return;
       }
-    } catch {
-      setModalError("Failed to send message.");
-      setMessagesByLead((current) => ({
-        ...current,
-        [insertedLead.id]: (current[insertedLead.id] ?? []).filter((message) => message.id !== tempId),
-      }));
-      setIsCreatingLead(false);
-      return;
-    }
 
-    closeModal();
-    setIsCreatingLead(false);
-  }, [closeModal, modalMessage, manualName, manualPhone, userId]);
+      if (payload.message) upsertMessage(payload.message);
+      setError(payload.warning ?? null);
+      closeModal();
+    } catch (error) {
+      console.error("[inbox] start conversation request failed:", error);
+      setModalError("Network error. Check your connection and try again.");
+    } finally {
+      setIsCreatingLead(false);
+    }
+  }, [closeModal, manualName, manualPhone, modalMessage, upsertLead, upsertMessage]);
 
   const startConversationModal = isModalOpen ? (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
@@ -437,18 +394,22 @@ export function InboxClient({ initialLeads, initialMessages, initialCampaigns, u
             value={manualPhone}
             onChange={(event) => setManualPhone(event.target.value)}
             placeholder="Phone number"
+            type="tel"
+            disabled={isCreatingLead}
             className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
           />
           <input
             value={manualName}
             onChange={(event) => setManualName(event.target.value)}
             placeholder="Name (optional)"
+            disabled={isCreatingLead}
             className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
           />
           <textarea
             value={modalMessage}
             onChange={(event) => setModalMessage(event.target.value)}
             placeholder="First message"
+            disabled={isCreatingLead}
             rows={4}
             className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
           />
@@ -460,7 +421,11 @@ export function InboxClient({ initialLeads, initialMessages, initialCampaigns, u
           >
             {isCreatingLead ? "Sending..." : "Start Conversation"}
           </button>
-          {modalError ? <p className="text-sm text-rose-600">{modalError}</p> : null}
+          {modalError ? (
+            <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              {modalError}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
@@ -496,6 +461,14 @@ export function InboxClient({ initialLeads, initialMessages, initialCampaigns, u
       ],
     }));
 
+    const removeTemp = () =>
+      setMessagesByLead((current) => ({
+        ...current,
+        [selectedConversation.lead.id]: (current[selectedConversation.lead.id] ?? []).filter(
+          (message) => message.id !== tempId
+        ),
+      }));
+
     try {
       const response = await fetch("/api/telnyx/send", {
         method: "POST",
@@ -506,29 +479,28 @@ export function InboxClient({ initialLeads, initialMessages, initialCampaigns, u
           lead_id: selectedConversation.lead.id,
         }),
       });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        warning?: string | null;
+        message?: Message | null;
+      };
 
       if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
         setError(payload.error ?? "Failed to send message.");
-        setMessagesByLead((current) => ({
-          ...current,
-          [selectedConversation.lead.id]: (current[selectedConversation.lead.id] ?? []).filter(
-            (message) => message.id !== tempId
-          ),
-        }));
+        removeTemp();
+      } else if (payload.message) {
+        // Swap the optimistic bubble for the saved row (realtime dedupes the same way).
+        upsertMessage(payload.message);
+        if (payload.warning) setError(payload.warning);
       }
-    } catch {
+    } catch (error) {
+      console.error("[inbox] send message request failed:", error);
       setError("Network error. Please try again.");
-      setMessagesByLead((current) => ({
-        ...current,
-        [selectedConversation.lead.id]: (current[selectedConversation.lead.id] ?? []).filter(
-          (message) => message.id !== tempId
-        ),
-      }));
+      removeTemp();
     } finally {
       setIsSending(false);
     }
-  }, [composeText, isSending, selectedConversation, userId]);
+  }, [composeText, isSending, selectedConversation, upsertMessage, userId]);
 
   if (!selectedConversation) {
     return (

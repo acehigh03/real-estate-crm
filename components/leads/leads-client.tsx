@@ -189,7 +189,13 @@ export function LeadsClient({ leads, notes, followups, campaigns }: LeadsClientP
       if (res.ok) {
         setSelected(new Set());
         router.refresh();
+      } else {
+        const payload = (await res.json().catch(() => ({}))) as { error?: string };
+        window.alert(payload.error ?? "Couldn't delete the selected leads. Please try again.");
       }
+    } catch (error) {
+      console.error("delete leads request failed:", error);
+      window.alert("Network error. Please try again.");
     } finally {
       setIsDeleting(false);
       setDeleteConfirm(null);

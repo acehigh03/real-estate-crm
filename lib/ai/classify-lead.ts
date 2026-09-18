@@ -88,11 +88,22 @@ export function getClassificationLabel(classification: LeadClassification) {
   }
 }
 
+// Whole-word/phrase match. Plain substring matching misfires badly on short keywords:
+// "end" is inside "send"/"weekend"/"spend", "yes" inside "yesterday", "stop" inside "stopped by".
+function hasSignal(normalized: string, signal: string) {
+  const escaped = signal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^a-z0-9])${escaped}($|[^a-z0-9])`).test(normalized);
+}
+
 export function classifyInboundSms(text: string): InboundSmsClassificationResult {
   const normalized = text.trim().toLowerCase();
+  const bare = normalized.replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
 
-  const stopSignals = ["stop", "unsubscribe", "cancel", "end", "quit", "stop all", "stopall"];
-  if (stopSignals.some((signal) => normalized === signal || normalized.includes(signal))) {
+  // Carrier-standard opt-out keywords count only when they are the whole message;
+  // longer opt-out requests are matched by explicit phrases.
+  const stopKeywords = ["stop", "stopall", "stop all", "unsubscribe", "cancel", "end", "quit"];
+  const stopPhrases = ["stop texting", "stop messaging", "stop contacting", "stop text", "unsubscribe me", "opt out", "opt-out"];
+  if (stopKeywords.includes(bare) || stopPhrases.some((signal) => hasSignal(normalized, signal))) {
     return {
       messageClassification: "STOP_DNC",
       leadClassification: "OPT_OUT",
@@ -115,7 +126,7 @@ export function classifyInboundSms(text: string): InboundSmsClassificationResult
     "sold it",
     "do not text",
   ];
-  if (notInterestedSignals.some((signal) => normalized.includes(signal))) {
+  if (notInterestedSignals.some((signal) => hasSignal(normalized, signal))) {
     return {
       messageClassification: "NOT_INTERESTED",
       leadClassification: "DEAD",
@@ -137,12 +148,11 @@ export function classifyInboundSms(text: string): InboundSmsClassificationResult
     "make an offer",
     "cash offer",
     "how much",
-    "how much?",
     "available today",
     "i'm ready",
     "ready to sell",
   ];
-  if (normalized === "yes" || hotSignals.some((signal) => normalized.includes(signal))) {
+  if (hotSignals.some((signal) => hasSignal(normalized, signal))) {
     return {
       messageClassification: "HOT",
       leadClassification: "HOT",
@@ -167,7 +177,7 @@ export function classifyInboundSms(text: string): InboundSmsClassificationResult
     "possibly",
     "can you explain",
   ];
-  if (warmSignals.some((signal) => normalized.includes(signal))) {
+  if (warmSignals.some((signal) => hasSignal(normalized, signal))) {
     return {
       messageClassification: "WARM",
       leadClassification: "WARM",

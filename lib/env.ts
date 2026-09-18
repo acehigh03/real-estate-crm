@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { ConfigError } from "@/lib/errors";
+
 const serverSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
@@ -17,23 +19,40 @@ const telnyxSchema = z.object({
   TELNYX_MESSAGING_PROFILE_ID: z.string().min(1)
 });
 
+function parseOrThrow<T extends z.ZodTypeAny>(schema: T, input: unknown, label: string): z.infer<T> {
+  const result = schema.safeParse(input);
+  if (!result.success) {
+    const keys = result.error.issues.map((issue) => issue.path.join(".")).join(", ");
+    throw new ConfigError(`Invalid or missing ${label} environment variables: ${keys}`);
+  }
+  return result.data;
+}
+
 export function getEnv() {
-  return serverSchema.parse({
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    SUPABASE_URL: process.env.SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    TELNYX_API_KEY: process.env.TELNYX_API_KEY,
-    TELNYX_FROM_NUMBER: process.env.TELNYX_FROM_NUMBER,
-    TELNYX_PHONE_NUMBER: process.env.TELNYX_PHONE_NUMBER,
-    TELNYX_MESSAGING_PROFILE_ID: process.env.TELNYX_MESSAGING_PROFILE_ID
-  });
+  return parseOrThrow(
+    serverSchema,
+    {
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      SUPABASE_URL: process.env.SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+      TELNYX_API_KEY: process.env.TELNYX_API_KEY,
+      TELNYX_FROM_NUMBER: process.env.TELNYX_FROM_NUMBER,
+      TELNYX_PHONE_NUMBER: process.env.TELNYX_PHONE_NUMBER,
+      TELNYX_MESSAGING_PROFILE_ID: process.env.TELNYX_MESSAGING_PROFILE_ID
+    },
+    "server"
+  );
 }
 
 export function getTelnyxEnv() {
-  return telnyxSchema.parse({
-    TELNYX_API_KEY: process.env.TELNYX_API_KEY,
-    TELNYX_PHONE_NUMBER: process.env.TELNYX_PHONE_NUMBER,
-    TELNYX_MESSAGING_PROFILE_ID: process.env.TELNYX_MESSAGING_PROFILE_ID
-  });
+  return parseOrThrow(
+    telnyxSchema,
+    {
+      TELNYX_API_KEY: process.env.TELNYX_API_KEY,
+      TELNYX_PHONE_NUMBER: process.env.TELNYX_PHONE_NUMBER,
+      TELNYX_MESSAGING_PROFILE_ID: process.env.TELNYX_MESSAGING_PROFILE_ID
+    },
+    "Telnyx"
+  );
 }

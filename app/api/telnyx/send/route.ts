@@ -2,114 +2,61 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { readJson, withErrorHandling } from "@/lib/api";
+import { logError, userFacingError } from "@/lib/errors";
+import { sendSmsToLead } from "@/lib/leads/send-lead-sms";
 import { getRouteUser } from "@/lib/route-user";
-import { classifyLeadMock } from "@/lib/ai/classify-lead";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { sendTelnyxMessage, TelnyxSendError } from "@/lib/telnyx/send-sms";
-import { normalizePhone, withStopLanguage } from "@/lib/utils";
 
 const schema = z.object({
   to: z.string().min(1),
-  message: z.string().min(1),
+  message: z.string().trim().min(1),
   lead_id: z.string().uuid(),
 });
 
-export async function POST(request: Request) {
-  const supabaseAdmin = getSupabaseAdmin();
-  const { user } = await getRouteUser();
+export const POST = withErrorHandling("api/telnyx/send", async (request: Request) => {
+  const { supabase, user } = await getRouteUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const parsed = schema.safeParse(await request.json());
+  const parsed = schema.safeParse(await readJson(request));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { to, message, lead_id } = parsed.data;
+  const { message, lead_id } = parsed.data;
 
-  // Verify the lead belongs to this user
-  const { data: lead, error: leadError } = await supabaseAdmin
+  // Runs as the signed-in user, so row-level security guarantees the lead is theirs.
+  const { data: lead, error: leadError } = await supabase
     .from("leads")
     .select("*")
     .eq("id", lead_id)
     .eq("user_id", user.id)
-    .single();
+    .maybeSingle();
 
-  if (leadError || !lead) {
+  if (leadError) {
+    logError("api/telnyx/send", leadError, { leadId: lead_id, step: "load lead" });
+    return NextResponse.json({ error: userFacingError(leadError) }, { status: 500 });
+  }
+  if (!lead) {
     return NextResponse.json({ error: "Lead not found" }, { status: 404 });
   }
 
-  if (lead.status === "DNC" || lead.is_dnc) {
-    return NextResponse.json({ error: "Cannot send to DNC lead" }, { status: 400 });
+  const result = await sendSmsToLead({ db: supabase, userId: user.id, lead, message });
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
   }
-
-  const toNormalized = normalizePhone(to);
-  const body = withStopLanguage(message);
-
-  let telnyxMessage: {
-    id: string;
-    to: Array<{ status: string }>;
-  };
-  try {
-    telnyxMessage = await sendTelnyxMessage({ to: toNormalized, text: body });
-  } catch (error) {
-    if (error instanceof TelnyxSendError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-
-    return NextResponse.json(
-      { error: "Unable to send message right now. Please try again." },
-      { status: 500 }
-    );
-  }
-
-  const { error: messageError } = await supabaseAdmin.from("messages").insert({
-    user_id: user.id,
-    lead_id: lead.id,
-    phone: toNormalized,
-    direction: "outbound",
-    body,
-    to_number: toNormalized,
-    status: telnyxMessage?.to?.[0]?.status ?? "queued",
-    telnyx_message_id: telnyxMessage?.id ?? null,
-  });
-
-  if (messageError) {
-    return NextResponse.json({ error: messageError.message }, { status: 500 });
-  }
-
-  const mockClassification = classifyLeadMock({
-    status: lead.status === "New" ? "Contacted" : lead.status,
-    notesSummary: lead.notes_summary,
-    nextFollowUpAt: lead.next_follow_up_at,
-  });
-
-  await supabaseAdmin
-    .from("leads")
-    .update({
-      status: lead.status === "New" ? "Contacted" : lead.status,
-      stage: lead.status === "New" ? "Contacted" : lead.stage ?? "Contacted",
-      classification: mockClassification.classification,
-      motivation_score: mockClassification.motivationScore,
-      lead_score: mockClassification.motivationScore,
-      priority:
-        mockClassification.classification === "HOT"
-          ? "high"
-          : mockClassification.classification === "WARM"
-            ? "medium"
-            : "low",
-      last_contacted_at: new Date().toISOString(),
-    })
-    .eq("id", lead.id);
 
   revalidatePath("/dashboard");
   revalidatePath("/leads");
   revalidatePath(`/leads/${lead.id}`);
   revalidatePath("/inbox");
+  revalidatePath("/pipeline");
 
   return NextResponse.json({
     success: true,
-    message_id: telnyxMessage?.id ?? null,
+    message_id: result.telnyxMessageId,
+    message: result.message,
+    warning: result.warning ?? null,
   });
-}
+});

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { readJson, withErrorHandling } from "@/lib/api";
+import { logError, userFacingError } from "@/lib/errors";
 import { getRouteUser } from "@/lib/route-user";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const smsSettingsSchema = z.object({
   auto_send_enabled: z.boolean(),
@@ -15,18 +16,20 @@ const smsSettingsSchema = z.object({
   timezone: z.string().min(1),
 });
 
-export async function GET() {
-  const { user } = await getRouteUser();
+export const GET = withErrorHandling("api/settings/sms GET", async () => {
+  const { supabase, user } = await getRouteUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("sms_settings")
     .select("*")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    logError("api/settings/sms GET", error);
+    return NextResponse.json({ error: userFacingError(error) }, { status: 500 });
+  }
 
   // Return defaults when the row doesn't exist yet
   return NextResponse.json(
@@ -37,16 +40,14 @@ export async function GET() {
       timezone: "America/Chicago",
     }
   );
-}
+});
 
-export async function POST(request: Request) {
-  const { user } = await getRouteUser();
+export const POST = withErrorHandling("api/settings/sms POST", async (request: Request) => {
+  const { supabase, user } = await getRouteUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
+  const body = await readJson(request);
+  if (body === undefined) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
@@ -58,13 +59,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = getSupabaseAdmin();
   const { error } = await supabase.from("sms_settings").upsert(
     { user_id: user.id, ...parsed.data },
     { onConflict: "user_id" }
   );
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    logError("api/settings/sms POST", error);
+    return NextResponse.json({ error: userFacingError(error, "Couldn't save settings.") }, { status: 500 });
+  }
 
   return NextResponse.json({ success: true });
-}
+});

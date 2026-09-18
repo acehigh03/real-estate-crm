@@ -2,7 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getInboxData } from "@/lib/data";
 import { InboxClient } from "@/components/inbox/inbox-client";
 
-export default async function InboxPage() {
+export default async function InboxPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ new?: string }>;
+}) {
+  const { new: openComposer } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -24,6 +29,7 @@ export default async function InboxPage() {
       initialMessages={messages}
       initialCampaigns={campaigns}
       userId={user?.id ?? ""}
+      autoOpenComposer={openComposer === "1"}
     />
   );
 }

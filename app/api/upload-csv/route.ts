@@ -1,12 +1,13 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
+import { withErrorHandling } from "@/lib/api";
 import { parseLeadCsv } from "@/lib/csv/parse-leads";
 import { classifyLeadMock } from "@/lib/ai/classify-lead";
+import { logError, userFacingError } from "@/lib/errors";
+import { sendSmsToLead } from "@/lib/leads/send-lead-sms";
 import { getRouteUser } from "@/lib/route-user";
 import { renderTemplate } from "@/lib/sms/templates";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { sendTelnyxMessage, TelnyxSendError } from "@/lib/telnyx/send-sms";
 import { isInsideWindow, nextWindowOpenUTC } from "@/lib/send-window";
 import { withStopLanguage } from "@/lib/utils";
 import type { LeadPriority, LeadStage, CampaignType } from "@/types/database";
@@ -18,14 +19,19 @@ const VALID_CAMPAIGN_TYPES = new Set<CampaignType>([
   "tax_sale",
 ]);
 
-export async function POST(request: Request) {
-  const supabaseAdmin = getSupabaseAdmin();
-  const { user } = await getRouteUser();
+export const POST = withErrorHandling("api/upload-csv", async (request: Request) => {
+  // Runs as the signed-in user; row-level security scopes every query to their rows.
+  const { supabase: db, user } = await getRouteUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const formData = await request.formData();
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return NextResponse.json({ error: "Upload could not be read. Please try again." }, { status: 400 });
+  }
   const file = formData.get("file");
 
   if (!(file instanceof File)) {
@@ -60,7 +66,7 @@ export async function POST(request: Request) {
 
   let campaignTemplate: string | null = null;
   if (campaignId) {
-    const { data: campaign, error: campaignError } = await supabaseAdmin
+    const { data: campaign, error: campaignError } = await db
       .from("campaigns")
       .select("id, campaign_type, first_sms_template")
       .eq("id", campaignId)
@@ -68,7 +74,8 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (campaignError) {
-      return NextResponse.json({ error: campaignError.message }, { status: 500 });
+      logError("api/upload-csv", campaignError, { step: "load campaign" });
+      return NextResponse.json({ error: userFacingError(campaignError) }, { status: 500 });
     }
 
     if (!campaign) {
@@ -100,19 +107,25 @@ export async function POST(request: Request) {
   // 1. Find which phones already exist for this user
   const incomingPhones = parsedRows.map((r) => r.phone_normalized);
 
-  const { data: existingLeads } = await supabaseAdmin
+  const { data: existingLeads, error: existingLeadsError } = await db
     .from("leads")
     .select("phone")
     .eq("user_id", user.id)
     .in("phone", incomingPhones);
+
+  if (existingLeadsError) {
+    logError("api/upload-csv", existingLeadsError, { step: "look up existing leads" });
+    return NextResponse.json({ error: userFacingError(existingLeadsError) }, { status: 500 });
+  }
 
   const existingPhoneSet = new Set((existingLeads ?? []).map((l) => l.phone));
 
   const newRows = parsedRows.filter((r) => !existingPhoneSet.has(r.phone_normalized));
   const skippedCount = csvSkippedCount + (parsedRows.length - newRows.length);
 
-  // 2. Upsert all rows (preserves existing-lead data for re-imports)
-  const payload = parsedRows.map((row) => {
+  // 2. Insert only the NEW rows. Existing leads are left untouched: re-importing a CSV must
+  // never reset a lead's status, classification or (critically) its DNC flag.
+  const payload = newRows.map((row) => {
     const classify = classifyLeadMock({
       status: row.status,
       notesSummary: row.notes_summary,
@@ -150,22 +163,24 @@ export async function POST(request: Request) {
     };
   });
 
-  const { error: upsertError } = await supabaseAdmin
-    .from("leads")
-    .upsert(payload, { onConflict: "user_id,phone" });
+  if (payload.length > 0) {
+    const { error: insertError } = await db.from("leads").insert(payload);
 
-  if (upsertError) {
-    return NextResponse.json({ error: upsertError.message }, { status: 500 });
+    if (insertError) {
+      logError("api/upload-csv", insertError, { step: "insert leads", rows: payload.length });
+      return NextResponse.json({ error: userFacingError(insertError, "Import failed. No leads were added.") }, { status: 500 });
+    }
   }
 
   // 3. Insert notes for new leads that have a notes_summary
   if (newRows.length > 0) {
     const newPhones = newRows.map((r) => r.phone_normalized);
-    const { data: insertedLeads } = await supabaseAdmin
+    const { data: insertedLeads, error: insertedLeadsError } = await db
       .from("leads")
       .select("id, user_id, notes_summary")
       .eq("user_id", user.id)
       .in("phone", newPhones);
+    if (insertedLeadsError) logError("api/upload-csv", insertedLeadsError, { step: "reload inserted leads for notes" });
 
     const noteRows = (insertedLeads ?? [])
       .filter((lead) => lead.notes_summary)
@@ -176,16 +191,18 @@ export async function POST(request: Request) {
       }));
 
     if (noteRows.length) {
-      await supabaseAdmin.from("notes").insert(noteRows);
+      const { error: notesError } = await db.from("notes").insert(noteRows);
+      if (notesError) logError("api/upload-csv", notesError, { step: "insert import notes" });
     }
   }
 
   // 4. Fetch SMS settings for this user
-  const { data: smsSettings } = await supabaseAdmin
+  const { data: smsSettings, error: smsSettingsError } = await db
     .from("sms_settings")
     .select("auto_send_enabled, send_window_start, send_window_end, timezone")
     .eq("user_id", user.id)
     .maybeSingle();
+  if (smsSettingsError) logError("api/upload-csv", smsSettingsError, { step: "load sms_settings" });
 
   const autoSendEnabled = smsSettings?.auto_send_enabled ?? false;
   const insideWindow =
@@ -197,29 +214,24 @@ export async function POST(request: Request) {
       smsSettings.timezone
     );
 
-  // 5. Send first SMS to every new, non-DNC lead (or queue if outside window)
+  // 5. Send first SMS to every new, non-DNC lead (or queue if outside window).
+  // With no campaign selected this is an import-only run ("No campaign — import only").
   let messagedCount = 0;
   let queuedCount = 0;
+  let sendFailures = 0;
+  let firstSendError: string | null = null;
 
-  if (newRows.length > 0) {
+  if (newRows.length > 0 && campaignTemplate) {
     const newPhones = newRows.map((r) => r.phone_normalized);
-    const { data: smsTargets } = await supabaseAdmin
+    const { data: smsTargets, error: smsTargetsError } = await db
       .from("leads")
-      .select("id, first_name, property_address, phone, status, tag, lead_source, is_dnc")
+      .select("*")
       .eq("user_id", user.id)
       .in("phone", newPhones);
-
-    const now = new Date().toISOString();
+    if (smsTargetsError) logError("api/upload-csv", smsTargetsError, { step: "load imported leads for SMS" });
 
     for (const lead of smsTargets ?? []) {
       if (lead.status === "DNC" || lead.is_dnc) continue;
-
-      if (!campaignTemplate) {
-        return NextResponse.json(
-          { error: "Please choose a campaign message before sending." },
-          { status: 400 }
-        );
-      }
 
       const text = withStopLanguage(
         renderTemplate(campaignTemplate, {
@@ -239,57 +251,38 @@ export async function POST(request: Request) {
           smsSettings.timezone
         ).toISOString();
 
-        await supabaseAdmin.from("sms_queue").insert({
+        const { error: queueError } = await db.from("sms_queue").insert({
           lead_id: lead.id,
           message: text,
           status: "pending",
           scheduled_for: scheduledFor,
         });
 
-        queuedCount++;
+        if (queueError) {
+          logError("api/upload-csv", queueError, { step: "queue SMS", leadId: lead.id });
+          sendFailures++;
+        } else {
+          queuedCount++;
+        }
         continue;
       }
 
-      // Send immediately (auto-send off = send right away; inside window = send right away)
-      try {
-        const telnyxResult = await sendTelnyxMessage({
-          to: lead.phone,
-          text,
-        });
-
-      await supabaseAdmin.from("messages").insert({
-        user_id: user.id,
-        lead_id: lead.id,
-        phone: lead.phone,
-        direction: "outbound",
-        body: text,
-        to_number: lead.phone,
-        status: telnyxResult?.to?.[0]?.status ?? "queued",
-          telnyx_message_id: telnyxResult?.id ?? null,
-        });
-
-        await supabaseAdmin
-          .from("leads")
-          .update({
-            status: "Contacted",
-            stage: "Contacted",
-            last_contacted_at: now,
-          })
-          .eq("id", lead.id);
-
+      // Send immediately (auto-send off = send right away; inside window = send right away).
+      // A failure here never aborts the import: the lead is saved, just not messaged.
+      const result = await sendSmsToLead({ db, userId: user.id, lead, message: text });
+      if (result.ok) {
         messagedCount++;
-      } catch (err) {
-        // Telnyx not configured or send failed — lead is imported but not messaged
-        if (!(err instanceof TelnyxSendError)) {
-          console.error("Unexpected SMS error for lead", lead.id, err);
-        }
+      } else {
+        sendFailures++;
+        firstSendError ??= result.error;
+        console.error("[api/upload-csv] first SMS failed", { leadId: lead.id, error: result.error });
       }
     }
   }
 
   // Update campaign totals if this import was tied to a campaign
   if (campaignId) {
-    await supabaseAdmin
+    const { error: campaignUpdateError } = await db
       .from("campaigns")
       .update({
         total_leads: newRows.length,
@@ -297,27 +290,25 @@ export async function POST(request: Request) {
       })
       .eq("id", campaignId)
       .eq("user_id", user.id);
+    if (campaignUpdateError) logError("api/upload-csv", campaignUpdateError, { step: "update campaign totals" });
   }
 
   revalidatePath("/dashboard");
   revalidatePath("/leads");
   revalidatePath("/inbox");
+  revalidatePath("/pipeline");
   revalidatePath("/campaigns");
 
-  // Best-effort import log — table may not exist in all environments
-  await supabaseAdmin
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .from("import_logs" as any)
-    .insert({
-      user_id: user.id,
-      file_name: (file as File).name || "upload.csv",
-      total_rows: parsedRows.length + skippedCount,
-      imported_count: newRows.length,
-      messaged_count: messagedCount,
-      skipped_count: skippedCount,
-      failed_count: Math.max(0, newRows.length - messagedCount),
-    })
-    .then(() => {}, () => {});
+  const { error: importLogError } = await db.from("import_logs").insert({
+    user_id: user.id,
+    file_name: file.name || "upload.csv",
+    total_rows: parsedRows.length + csvSkippedCount,
+    imported_count: newRows.length,
+    messaged_count: messagedCount,
+    skipped_count: skippedCount,
+    failed_count: sendFailures,
+  });
+  if (importLogError) logError("api/upload-csv", importLogError, { step: "write import log" });
 
   return NextResponse.json({
     success: true,
@@ -325,5 +316,7 @@ export async function POST(request: Request) {
     messaged: messagedCount,
     queued: queuedCount,
     skipped: skippedCount,
+    failed: sendFailures,
+    send_error: firstSendError,
   });
-}
+});

@@ -2,43 +2,47 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { readJson, withErrorHandling } from "@/lib/api";
+import { logError, userFacingError } from "@/lib/errors";
 import { getRouteUser } from "@/lib/route-user";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const schema = z.object({
   ids: z.array(z.string().uuid()).min(1, "At least one ID required"),
 });
 
-export async function POST(request: Request) {
-  const { user } = await getRouteUser();
+export const POST = withErrorHandling("api/leads/delete", async (request: Request) => {
+  const { supabase, user } = await getRouteUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
+  const body = await readJson(request);
+  if (body === undefined) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: parsed.error.errors[0]?.message ?? "Invalid input" },
+      { error: parsed.error.issues[0]?.message ?? "Invalid input" },
       { status: 400 }
     );
   }
 
-  const supabase = getSupabaseAdmin();
-  const { error } = await supabase
+  const { data: deleted, error } = await supabase
     .from("leads")
     .delete()
     .eq("user_id", user.id)
-    .in("id", parsed.data.ids);
+    .in("id", parsed.data.ids)
+    .select("id");
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    logError("api/leads/delete", error, { count: parsed.data.ids.length });
+    return NextResponse.json({ error: userFacingError(error, "Couldn't delete the selected leads.") }, { status: 500 });
+  }
 
   revalidatePath("/leads");
   revalidatePath("/dashboard");
+  revalidatePath("/inbox");
+  revalidatePath("/pipeline");
 
-  return NextResponse.json({ success: true, deleted: parsed.data.ids.length });
-}
+  return NextResponse.json({ success: true, deleted: deleted?.length ?? 0 });
+});

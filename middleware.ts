@@ -59,9 +59,12 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/campaigns") ||
     pathname.startsWith("/pipeline") ||
     pathname.startsWith("/settings") ||
-    pathname.startsWith("/foreclosures") ||
+    pathname.startsWith("/foreclosure") ||
     pathname.startsWith("/leads") ||
-    pathname.startsWith("/inbox");
+    pathname.startsWith("/inbox") ||
+    pathname.startsWith("/messenger") ||
+    pathname.startsWith("/contacts") ||
+    pathname.startsWith("/import");
 
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
@@ -90,5 +93,8 @@ export const config = {
     "/leads/:path*",
     "/inbox/:path*",
     "/foreclosure/:path*",
+    "/messenger/:path*",
+    "/contacts/:path*",
+    "/import/:path*",
   ],
 };

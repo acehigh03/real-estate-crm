@@ -2,90 +2,74 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { readJson, withErrorHandling } from "@/lib/api";
+import { logError, userFacingError } from "@/lib/errors";
+import { sendSmsToLead } from "@/lib/leads/send-lead-sms";
 import { getRouteUser } from "@/lib/route-user";
-import { classifyLeadMock } from "@/lib/ai/classify-lead";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { sendTelnyxMessage } from "@/lib/telnyx/send-sms";
-import { withStopLanguage } from "@/lib/utils";
 
 const schema = z.object({
-  leadIds: z.array(z.string().uuid()).min(1),
-  message: z.string().min(1)
+  leadIds: z.array(z.string().uuid()).min(1).max(500),
+  message: z.string().trim().min(1)
 });
 
-export async function POST(request: Request) {
-  const supabaseAdmin = getSupabaseAdmin();
-  const { user } = await getRouteUser();
+export const POST = withErrorHandling("api/send-bulk-sms", async (request: Request) => {
+  const { supabase, user } = await getRouteUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const parsed = schema.safeParse(await request.json());
+  const parsed = schema.safeParse(await readJson(request));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
   const { leadIds, message } = parsed.data;
-  const body = withStopLanguage(message);
 
-  const { data: leads, error } = await supabaseAdmin
+  const { data: leads, error } = await supabase
     .from("leads")
     .select("*")
     .eq("user_id", user.id)
     .in("id", leadIds);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    logError("api/send-bulk-sms", error, { step: "load leads" });
+    return NextResponse.json({ error: userFacingError(error) }, { status: 500 });
   }
 
-  const sendableLeads = (leads ?? []).filter((lead) => lead.status !== "DNC" && !lead.is_dnc);
-  const results = await Promise.all(
-    sendableLeads.map(async (lead) => {
-      const telnyxMessage = await sendTelnyxMessage({
-        to: lead.phone,
-        text: body
-      });
+  const sendable = (leads ?? []).filter((lead) => lead.status !== "DNC" && !lead.is_dnc);
 
-      await supabaseAdmin.from("messages").insert({
-        user_id: user.id,
-        lead_id: lead.id,
-        phone: lead.phone,
-        direction: "outbound",
-        body,
-        to_number: lead.phone,
-        status: telnyxMessage?.to?.[0]?.status ?? "queued",
-        telnyx_message_id: telnyxMessage?.id ?? null
-      });
-
-      const mockClassification = classifyLeadMock({
-        status: lead.status === "New" ? "Contacted" : lead.status,
-        notesSummary: lead.notes_summary,
-        nextFollowUpAt: lead.next_follow_up_at,
-      });
-
-      await supabaseAdmin
-        .from("leads")
-        .update({
-          status: lead.status === "New" ? "Contacted" : lead.status,
-          stage: lead.status === "New" ? "Contacted" : lead.stage ?? "Contacted",
-          classification: mockClassification.classification,
-          motivation_score: mockClassification.motivationScore,
-          lead_score: mockClassification.motivationScore,
-          last_contacted_at: new Date().toISOString(),
-        })
-        .eq("id", lead.id);
-
-      return lead.id;
-    })
-  );
+  // Sequential: keeps us under Telnyx rate limits and lets one failure not affect the rest.
+  let sent = 0;
+  const failures: Array<{ lead_id: string; error: string }> = [];
+  for (const lead of sendable) {
+    const result = await sendSmsToLead({ db: supabase, userId: user.id, lead, message });
+    if (result.ok) {
+      sent++;
+    } else {
+      console.error("[api/send-bulk-sms] send failed", { leadId: lead.id, error: result.error });
+      failures.push({ lead_id: lead.id, error: result.error });
+    }
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/leads");
   revalidatePath("/inbox");
+  revalidatePath("/pipeline");
+
+  const skipped = leadIds.length - sendable.length;
+
+  if (sent === 0 && failures.length > 0) {
+    return NextResponse.json(
+      { error: failures[0].error, success: false, sent, failed: failures.length, skipped, failures },
+      { status: 502 }
+    );
+  }
 
   return NextResponse.json({
     success: true,
-    sent: results.length,
-    skipped: (leads ?? []).length - results.length
+    sent,
+    failed: failures.length,
+    skipped,
+    failures,
   });
-}
+});

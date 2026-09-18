@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { withErrorHandling } from "@/lib/api";
+import { logError, userFacingError } from "@/lib/errors";
 import { getRouteUser } from "@/lib/route-user";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 interface RouteContext {
   params: Promise<{
@@ -9,12 +10,11 @@ interface RouteContext {
   }>;
 }
 
-export async function GET(_: Request, context: RouteContext) {
-  const { user } = await getRouteUser();
+export const GET = withErrorHandling("api/campaigns/[id]", async (_: Request, context: RouteContext) => {
+  const { supabase, user } = await getRouteUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await context.params;
-  const supabase = getSupabaseAdmin();
 
   const { data, error } = await supabase
     .from("campaigns")
@@ -23,8 +23,11 @@ export async function GET(_: Request, context: RouteContext) {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    logError("api/campaigns/[id]", error, { campaignId: id });
+    return NextResponse.json({ error: userFacingError(error) }, { status: 500 });
+  }
   if (!data) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
 
   return NextResponse.json({ campaign: data });
-}
+});

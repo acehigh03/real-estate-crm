@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { classifyLeadMock } from "@/lib/ai/classify-lead";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { logError, userFacingError } from "@/lib/errors";
 import { normalizePhone } from "@/lib/utils";
 import type { Database, LeadClassification, LeadPriority, LeadStage, LeadStatus } from "@/types/database";
 
@@ -13,6 +14,12 @@ type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"];
 type LeadUpdate = Database["public"]["Tables"]["leads"]["Update"];
 type NoteInsert = Database["public"]["Tables"]["notes"]["Insert"];
 type FollowupInsert = Database["public"]["Tables"]["followups"]["Insert"];
+
+/** Logs the raw database error server-side and returns one that is safe to surface. */
+function actionError(scope: string, error: unknown) {
+  logError(`actions/${scope}`, error);
+  return new Error(userFacingError(error));
+}
 
 export async function signIn(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -36,7 +43,6 @@ export async function signOut() {
 
 export async function saveLead(formData: FormData) {
   const supabase = await createClient();
-  const supabaseAdmin = getSupabaseAdmin();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -83,9 +89,9 @@ export async function saveLead(formData: FormData) {
   };
 
   const { error } = id
-    ? await supabaseAdmin.from("leads").update(payload).eq("id", id).eq("user_id", user.id)
-    : await supabaseAdmin.from("leads").insert({ ...(payload as LeadInsert), user_id: user.id });
-  if (error) throw error;
+    ? await supabase.from("leads").update(payload).eq("id", id).eq("user_id", user.id)
+    : await supabase.from("leads").insert({ ...(payload as LeadInsert), user_id: user.id });
+  if (error) throw actionError("saveLead", error);
 
   revalidatePath("/dashboard");
   revalidatePath("/leads");
@@ -96,15 +102,14 @@ export async function saveLead(formData: FormData) {
 export async function deleteLead(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const supabase = await createClient();
-  const supabaseAdmin = getSupabaseAdmin();
   const {
     data: { user }
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
 
-  const { error } = await supabaseAdmin.from("leads").delete().eq("id", id).eq("user_id", user.id);
-  if (error) throw error;
+  const { error } = await supabase.from("leads").delete().eq("id", id).eq("user_id", user.id);
+  if (error) throw actionError("deleteLead", error);
 
   revalidatePath("/dashboard");
   revalidatePath("/leads");
@@ -116,19 +121,19 @@ export async function updateLeadStatus(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "New") as LeadStatus;
   const supabase = await createClient();
-  const supabaseAdmin = getSupabaseAdmin();
   const {
     data: { user }
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
 
-  const { data: existingLead } = await supabaseAdmin
+  const { data: existingLead, error: loadError } = await supabase
     .from("leads")
     .select("*")
     .eq("id", id)
     .eq("user_id", user.id)
-    .single();
+    .maybeSingle();
+  if (loadError) throw actionError("updateLeadStatus/load", loadError);
 
   const mockClassification = classifyLeadMock({
     status,
@@ -146,13 +151,13 @@ export async function updateLeadStatus(formData: FormData) {
     is_dnc: status === "DNC" || mockClassification.classification === "OPT_OUT",
     dnc_reason: status === "DNC" ? "Marked DNC manually" : null,
   };
-  const { error } = await supabaseAdmin
+  const { error } = await supabase
     .from("leads")
     .update(statusPayload)
     .eq("id", id)
     .eq("user_id", user.id);
 
-  if (error) throw error;
+  if (error) throw actionError("updateLeadStatus", error);
 
   revalidatePath("/dashboard");
   revalidatePath("/leads");
@@ -166,7 +171,6 @@ export async function addNote(formData: FormData) {
   if (!body) return;
 
   const supabase = await createClient();
-  const supabaseAdmin = getSupabaseAdmin();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -179,9 +183,9 @@ export async function addNote(formData: FormData) {
     user_id: user.id
   };
 
-  const { error } = await supabaseAdmin.from("notes").insert(notePayload);
+  const { error } = await supabase.from("notes").insert(notePayload);
 
-  if (error) throw error;
+  if (error) throw actionError("addNote", error);
 
   revalidatePath("/leads");
 }
@@ -193,19 +197,19 @@ export async function setFollowup(formData: FormData) {
   const nextFollowUpAt = String(formData.get("next_follow_up_at") ?? "");
 
   const supabase = await createClient();
-  const supabaseAdmin = getSupabaseAdmin();
   const {
     data: { user }
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
 
-  const { data: existingLead } = await supabaseAdmin
+  const { data: existingLead, error: loadError } = await supabase
     .from("leads")
     .select("*")
     .eq("id", leadId)
     .eq("user_id", user.id)
-    .single();
+    .maybeSingle();
+  if (loadError) throw actionError("setFollowup/load", loadError);
 
   const followupPayload: FollowupInsert = {
     lead_id: leadId,
@@ -214,9 +218,9 @@ export async function setFollowup(formData: FormData) {
     user_id: user.id
   };
 
-  const { error: followupError } = await supabaseAdmin.from("followups").insert(followupPayload);
+  const { error: followupError } = await supabase.from("followups").insert(followupPayload);
 
-  if (followupError) throw followupError;
+  if (followupError) throw actionError("setFollowup/followup", followupError);
 
   const mockClassification = classifyLeadMock({
     status: existingLead?.status ?? "New",
@@ -231,13 +235,13 @@ export async function setFollowup(formData: FormData) {
     lead_score: mockClassification.motivationScore,
     priority: deriveLeadPriority(mockClassification.classification),
   };
-  const { error: leadError } = await supabaseAdmin
+  const { error: leadError } = await supabase
     .from("leads")
     .update(leadPayload)
     .eq("id", leadId)
     .eq("user_id", user.id);
 
-  if (leadError) throw leadError;
+  if (leadError) throw actionError("setFollowup/lead", leadError);
 
   revalidatePath("/dashboard");
   revalidatePath("/leads");
@@ -257,14 +261,13 @@ export async function updatePipelineStage(formData: FormData) {
     | "Dead";
 
   const supabase = await createClient();
-  const supabaseAdmin = getSupabaseAdmin();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
 
-  const { data: existingLead, error: leadError } = await supabaseAdmin
+  const { data: existingLead, error: leadError } = await supabase
     .from("leads")
     .select("*")
     .eq("id", id)
@@ -272,7 +275,7 @@ export async function updatePipelineStage(formData: FormData) {
     .single();
 
   if (leadError || !existingLead) {
-    throw leadError ?? new Error("Lead not found");
+    throw leadError ? actionError("updatePipelineStage/load", leadError) : new Error("Lead not found");
   }
 
   const stageToStatus: Record<typeof stage, LeadStatus> = {
@@ -332,13 +335,13 @@ export async function updatePipelineStage(formData: FormData) {
     is_dnc: stage === "Dead" ? existingLead.status === "DNC" || existingLead.is_dnc : existingLead.is_dnc,
   };
 
-  const { error } = await supabaseAdmin
+  const { error } = await supabase
     .from("leads")
     .update(payload)
     .eq("id", id)
     .eq("user_id", user.id);
 
-  if (error) throw error;
+  if (error) throw actionError("updatePipelineStage", error);
 
   revalidatePath("/dashboard");
   revalidatePath("/leads");
@@ -368,7 +371,7 @@ export async function updateForeclosureLead(formData: FormData) {
     } as never)
     .eq("id", id as never);
 
-  if (error) throw error;
+  if (error) throw actionError("updateForeclosureLead", error);
 
   revalidatePath("/foreclosures");
 }

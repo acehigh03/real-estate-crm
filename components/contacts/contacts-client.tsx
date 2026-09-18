@@ -240,14 +240,34 @@ export function ContactsClient({
     const msg = window.prompt(`SMS message to send to ${ids.length} contact(s):`);
     if (!msg?.trim()) return;
     try {
-      await fetch("/api/send-bulk-sms", {
+      const res = await fetch("/api/send-bulk-sms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ leadIds: ids, message: msg }),
       });
+      const result = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        sent?: number;
+        failed?: number;
+        skipped?: number;
+      };
+
+      if (!res.ok) {
+        window.alert(result.error ?? "Couldn't send the messages. Please try again.");
+        return;
+      }
+
+      const failed = result.failed ?? 0;
+      const skipped = result.skipped ?? 0;
+      window.alert(
+        `Sent ${result.sent ?? 0} message(s).` +
+          (failed ? ` ${failed} failed.` : "") +
+          (skipped ? ` ${skipped} skipped (Do Not Contact).` : "")
+      );
       setSelectedIds(new Set());
     } catch (err) {
       console.error("bulk SMS failed", err);
+      window.alert("Network error. Please try again.");
     }
   }
 

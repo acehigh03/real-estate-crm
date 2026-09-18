@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { readJson, withErrorHandling } from "@/lib/api";
+import { logError, userFacingError } from "@/lib/errors";
 import { getRouteUser } from "@/lib/route-user";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const createCampaignSchema = z.object({
   name: z.string().trim().min(1, "Campaign name is required"),
@@ -15,30 +16,30 @@ const createCampaignSchema = z.object({
   status: z.string().trim().min(1).optional()
 });
 
-export async function GET() {
-  const { user } = await getRouteUser();
+export const GET = withErrorHandling("api/campaigns GET", async () => {
+  const { supabase, user } = await getRouteUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("campaigns")
     .select("*")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    logError("api/campaigns GET", error);
+    return NextResponse.json({ error: userFacingError(error) }, { status: 500 });
+  }
 
   return NextResponse.json({ campaigns: data ?? [] });
-}
+});
 
-export async function POST(request: Request) {
-  const { user } = await getRouteUser();
+export const POST = withErrorHandling("api/campaigns POST", async (request: Request) => {
+  const { supabase, user } = await getRouteUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
+  const body = await readJson(request);
+  if (body === undefined) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
@@ -50,7 +51,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("campaigns")
     .insert({
@@ -67,7 +67,10 @@ export async function POST(request: Request) {
     .select("*")
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    logError("api/campaigns POST", error);
+    return NextResponse.json({ error: userFacingError(error, "Couldn't create the campaign.") }, { status: 500 });
+  }
 
   return NextResponse.json({ campaign: data }, { status: 201 });
-}
+});

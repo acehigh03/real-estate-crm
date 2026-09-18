@@ -67,7 +67,7 @@ export function PipelineBoard({
             >
               Add Lead
             </Link>
-            <Link href="/inbox" className="crm-button-primary">
+            <Link href="/inbox?new=1" className="crm-button-primary">
               Start Conversation
             </Link>
           </div>
@@ -96,7 +96,7 @@ export function PipelineBoard({
                   Go to Leads
                 </Link>
                 <Link
-                  href="/inbox"
+                  href="/inbox?new=1"
                   className="crm-button-primary py-2.5"
                 >
                   Start Conversation

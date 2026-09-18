@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 
-const SUPABASE_URL = "https://wdbxxjfgitlxeoluvanf.supabase.co";
-const SUPABASE_KEY = "sb_publishable_MOUuWYsrkyObvr-c487q3Q_duA0JBah";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 const PAGE_SIZE = 20;
 const today = new Date().toISOString().slice(0, 10);
 
@@ -20,7 +20,7 @@ type Lead = {
   notes?: string;
 };
 
-function LeadRow({ r, onSave }: { r: Lead; onSave: (id: number, status: string, notes: string) => Promise<void> }) {
+function LeadRow({ r, onSave }: { r: Lead; onSave: (id: number, status: string, notes: string) => Promise<boolean> }) {
   const [localStatus, setLocalStatus] = useState(r.status || "New");
   const [localNotes, setLocalNotes] = useState(r.notes || "");
   const [saving, setSaving] = useState(false);
@@ -32,8 +32,9 @@ function LeadRow({ r, onSave }: { r: Lead; onSave: (id: number, status: string, 
 
   async function save() {
     setSaving(true);
-    await onSave(r.id, localStatus, localNotes);
+    const ok = await onSave(r.id, localStatus, localNotes);
     setSaving(false);
+    if (!ok) return;
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -76,6 +77,7 @@ export default function ForeclosurePage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => { loadLeads(); }, []);
 
@@ -90,19 +92,43 @@ export default function ForeclosurePage() {
   }, [search, statusFilter, dateFrom, dateTo, leads]);
 
   async function loadLeads() {
-    const resp = await fetch(SUPABASE_URL + "/rest/v1/foreclosure_leads?select=*&order=scraped_date.desc&limit=1000", {
-      headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY }
-    });
-    setLeads(await resp.json());
+    setLoadError(null);
+    try {
+      const resp = await fetch(SUPABASE_URL + "/rest/v1/foreclosure_leads?select=*&order=scraped_date.desc&limit=1000", {
+        headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY }
+      });
+      const body = await resp.json().catch(() => null);
+      if (!resp.ok || !Array.isArray(body)) {
+        console.error("[foreclosure] load failed", resp.status, body);
+        setLoadError("Couldn't load foreclosure leads. Please refresh and try again.");
+        return;
+      }
+      setLeads(body as Lead[]);
+    } catch (error) {
+      console.error("[foreclosure] load request failed", error);
+      setLoadError("Couldn't reach the database. Please check your connection and try again.");
+    }
   }
 
-  async function saveRow(id: number, status: string, notes: string) {
-    await fetch(SUPABASE_URL + "/rest/v1/foreclosure_leads?id=eq." + id, {
-      method: "PATCH",
-      headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", Prefer: "return=minimal" },
-      body: JSON.stringify({ status, notes })
-    });
-    setLeads(l => l.map(r => r.id === id ? { ...r, status, notes } : r));
+  async function saveRow(id: number, status: string, notes: string): Promise<boolean> {
+    try {
+      const resp = await fetch(SUPABASE_URL + "/rest/v1/foreclosure_leads?id=eq." + id, {
+        method: "PATCH",
+        headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", Prefer: "return=minimal" },
+        body: JSON.stringify({ status, notes })
+      });
+      if (!resp.ok) {
+        console.error("[foreclosure] save failed", resp.status, await resp.text().catch(() => ""));
+        window.alert("Couldn't save this lead. Please try again.");
+        return false;
+      }
+      setLeads(l => l.map(r => r.id === id ? { ...r, status, notes } : r));
+      return true;
+    } catch (error) {
+      console.error("[foreclosure] save request failed", error);
+      window.alert("Network error. Please try again.");
+      return false;
+    }
   }
 
   function exportCSV() {
@@ -127,6 +153,9 @@ export default function ForeclosurePage() {
         <button onClick={exportCSV} className="text-[13px] px-3 py-1.5 border border-[#e8edf2] rounded-lg text-[#6b7c93] hover:bg-[#f0f2f5]">Export CSV</button>
       </div>
       <div className="p-6 overflow-auto flex-1">
+        {loadError ? (
+          <p role="alert" className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-700">{loadError}</p>
+        ) : null}
         <div className="grid grid-cols-4 gap-3 mb-5">
           {[["Total Leads", leads.length],["Filtered", filtered.length],["New Today", todayCount],["Interested", intCount]].map(([l,v]) => (
             <div key={String(l)} className="bg-[#f8fafb] rounded-xl p-4 border border-[#e8edf2]">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { Topbar } from "@/components/Topbar";
+import { createClient } from "@/lib/supabase/browser";
 import type { Database } from "@/types/database";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
@@ -991,13 +992,57 @@ interface MessengerClientProps {
   userId: string;
 }
 
+/** Adds/replaces a message; a saved row supersedes its optimistic "temp-" bubble. */
+function mergeMessage(existing: Message[], incoming: Message): Message[] {
+  const kept = existing.filter(
+    (entry) =>
+      entry.id !== incoming.id &&
+      !(
+        entry.id.startsWith("temp-") &&
+        entry.direction === incoming.direction &&
+        entry.lead_id === incoming.lead_id &&
+        incoming.body.startsWith(entry.body)
+      )
+  );
+  return [...kept, incoming];
+}
+
 export function MessengerClient({
   initialLeads,
   initialMessages,
+  userId,
 }: MessengerClientProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [selectedId, setSelectedId] = useState<string>(initialLeads[0]?.id ?? "");
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+
+  // Live updates for incoming/outgoing messages; unsubscribed on unmount.
+  useEffect(() => {
+    if (!userId) return;
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`messenger-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "messages", filter: `user_id=eq.${userId}` },
+        (payload) => {
+          if (payload.eventType === "DELETE") return;
+          const incoming = payload.new as Message;
+          setMessages((current) => mergeMessage(current, incoming));
+        }
+      )
+      .subscribe((status, error) => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          console.error(`[messenger] realtime ${status}`, error?.message ?? "");
+        }
+      });
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [userId]);
 
   // Build convo items: leads sorted by latest message desc
   const convoItems: ConvoItem[] = useMemo(() => {
@@ -1049,6 +1094,7 @@ export function MessengerClient({
     async (text: string) => {
       if (!selectedLead) return;
       setSending(true);
+      setSendError(null);
       try {
         const res = await fetch("/api/telnyx/send", {
           method: "POST",
@@ -1059,23 +1105,36 @@ export function MessengerClient({
             lead_id: selectedLead.id,
           }),
         });
-        if (res.ok) {
-          // Optimistically add the message to the thread
-          const optimistic: Message = {
-            id: crypto.randomUUID(),
-            body: text,
-            direction: "outbound",
-            created_at: new Date().toISOString(),
-            lead_id: selectedLead.id,
-            phone: selectedLead.phone,
-            to_number: selectedLead.phone,
-            user_id: null,
-            classification: null,
-            status: "queued",
-            telnyx_message_id: null,
-          };
-          setMessages((prev) => [...prev, optimistic]);
+        const payload = (await res.json().catch(() => ({}))) as {
+          error?: string;
+          warning?: string | null;
+          message?: Message | null;
+        };
+
+        if (!res.ok) {
+          setSendError(payload.error ?? "Failed to send message.");
+          return;
         }
+
+        if (payload.warning) setSendError(payload.warning);
+        // Show the saved row now; realtime delivers the same row and is deduped by id.
+        const saved: Message = payload.message ?? {
+          id: `temp-${Date.now()}`,
+          body: text,
+          direction: "outbound",
+          created_at: new Date().toISOString(),
+          lead_id: selectedLead.id,
+          phone: selectedLead.phone,
+          to_number: selectedLead.phone,
+          user_id: null,
+          classification: null,
+          status: "queued",
+          telnyx_message_id: null,
+        };
+        setMessages((prev) => mergeMessage(prev, saved));
+      } catch (error) {
+        console.error("[messenger] send request failed:", error);
+        setSendError("Network error. Please try again.");
       } finally {
         setSending(false);
       }
@@ -1134,6 +1193,19 @@ export function MessengerClient({
         >
           <MetadataStrip lead={selectedLead} />
           <ChatThread lead={selectedLead} messages={threadMessages} />
+          {sendError ? (
+            <div
+              role="alert"
+              style={{
+                padding: "8px 16px",
+                fontSize: 12,
+                color: "var(--red)",
+                background: "var(--redd)",
+              }}
+            >
+              {sendError}
+            </div>
+          ) : null}
           <Composer lead={selectedLead} onSend={handleSend} sending={sending} />
         </section>
       </div>
