@@ -6,6 +6,8 @@ import { format } from "date-fns";
 import { MessageSquare, Plus, Search, Send } from "lucide-react";
 
 import { generateInboxDraftReply, getClassificationLabel } from "@/lib/ai/classify-lead";
+import { messageSentiment, SentimentBadge } from "@/components/automation/sentiment-badge";
+import { useSentiments } from "@/components/automation/use-sentiments";
 import { createClient } from "@/lib/supabase/browser";
 import {
   fallbackCampaignName,
@@ -34,6 +36,8 @@ interface InboxClientProps {
   initialLeads: Lead[];
   initialMessages: Message[];
   initialCampaigns: CampaignSummary[];
+  /** Reply sentiments keyed by Telnyx message id (for the sentiment badges). */
+  initialSentiments?: Record<string, string>;
   userId: string;
   autoOpenComposer?: boolean;
   /** Conversation to open first (from a dashboard "Draft Reply" link). */
@@ -68,6 +72,11 @@ function mergeMessage(existing: Message[], incoming: Message): Message[] {
   return [...withoutDuplicates, incoming].sort((left, right) =>
     left.created_at.localeCompare(right.created_at)
   );
+}
+
+function latestInboundSentiment(messages: Message[], sentiments: Record<string, string>) {
+  const latest = [...messages].reverse().find((message) => message.direction === "inbound");
+  return latest ? messageSentiment(latest, sentiments) : null;
 }
 
 function initials(lead: Lead) {
@@ -133,11 +142,13 @@ export function InboxClient({
   initialLeads,
   initialMessages,
   initialCampaigns,
+  initialSentiments = {},
   userId,
   autoOpenComposer = false,
   initialLeadId = null,
 }: InboxClientProps) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
+  const { sentiments, refresh: refreshSentiments, refreshSoon: refreshSentimentsSoon } = useSentiments(initialSentiments);
   const [messagesByLead, setMessagesByLead] = useState<Record<string, Message[]>>(() => {
     const grouped: Record<string, Message[]> = {};
     for (const message of initialMessages) {
@@ -212,6 +223,7 @@ export function InboxClient({
       else (messageResult.data ?? []).forEach(upsertMessage);
       if (leadResult.error) console.error("[inbox] poll leads failed:", leadResult.error.message);
       else (leadResult.data ?? []).forEach(upsertLead);
+      void refreshSentiments();
     };
 
     const startPolling = () => {
@@ -231,7 +243,9 @@ export function InboxClient({
         { event: "*", schema: "public", table: "messages", filter: `user_id=eq.${userId}` },
         (payload) => {
           if (payload.eventType === "DELETE") return;
-          upsertMessage(payload.new as Message);
+          const incoming = payload.new as Message;
+          upsertMessage(incoming);
+          if (incoming.direction === "inbound") refreshSentimentsSoon();
         }
       )
       .on(
@@ -259,7 +273,7 @@ export function InboxClient({
       stopPolling();
       void supabase.removeChannel(channel);
     };
-  }, [userId, upsertLead, upsertMessage]);
+  }, [userId, upsertLead, upsertMessage, refreshSentiments, refreshSentimentsSoon]);
 
   const conversations = useMemo<ConversationData[]>(() => {
     return leads
@@ -643,6 +657,7 @@ export function InboxClient({
                           <p className="min-w-0 flex-1 truncate text-xs text-gray-500">
                             {messageSnippet(conversation.lastMessage?.body, 42)}
                           </p>
+                          <SentimentBadge sentiment={latestInboundSentiment(conversation.messages, sentiments)} />
                           {classificationBadge(conversation.lead.classification)}
                         </div>
                       </div>
@@ -669,6 +684,7 @@ export function InboxClient({
                     {leadDisplayName(lead)}
                   </h2>
                   {classificationBadge(lead.classification)}
+                  <SentimentBadge sentiment={latestInboundSentiment(leadMessages, sentiments)} />
                 </div>
                 <p className="mt-1 truncate text-xs text-[#6b7280]">
                   {campaignName
@@ -696,13 +712,14 @@ export function InboxClient({
                     >
                       {message.body}
                     </div>
-                    <p
-                      className={`mt-1 text-[11px] text-gray-400 ${
-                        message.direction === "outbound" ? "text-right" : "text-left"
+                    <div
+                      className={`mt-1 flex items-center gap-2 text-[11px] text-gray-400 ${
+                        message.direction === "outbound" ? "justify-end" : "justify-start"
                       }`}
                     >
-                      {format(new Date(message.created_at), "MMM d, h:mm a")}
-                    </p>
+                      <span>{format(new Date(message.created_at), "MMM d, h:mm a")}</span>
+                      <SentimentBadge sentiment={messageSentiment(message, sentiments)} />
+                    </div>
                   </div>
                 </div>
               ))}

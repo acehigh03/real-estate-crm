@@ -20,6 +20,8 @@ import {
 import { Topbar } from "@/components/Topbar";
 import { generateInboxDraftReply } from "@/lib/ai/classify-lead";
 import { createClient } from "@/lib/supabase/browser";
+import { messageSentiment, SentimentBadge } from "@/components/automation/sentiment-badge";
+import { useSentiments } from "@/components/automation/use-sentiments";
 import type { Database } from "@/types/database";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
@@ -145,6 +147,7 @@ interface ConvoItem {
   latestMessage: Message | null;
   unread: boolean;
   status: DisplayStatus;
+  sentiment: string | null;
 }
 
 function ConvoRow({
@@ -156,7 +159,7 @@ function ConvoRow({
   active: boolean;
   onClick: () => void;
 }) {
-  const { lead, latestMessage, unread, status } = item;
+  const { lead, latestMessage, unread, status, sentiment } = item;
   const preview = latestMessage?.body?.slice(0, 60) ?? "No messages yet";
   const time = latestMessage
     ? new Date(latestMessage.created_at).toLocaleTimeString([], {
@@ -197,6 +200,7 @@ function ConvoRow({
           >
             {lead.first_name} {lead.last_name}
           </span>
+          <SentimentBadge sentiment={sentiment} />
         </div>
         <div
           style={{
@@ -576,7 +580,7 @@ function MetadataStrip({ lead }: { lead: Lead }) {
 
 // ── Chat thread ──────────────────────────────────────────────────────────────
 
-function Bubble({ msg }: { msg: Message }) {
+function Bubble({ msg, sentiment }: { msg: Message; sentiment?: string | null }) {
   const isOut = msg.direction === "outbound";
   const time = new Date(msg.created_at).toLocaleTimeString([], {
     hour: "numeric",
@@ -635,6 +639,7 @@ function Bubble({ msg }: { msg: Message }) {
             {time}
           </span>
           {isOut && <CheckCheck size={11} style={{ color: "var(--g)" }} />}
+          {!isOut && <SentimentBadge sentiment={sentiment} />}
         </div>
       </div>
     </div>
@@ -664,9 +669,11 @@ function DateDivider({ label }: { label: string }) {
 function ChatThread({
   lead,
   messages,
+  sentiments,
 }: {
   lead: Lead;
   messages: Message[];
+  sentiments: Record<string, string>;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -734,7 +741,7 @@ function ChatThread({
           "divider" in g ? (
             <DateDivider key={"d" + i} label={g.divider} />
           ) : (
-            <Bubble key={g.msg.id} msg={g.msg} />
+            <Bubble key={g.msg.id} msg={g.msg} sentiment={messageSentiment(g.msg, sentiments)} />
           )
         )
       )}
@@ -994,6 +1001,7 @@ function Composer({
 interface MessengerClientProps {
   initialLeads: Lead[];
   initialMessages: Message[];
+  initialSentiments?: Record<string, string>;
   userId: string;
 }
 
@@ -1015,9 +1023,11 @@ function mergeMessage(existing: Message[], incoming: Message): Message[] {
 export function MessengerClient({
   initialLeads,
   initialMessages,
+  initialSentiments = {},
   userId,
 }: MessengerClientProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const { sentiments, refreshSoon } = useSentiments(initialSentiments);
   const [selectedId, setSelectedId] = useState<string>(initialLeads[0]?.id ?? "");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -1036,6 +1046,8 @@ export function MessengerClient({
           if (payload.eventType === "DELETE") return;
           const incoming = payload.new as Message;
           setMessages((current) => mergeMessage(current, incoming));
+          // The sentiment is classified just after the reply is stored: pick it up shortly after.
+          if (incoming.direction === "inbound") refreshSoon();
         }
       )
       .subscribe((status, error) => {
@@ -1047,7 +1059,7 @@ export function MessengerClient({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [userId, refreshSoon]);
 
   // Build convo items: leads sorted by latest message desc
   const convoItems: ConvoItem[] = useMemo(() => {
@@ -1066,11 +1078,13 @@ export function MessengerClient({
         const latestMessage = threadMsgs[threadMsgs.length - 1] ?? null;
         const unread = latestMessage?.direction === "inbound" &&
           (!lead.last_contacted_at || new Date(latestMessage.created_at) > new Date(lead.last_contacted_at));
+        const lastInbound = [...threadMsgs].reverse().find((m) => m.direction === "inbound");
         return {
           lead,
           latestMessage,
           unread,
           status: toDisplayStatus(lead),
+          sentiment: lastInbound ? messageSentiment(lastInbound, sentiments) : null,
         };
       })
       .sort((a, b) => {
@@ -1078,7 +1092,7 @@ export function MessengerClient({
         const bt = b.latestMessage?.created_at ?? b.lead.created_at;
         return new Date(bt).getTime() - new Date(at).getTime();
       });
-  }, [initialLeads, messages]);
+  }, [initialLeads, messages, sentiments]);
 
   const totalUnread = convoItems.filter((i) => i.unread).length;
 
@@ -1197,7 +1211,7 @@ export function MessengerClient({
           }}
         >
           <MetadataStrip lead={selectedLead} />
-          <ChatThread lead={selectedLead} messages={threadMessages} />
+          <ChatThread lead={selectedLead} messages={threadMessages} sentiments={sentiments} />
           {sendError ? (
             <div
               role="alert"

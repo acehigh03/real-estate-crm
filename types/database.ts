@@ -16,6 +16,8 @@ export type MessageClassification = "HOT" | "WARM" | "NOT_INTERESTED" | "STOP_DN
 export type CampaignType = "cash_offer" | "foreclosure_help" | "probate" | "tax_sale" | "custom";
 export type DripWorkflowStatus = "draft" | "active" | "paused" | "archived";
 export type DripEnrollmentStatus = "active" | "paused" | "completed" | "cancelled";
+export type AutoResponderTrigger = "keyword" | "any_reply" | "first_reply" | "sentiment";
+export type ReplySentiment = "interested" | "maybe" | "not_interested" | "stop" | "question";
 export type DripExecutionStatus = "queued" | "processing" | "sent" | "delivered" | "failed" | "skipped" | "cancelled";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
@@ -350,6 +352,24 @@ export interface Database {
         Row: { id: string; user_id: string; enrollment_id: string; step_id: string; scheduled_for: string; sent_at: string | null; status: DripExecutionStatus; rendered_message: string | null; telnyx_message_id: string | null; error: string | null; created_at: string; updated_at: string };
         Insert: { id?: string; user_id: string; enrollment_id: string; step_id: string; scheduled_for: string; sent_at?: string | null; status?: DripExecutionStatus; rendered_message?: string | null; telnyx_message_id?: string | null; error?: string | null };
         Update: Partial<Database["public"]["Tables"]["drip_executions"]["Insert"]>;
+        Relationships: [];
+      };
+      auto_responders: {
+        Row: { id: string; user_id: string; name: string; is_active: boolean; trigger_type: AutoResponderTrigger; trigger_value: string | null; conditions: Json; actions: Json; created_at: string; updated_at: string };
+        Insert: { id?: string; user_id: string; name: string; is_active?: boolean; trigger_type: AutoResponderTrigger; trigger_value?: string | null; conditions?: Json; actions: Json };
+        Update: Partial<Database["public"]["Tables"]["auto_responders"]["Insert"]>;
+        Relationships: [];
+      };
+      reply_classifications: {
+        Row: { id: string; user_id: string | null; lead_id: string | null; message_id: string | null; message_body: string | null; sentiment: ReplySentiment | null; source: string | null; raw_response: Json | null; classified_at: string };
+        Insert: { id?: string; user_id?: string | null; lead_id?: string | null; message_id?: string | null; message_body?: string | null; sentiment?: ReplySentiment | null; source?: string | null; raw_response?: Json | null };
+        Update: Partial<Database["public"]["Tables"]["reply_classifications"]["Insert"]>;
+        Relationships: [];
+      };
+      automation_history: {
+        Row: { id: string; user_id: string | null; lead_id: string | null; automation_type: string | null; automation_name: string | null; action_taken: string | null; result: string | null; created_at: string };
+        Insert: { id?: string; user_id?: string | null; lead_id?: string | null; automation_type?: string | null; automation_name?: string | null; action_taken?: string | null; result?: string | null };
+        Update: Partial<Database["public"]["Tables"]["automation_history"]["Insert"]>;
         Relationships: [];
       };
     };

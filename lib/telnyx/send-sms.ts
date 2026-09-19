@@ -3,6 +3,8 @@ import { logError } from "@/lib/errors";
 interface SendTelnyxMessageParams {
   to: string;
   text: string;
+  /** Sender number; defaults to TELNYX_PHONE_NUMBER. */
+  from?: string;
 }
 
 export class TelnyxSendError extends Error {
@@ -32,25 +34,10 @@ function readEnv(...names: string[]) {
   return undefined;
 }
 
-export async function sendTelnyxMessage({ to, text }: SendTelnyxMessageParams) {
+export async function sendTelnyxMessage({ to, text, from }: SendTelnyxMessageParams) {
   const apiKey = readEnv("TELNYX_API_KEY");
-  const fromNumber = readEnv("TELNYX_PHONE_NUMBER", "TELNYX_FROM_NUMBER");
+  const fromNumber = from ?? readEnv("TELNYX_PHONE_NUMBER", "TELNYX_FROM_NUMBER");
   const messagingProfileId = readEnv("TELNYX_MESSAGING_PROFILE_ID");
-
-  // TEMP DEBUG (remove once production sending is confirmed): shows what THIS runtime sees.
-  // The first 15 chars are the public key id ("KEY" + hex), not the secret half after "_".
-  console.log("[telnyx][debug] before send", {
-    keyPrefix: apiKey?.slice(0, 15) ?? null,
-    keyLength: apiKey?.length ?? 0,
-    rawKeyLength: process.env.TELNYX_API_KEY?.length ?? 0, // differs from keyLength if the raw value had quotes/whitespace
-    keyLooksValid: Boolean(apiKey && /^KEY[0-9A-Fa-f]+_\w+$/.test(apiKey)),
-    from: fromNumber ?? null,
-    fromIsE164: Boolean(fromNumber && /^\+[1-9]\d{7,14}$/.test(fromNumber)),
-    to,
-    messagingProfileId: messagingProfileId ?? null,
-    envName: process.env.TELNYX_PHONE_NUMBER ? "TELNYX_PHONE_NUMBER" : process.env.TELNYX_FROM_NUMBER ? "TELNYX_FROM_NUMBER" : null,
-    vercelEnv: process.env.VERCEL_ENV ?? "local",
-  });
 
   if (!apiKey || !fromNumber) {
     console.error("[telnyx] send aborted: TELNYX_API_KEY and/or TELNYX_PHONE_NUMBER is not set");
@@ -71,7 +58,7 @@ export async function sendTelnyxMessage({ to, text }: SendTelnyxMessageParams) {
 
   let response: Response;
   try {
-    response = await fetch("https://api.telnyx.com/v2/messages", {
+    response = await fetch(`${(process.env.TELNYX_API_BASE ?? "https://api.telnyx.com").replace(/\/$/, "")}/v2/messages`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,

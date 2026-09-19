@@ -23,3 +23,10 @@ Rules learned from real failures in this repo. Read before touching Supabase, Te
 - Realtime: subscribe with a `user_id` filter, use a per-user channel name, always `removeChannel` on cleanup, and log `CHANNEL_ERROR`/`TIMED_OUT` (with a polling fallback for the inbox).
 - Optimistic messages: the stored body has the STOP footer appended, so match temp bubbles by prefix, not equality.
 - Show `userFacingError()` text to users; log the raw error server-side. Never show a raw schema-cache message.
+
+## Automation engine (2026-09-18)
+- The sidebar's "Messenger" link goes to `/inbox` (`components/inbox/inbox-client.tsx`), not `/messenger`. Any inbox/messenger UI change must touch both clients.
+- Vercel Hobby rejects crons more frequent than daily. Keep `vercel.json` at a daily backstop and drive sub-daily schedules from GitHub Actions (`.github/workflows/drip-cron.yml`) unless the plan is Pro.
+- Anything that texts a seller must go through `sendAndRecord` (DNC check, sticky sender, history). Never text on a STOP, never reset `is_dnc` from an inbound reply, and cap auto-replies (cooldown + daily) so two responders can't loop.
+- Webhook automation must be idempotent: unique `reply_classifications.message_id` + `ignoreDuplicates` upsert, so a Telnyx retry can't double-reply.
+- Test server routes end to end with an in-memory PostgREST mock + fake Telnyx/Anthropic. A typo in the mock (not the app) once hid every write; when everything fails at once, suspect the rig first.

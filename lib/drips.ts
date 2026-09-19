@@ -1,16 +1,11 @@
+import { renderTemplate } from "@/lib/automation/rules";
 import type { Database } from "@/types/database";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 
-/** Replaces only supported fields; unknown tokens intentionally remain visible for review. */
+/** Fills [[first_name]] / [[address]] (and the older {{first_name}}) from a lead. Unknown tokens stay visible. */
 export function renderDripMessage(template: string, lead: Pick<Lead, "first_name" | "last_name" | "property_address" | "city">) {
-  const fields: Record<string, string> = {
-    first_name: lead.first_name?.trim() || "there",
-    last_name: lead.last_name?.trim() || "",
-    property_address: lead.property_address?.trim() || "your property",
-    city: lead.city?.trim() || "",
-  };
-  return template.replace(/{{\s*(first_name|last_name|property_address|city)\s*}}/g, (_, key: string) => fields[key]);
+  return renderTemplate(template, lead);
 }
 
 export function formatDelay(minutes: number) {

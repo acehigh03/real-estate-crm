@@ -1,0 +1,35 @@
+# Runs the drip worker every 10 minutes.
+#
+# Vercel's Hobby plan only allows one cron run per day (vercel.json is that daily backstop) and
+# rejects the deployment if a cron is scheduled more often. On a Pro plan you can instead change
+# the schedule in vercel.json to "*/10 * * * *" and delete this workflow.
+#
+# Needs two repository settings (Settings → Secrets and variables → Actions):
+#   secret   CRON_SECRET   the same value as the CRON_SECRET env var in Vercel
+#   variable APP_URL       e.g. https://sellingmy.casa   (optional; that is the default)
+name: Drip cron
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: drip-cron
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Call the drip worker
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ vars.APP_URL || 'https://sellingmy.casa' }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET secret is not set"; exit 1; fi
+          status=$(curl -sS -o response.json -w "%{http_code}" --max-time 60 \
+            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/drip")
+          cat response.json; echo
+          test "$status" = "200"

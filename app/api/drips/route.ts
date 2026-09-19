@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { readJson, withErrorHandling } from "@/lib/api";
+import { getAuthedAdmin } from "@/lib/route-admin";
 import { getRouteUser } from "@/lib/route-user";
 
 const stepSchema = z.object({
@@ -44,4 +45,20 @@ export const POST = withErrorHandling("api/drips", async (request: Request) => {
   }
 
   return NextResponse.json({ workflow }, { status: 201 });
+});
+
+/** GET /api/drips — the user's workflows with their steps (for the enroll pickers). */
+export const GET = withErrorHandling("api/drips GET", async () => {
+  const auth = await getAuthedAdmin();
+  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { data: workflows, error } = await auth.admin.from("drip_workflows").select("*").eq("user_id", auth.user.id).order("created_at", { ascending: true });
+  if (error) return NextResponse.json({ error: "Couldn't load workflows." }, { status: 500 });
+  const ids = (workflows ?? []).map((workflow) => workflow.id);
+  const { data: steps } = ids.length
+    ? await auth.admin.from("drip_steps").select("*").in("workflow_id", ids).order("step_number", { ascending: true })
+    : { data: [] as Array<never> };
+  return NextResponse.json({
+    workflows: (workflows ?? []).map((workflow) => ({ ...workflow, steps: (steps ?? []).filter((step) => step.workflow_id === workflow.id) })),
+  });
 });

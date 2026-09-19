@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { after, NextResponse } from "next/server";
 
 import { classifyInboundSms, type InboundSmsClassificationResult } from "@/lib/ai/classify-lead";
+import { runInboundAutomation } from "@/lib/automation/inbound";
+import { classifyReply } from "@/lib/automation/sentiment";
 import { logError } from "@/lib/errors";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { normalizePhone } from "@/lib/utils";
@@ -128,6 +130,7 @@ export async function POST(request: Request) {
         from,
         inboundText,
         telnyxMessageId,
+        toNumber: to,
         messageSaved: saved,
       })
     );
@@ -145,6 +148,7 @@ async function enrichInboundMessage({
   from,
   inboundText,
   telnyxMessageId,
+  toNumber,
   messageSaved,
 }: {
   admin: Admin;
@@ -152,6 +156,7 @@ async function enrichInboundMessage({
   from: string;
   inboundText: string;
   telnyxMessageId: string | null;
+  toNumber: string | null;
   messageSaved: boolean;
 }) {
   let classification: InboundSmsClassificationResult;
@@ -182,10 +187,19 @@ async function enrichInboundMessage({
       is_dnc: classification.isDnc,
       dnc_reason: classification.dncReason,
       last_replied_at: new Date().toISOString(),
+      last_contacted_at: new Date().toISOString(),
     };
 
+    // An opted-out lead stays opted out: a later reply must never flip is_dnc/status back
+    // (that would let drips and bulk sends text someone who said STOP).
+    const alreadyOptedOut = lead.is_dnc || lead.status === "DNC";
+    const patch =
+      alreadyOptedOut && classification.messageClassification !== "STOP_DNC"
+        ? { last_replied_at: leadPatch.last_replied_at }
+        : leadPatch;
+
     // A STOP must suppress this number everywhere, not just on the lead we matched.
-    const query = admin.from("leads").update(leadPatch);
+    const query = admin.from("leads").update(patch);
     const { error } =
       classification.messageClassification === "STOP_DNC"
         ? await query.eq("phone", from)
@@ -204,6 +218,17 @@ async function enrichInboundMessage({
         .from("notes")
         .insert({ user_id: lead.user_id, lead_id: lead.id, body: noteBody });
       if (noteError) logError("telnyx/inbound", noteError, { step: "insert alert note", leadId: lead.id });
+    }
+  }
+
+  // Automation engine: sentiment, drip cancellation, auto-responders. Isolated in its own
+  // try/catch — a failure here can never affect the saved message or the lead update above.
+  if (lead) {
+    try {
+      const sentiment = await classifyReply(inboundText);
+      await runInboundAutomation(admin, { lead, fromPhone: from, body: inboundText, messageId: telnyxMessageId, toNumber, sentiment });
+    } catch (error) {
+      logError("telnyx/inbound", error, { step: "run inbound automation", telnyxMessageId });
     }
   }
 

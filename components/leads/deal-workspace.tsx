@@ -5,6 +5,7 @@ import Link from "next/link";
 import { format, parseISO } from "date-fns";
 
 import { addNote, setFollowup } from "@/app/actions";
+import { LeadAutomationsPanel } from "@/components/automation/lead-automations-panel";
 import { fallbackAddress, formatPhoneDisplay, leadDisplayName } from "@/lib/utils";
 import type { Database } from "@/types/database";
 
@@ -20,6 +21,7 @@ const TABS = [
   { key: "offer", label: "Offer calculator" },
   { key: "tasks", label: "Tasks" },
   { key: "notes", label: "Notes / documents" },
+  { key: "automations", label: "Automations" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
 
@@ -377,6 +379,8 @@ export function DealWorkspace({
             </div>
           </div>
         ) : null}
+
+        {tab === "automations" ? <LeadAutomationsPanel leadId={lead.id} leadName={leadDisplayName(lead)} /> : null}
       </div>
     </section>
   );
