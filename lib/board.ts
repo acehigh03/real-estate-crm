@@ -12,7 +12,8 @@ export interface BoardColumnDef {
   /** Stage values that belong to this column. `New` also catches rows with no stage. */
   stages: LeadStage[];
   emptyText: string;
-  emptyHref: string;
+  /** null = plain empty state with no call to action. */
+  emptyHref: string | null;
   /** What dropping a card here (or bulk-changing to it) writes. Same shape updatePipelineStage writes. */
   write: { status: LeadStatus; stage: LeadStage; classification?: LeadClassification };
 }
@@ -21,7 +22,7 @@ export const BOARD_COLUMNS: BoardColumnDef[] = [
   { key: "new", label: "New Lead", stages: ["New"], emptyText: "Import your first list →", emptyHref: "/import", write: { status: "New", stage: "New" } },
   { key: "skip_traced", label: "Skip Traced", stages: ["Skip Traced"], emptyText: "Connect skip tracing →", emptyHref: "/settings", write: { status: "New", stage: "Skip Traced" } },
   { key: "contacted", label: "Contacted", stages: ["Contacted", "Replied", "Follow Up"], emptyText: "Start a campaign →", emptyHref: "/campaigns", write: { status: "Contacted", stage: "Contacted" } },
-  { key: "negotiating", label: "Negotiating", stages: ["Hot Lead", "Offer Sent"], emptyText: "Start a campaign →", emptyHref: "/campaigns", write: { status: "Hot", stage: "Hot Lead", classification: "HOT" } },
+  { key: "negotiating", label: "Negotiating", stages: ["Hot Lead", "Offer Sent"], emptyText: "No active negotiations", emptyHref: null, write: { status: "Hot", stage: "Hot Lead", classification: "HOT" } },
 ];
 
 export const NEGOTIATING_STAGES: LeadStage[] = ["Hot Lead", "Offer Sent"];
@@ -59,15 +60,31 @@ export function urgencyFor(lastContactedAt: string | null, now = Date.now()): Ur
   return "Cold";
 }
 
-export function nextActionFor(lead: Pick<Lead, "stage" | "next_follow_up_at" | "last_contacted_at">, columnKey: BoardColumnKey | null) {
-  if (lead.next_follow_up_at) return { label: "Follow up", at: lead.next_follow_up_at };
-  switch (columnKey) {
-    case "new": return { label: "Send first text", at: null };
-    case "skip_traced": return { label: "Send first text", at: null };
-    case "contacted": return { label: "Follow up", at: null };
-    case "negotiating": return { label: lead.stage === "Offer Sent" ? "Chase the offer" : "Make an offer", at: null };
-    default: return { label: "Review", at: null };
+const HOUR = 3_600_000;
+const TZ = "America/Chicago";
+const dayOf = (ms: number) => new Date(ms).toLocaleDateString("en-CA", { timeZone: TZ });
+
+export interface NextAction {
+  label: string;
+  /** Rose text: the follow-up is overdue. */
+  overdue: boolean;
+}
+
+/** One specific next step, computed from next_follow_up_at and last_contacted_at. */
+export function nextActionFor(lead: Pick<Lead, "next_follow_up_at" | "last_contacted_at">, now = Date.now()): NextAction {
+  const followUp = lead.next_follow_up_at ? new Date(lead.next_follow_up_at).getTime() : NaN;
+  if (!Number.isNaN(followUp)) {
+    const diff = followUp - now;
+    if (diff < 0) return { label: "Overdue — act now", overdue: true };
+    if (diff <= 2 * HOUR) return { label: "Reply within 2 hrs", overdue: false };
+    if (dayOf(followUp) === dayOf(now)) return { label: "Follow up today", overdue: false };
+    // Scheduled for a later day: show when, rather than telling them to schedule it again.
+    const when = new Date(followUp).toLocaleDateString("en-US", { timeZone: TZ, month: "short", day: "numeric" });
+    return { label: `Follow up ${when}`, overdue: false };
   }
+  const contacted = lead.last_contacted_at ? new Date(lead.last_contacted_at).getTime() : NaN;
+  if (!Number.isNaN(contacted) && now - contacted > 3 * DAY) return { label: "Gone quiet — reach out", overdue: false };
+  return { label: "Schedule next step", overdue: false };
 }
 
 export function leadFullName(lead: Pick<Lead, "first_name" | "last_name" | "phone">) {
@@ -97,4 +114,23 @@ const STAGE_WRITES: Partial<Record<LeadStage, { status: LeadStatus; classificati
 export function writeForStage(stage: LeadStage): { status: LeadStatus; stage: LeadStage; classification?: LeadClassification } | null {
   const write = STAGE_WRITES[stage];
   return write ? { ...write, stage } : null;
+}
+
+export interface CardIdentity {
+  primary: string;
+  /** Property address; null when there isn't one. */
+  secondary: string | null;
+  /** Phone as its own muted line; null when the phone is already the primary line. */
+  phone: string | null;
+  /** True when the phone is all we have, so the primary line is styled lighter. */
+  phoneOnly: boolean;
+}
+
+/** Name first, then address, then phone. Falls back to the phone alone when name and address are both missing. */
+export function cardIdentity(lead: Pick<Lead, "first_name" | "last_name" | "phone" | "property_address">, formatPhone: (phone: string) => string): CardIdentity {
+  const name = `${lead.first_name ?? ""} ${lead.last_name ?? ""}`.trim();
+  const address = (lead.property_address ?? "").trim();
+  const phone = formatPhone(lead.phone);
+  if (!name && !address) return { primary: phone, secondary: null, phone: null, phoneOnly: true };
+  return { primary: name || "Unknown seller", secondary: address || null, phone, phoneOnly: false };
 }

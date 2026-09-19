@@ -19,10 +19,10 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from "@dnd-kit/utilities";
 import { CalendarClock, GripVertical, MessageSquare, Phone } from "lucide-react";
 
-import { urgencyStyle } from "@/components/dashboard/PipelineBoard";
-import { COLUMN_BY_KEY, leadFullName, urgencyFor, type BoardColumnKey } from "@/lib/board";
+import { CardIdentityLines, EmptyColumn, urgencyStyle } from "@/components/dashboard/PipelineBoard";
+import { COLUMN_BY_KEY, nextActionFor, urgencyFor, type BoardColumnKey } from "@/lib/board";
 import type { BoardColumnData, BoardLead } from "@/lib/dashboard";
-import { formatDate, formatMoney, formatMoneyCompact, formatPhone, isPast, timeAgo } from "@/lib/format";
+import { formatDate, formatMoney, formatMoneyCompact, isPast, timeAgo } from "@/lib/format";
 
 type Board = Record<BoardColumnKey, BoardLead[]>;
 
@@ -60,6 +60,7 @@ function CardBody({
   const [error, setError] = useState("");
   const urgency = urgencyFor(lead.last_contacted_at);
   const overdue = isPast(lead.next_follow_up_at);
+  const action = nextActionFor(lead);
 
   async function saveValue() {
     setEditing(false);
@@ -82,12 +83,10 @@ function CardBody({
     <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3.5 shadow-sm">
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
-          <Link href={`/leads/${lead.id}`} className="block truncate text-[14px] font-semibold text-[var(--c-text)] hover:text-[var(--c-accent-strong)]">{lead.property_address}</Link>
-          <p className="truncate text-[12.5px] text-[var(--c-muted)]">{leadFullName(lead)}</p>
+          <Link href={`/leads/${lead.id}`} className="block hover:opacity-80"><CardIdentityLines lead={lead} /></Link>
         </div>
         {handle}
       </div>
-      <p className="num mt-1 text-[12.5px] text-[var(--c-text-2)]">{formatPhone(lead.phone)}</p>
 
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
         <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${stageBadge[lead.stage ?? "New"] ?? stageBadge.New}`}>{lead.stage ?? "New"}</span>
@@ -114,6 +113,8 @@ function CardBody({
         <div><dt className="text-[var(--c-muted)]">Last contact</dt><dd className="num text-[var(--c-text-2)]">{timeAgo(lead.last_contacted_at)}</dd></div>
         <div><dt className="text-[var(--c-muted)]">Next follow-up</dt><dd className={`num ${overdue ? "text-[var(--c-rose-text)]" : "text-[var(--c-text-2)]"}`}>{lead.next_follow_up_at ? formatDate(lead.next_follow_up_at) : "Not set"}</dd></div>
       </dl>
+
+      <p className={`mt-2 text-[12px] ${action.overdue ? "font-medium text-[var(--c-rose-text)]" : "text-[var(--c-text-2)]"}`}>{action.label}</p>
 
       <div className="mt-3 flex items-center gap-1.5">
         <Link href={`/messenger?lead=${lead.id}`} className="inline-flex items-center gap-1 rounded-lg border border-[var(--c-border)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--c-text-2)] hover:bg-[var(--c-surface-2)]"><MessageSquare size={13} aria-hidden />Text</Link>
@@ -167,7 +168,7 @@ function Column({ column, leads, total, hidden, onValue, onFollowUp }: {
           {leads.map((lead) => <SortableCard key={lead.id} lead={lead} onValue={onValue} onFollowUp={onFollowUp} />)}
         </SortableContext>
         {leads.length === 0 && (
-          <Link href={column.emptyHref} className="flex min-h-[96px] items-center justify-center rounded-xl border border-dashed border-[var(--c-accent)]/60 px-3 text-center text-[13px] font-medium text-[var(--c-accent-strong)] hover:bg-[var(--c-accent-soft)]">{column.emptyText}</Link>
+          <EmptyColumn text={column.emptyText} href={column.emptyHref} minHeight={96} />
         )}
         {hidden > 0 && <p className="px-1 text-[12px] text-[var(--c-muted)]"><span className="num">{hidden}</span> more not shown</p>}
       </div>

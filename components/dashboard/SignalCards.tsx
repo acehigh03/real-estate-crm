@@ -11,7 +11,7 @@ export function SignalCards({ unreadReplies, newLeads, atRiskCount, atRiskValue,
   unreadReplies: number; newLeads: number; atRiskCount: number; atRiskValue: number; overdueFollowUps: number; staleOffers: number; pipelineValue: number; activeDeals: number;
 }) {
   return (
-    <section aria-label="Signals" className="grid gap-4 md:grid-cols-3">
+    <section aria-label="Signals" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <Link href="/messenger" className={card}>
         <p className="text-[13px] font-medium text-[var(--c-muted)]">Who do I contact?</p>
         <p className="num mt-3 text-4xl font-medium text-[var(--c-text)]">{unreadReplies}</p>

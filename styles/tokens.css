@@ -54,3 +54,6 @@
 
 /* Numbers: Inter with tabular figures. DM Mono's zero is slashed and has no plain alternate. */
 .num { font-family: var(--font-sans), system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+
+.dk .chip-neutral { background: #ffffff14; color: var(--c-muted); }
+.dk .chip-neutral:hover { background: #ffffff1f; }

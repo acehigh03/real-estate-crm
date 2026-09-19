@@ -33,7 +33,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const negotiating = data.board.find((column) => column.key === "negotiating");
 
   return (
-    <div className="flex-1 overflow-auto bg-[var(--c-page)]">
+    <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[var(--c-page)]">
       <div className="mx-auto max-w-[1400px] space-y-6 px-4 py-6 sm:px-8">
         <header>
           <h1 className="text-[22px] font-semibold tracking-tight text-[var(--c-text)]">{greeting()}, {userName}</h1>
@@ -44,7 +44,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
         <PrioritiesBar unreadReplies={data.unreadReplies} overdueFollowUps={data.atRisk.overdueFollowUps} stalledOffers={data.atRisk.staleOffers} />
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid grid-cols-1 gap-6 min-[1100px]:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
           <div className="min-w-0 space-y-6">
             <SignalCards
               unreadReplies={data.unreadReplies}
@@ -58,7 +58,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             />
             <PipelineBoard columns={data.board} />
           </div>
-          <aside className="space-y-6">
+          <aside className="min-w-0 space-y-6 overflow-hidden">
             <InboxPreview conversations={data.conversations} />
             <StatsGrid contacted={data.stats.contacted} replies={data.stats.replies} offersSent={data.stats.offersSent} pipelineValue={data.stats.pipelineValue} />
             <TodayActivity activity={data.today} />

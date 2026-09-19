@@ -45,7 +45,7 @@ export interface BoardColumnData {
   key: BoardColumnKey;
   label: string;
   emptyText: string;
-  emptyHref: string;
+  emptyHref: string | null;
   count: number;
   value: number;
   leads: BoardLead[];
