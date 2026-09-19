@@ -165,10 +165,10 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
   return (
     <aside
       style={{
-        width: 204,
+        width: 224,
         height: "100%",
         background: "var(--s1)",
-        borderRight: "1px solid var(--b0)",
+        borderRight: "1px solid var(--b1)",
         display: "flex",
         flexDirection: "column",
         flexShrink: 0,
@@ -177,11 +177,11 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
       {/* Brand bar */}
       <div
         style={{
-          height: 44,
+          height: 58,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 12px",
+          padding: "0 16px",
           borderBottom: "1px solid var(--b0)",
           flexShrink: 0,
         }}
@@ -190,17 +190,18 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
           {/* Logo mark */}
           <div
             style={{
-              width: 22,
-              height: 22,
-              borderRadius: 6,
-              background: "var(--g)",
+              width: 28,
+              height: 28,
+              borderRadius: 9,
+              background: "linear-gradient(135deg, #6d5dfc, #4544c8)",
+              boxShadow: "0 7px 18px rgba(91,92,226,.28)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
             }}
           >
-            <svg width="12" height="9" viewBox="0 0 12 9" fill="none">
+            <svg width="14" height="11" viewBox="0 0 12 9" fill="none">
               <polyline
                 points="1,7 4,4 6,5.5 9,2 11,3"
                 stroke="var(--on-g)"
@@ -213,8 +214,8 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
           </div>
           <span
             style={{
-              fontSize: 13,
-              fontWeight: 600,
+              fontSize: 14,
+              fontWeight: 700,
               color: "var(--t1)",
               letterSpacing: "-0.01em",
             }}
@@ -261,7 +262,7 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: "6px 10px 12px",
+          padding: "8px 12px 14px",
           display: "flex",
           flexDirection: "column",
           gap: 2,

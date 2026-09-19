@@ -182,7 +182,7 @@ function Button({
       }`}
       style={
         variant === "primary"
-          ? { background: "var(--g)", color: "var(--on-g)" }
+          ? { background: "linear-gradient(135deg, #6d5dfc, #4b48d8)", color: "var(--on-g)", boxShadow: "0 8px 20px rgba(91,92,226,.22)" }
           : variant === "soft"
             ? { background: "var(--gd)", color: "var(--g)", border: "1px solid var(--gb)", fontWeight: 600 }
             : { background: "var(--s1)", color: "var(--t1)", border: "1px solid var(--b2)" }
@@ -206,8 +206,8 @@ function Panel({
 }) {
   return (
     <section className={`dash-card overflow-hidden ${className}`}>
-      <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-3.5">
-        <h2 className="text-[13.5px] font-semibold tracking-tight" style={{ color: "var(--t1)" }}>
+      <div className="flex items-center justify-between gap-3 px-5 pb-3 pt-[18px]">
+        <h2 className="text-[14px] font-bold tracking-[-0.02em]" style={{ color: "var(--t1)" }}>
           {title}
         </h2>
         {right}
@@ -276,15 +276,21 @@ function KpiCard({
   format?: (value: number) => string;
 }) {
   return (
-    <SafeLink href={href} className="dash-card dash-card-lift group flex flex-col gap-2 p-3.5 no-underline">
+    <SafeLink href={href} className="dash-card dash-card-lift group relative flex min-h-[132px] flex-col gap-2 overflow-hidden p-4 no-underline">
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-[2px] opacity-70" style={{ background: tone }} />
       <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-[12px] font-medium" style={{ color: "var(--t2)" }}>
+        <span className="truncate text-[11px] font-bold uppercase tracking-[0.07em]" style={{ color: "var(--t2)" }}>
           {label}
         </span>
-        <Icon size={15} aria-hidden style={{ color: tone }} />
+        <span
+          className="flex h-8 w-8 items-center justify-center rounded-[10px]"
+          style={{ color: tone, background: `color-mix(in srgb, ${tone} 12%, transparent)` }}
+        >
+          <Icon size={16} aria-hidden />
+        </span>
       </div>
       <div className="flex items-baseline gap-2">
-        <span className="text-[24px] font-semibold leading-none tracking-tight tabular-nums" style={{ color: "var(--t1)" }}>
+        <span className="text-[27px] font-bold leading-none tracking-[-0.045em] tabular-nums" style={{ color: "var(--t1)" }}>
           {formatValue(kpi.value)}
         </span>
         {kpi.delta !== null && kpi.delta !== 0 ? (
@@ -823,7 +829,7 @@ export function DashboardClient({ userName, campaignPerformance, view = EMPTY_DA
 
   return (
     <PreviewContext.Provider value={view.sample}>
-      <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-3.5 px-4 py-4 sm:px-6 sm:py-5 xl:grid xl:grid-cols-12 xl:items-start xl:gap-4">
+      <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-4 px-4 py-5 sm:px-7 sm:py-7 xl:grid xl:grid-cols-12 xl:items-start xl:gap-5">
         {view.sample ? (
           <div
             className="order-1 flex flex-wrap items-center justify-between gap-2 rounded-xl px-4 py-2.5 text-[12.5px] xl:col-span-12"
@@ -841,12 +847,13 @@ export function DashboardClient({ userName, campaignPerformance, view = EMPTY_DA
         ) : null}
 
         {/* Header */}
-        <header className="order-1 flex flex-wrap items-end justify-between gap-3 xl:col-span-12">
+        <header className="order-1 flex flex-wrap items-end justify-between gap-4 pb-1 xl:col-span-12">
           <div className="min-w-0">
-            <h1 className="text-[20px] font-semibold leading-tight tracking-tight sm:text-[22px]" style={{ color: "var(--t1)" }} suppressHydrationWarning>
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: "var(--g)" }}>Seller command center</p>
+            <h1 className="text-[27px] font-bold leading-[1.1] tracking-[-0.045em] sm:text-[32px]" style={{ color: "var(--t1)" }} suppressHydrationWarning>
               {greeting}, {firstName}
             </h1>
-            <p className="mt-1 text-[13px]" style={{ color: "var(--t2)" }}>
+            <p className="mt-2 text-[13px] font-medium" style={{ color: "var(--t2)" }}>
               {view.attentionCount > 0
                 ? `You have ${view.attentionCount} ${view.attentionCount === 1 ? "lead" : "leads"} needing attention today.`
                 : empty
