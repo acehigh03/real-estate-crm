@@ -36,18 +36,19 @@ export interface TemplateLead {
   city?: string | null;
 }
 
-/** Supports [[first_name]] / [[address]] (the automation syntax) and the older {{first_name}} form. */
+/** Supports [[first_name]] / [[address]] (the automation syntax), the older {{first_name}} form, and {{name}} (= first name). */
 export function renderTemplate(template: string, lead: TemplateLead): string {
   const fields: Record<string, string> = {
     first_name: lead.first_name?.trim() || "there",
+    name: lead.first_name?.trim() || "there",
     last_name: lead.last_name?.trim() || "",
     address: lead.property_address?.trim() || "your property",
     property_address: lead.property_address?.trim() || "your property",
     city: lead.city?.trim() || "",
   };
   return template
-    .replace(/\[\[\s*(first_name|last_name|address|property_address|city)\s*\]\]/g, (_, key: string) => fields[key])
-    .replace(/{{\s*(first_name|last_name|address|property_address|city)\s*}}/g, (_, key: string) => fields[key]);
+    .replace(/\[\[\s*(first_name|name|last_name|address|property_address|city)\s*\]\]/g, (_, key: string) => fields[key])
+    .replace(/{{\s*(first_name|name|last_name|address|property_address|city)\s*}}/g, (_, key: string) => fields[key]);
 }
 
 // ── Vocabulary ─────────────────────────────────────────────────────────────────────────────

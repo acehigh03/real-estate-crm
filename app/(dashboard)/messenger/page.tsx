@@ -3,7 +3,10 @@ import { getInboxData } from "@/lib/data";
 import { MessengerClient } from "@/components/messenger/messenger-client";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
-export default async function MessengerPage() {
+export const dynamic = "force-dynamic";
+
+export default async function MessengerPage({ searchParams }: { searchParams: Promise<{ lead?: string }> }) {
+  const { lead: leadParam } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -39,6 +42,7 @@ export default async function MessengerPage() {
       initialLeads={leads}
       initialMessages={messages}
       initialSentiments={sentiments}
+      initialLeadId={leadParam ?? null}
       userId={user?.id ?? ""}
     />
   );

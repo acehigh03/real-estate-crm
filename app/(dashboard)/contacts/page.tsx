@@ -1,15 +1,26 @@
-import { getContactsData } from "@/lib/data";
-import { ContactsClient } from "@/components/contacts/contacts-client";
+import { redirect } from "next/navigation";
+
+import { ContactsTable } from "@/components/contacts/contacts-table";
+import { getAllLeads } from "@/lib/dashboard";
+import { logError } from "@/lib/errors";
+import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/database";
+
+export const dynamic = "force-dynamic";
 
 export default async function ContactsPage() {
-  let leads: Awaited<ReturnType<typeof getContactsData>>["leads"] = [];
-  let messages: Awaited<ReturnType<typeof getContactsData>>["messages"] = [];
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
+  let leads: Database["public"]["Tables"]["leads"]["Row"][] = [];
+  let loadError = "";
   try {
-    ({ leads, messages } = await getContactsData());
+    leads = await getAllLeads();
   } catch (error) {
-    console.error("contacts page data failed:", error);
+    logError("contacts page", error);
+    loadError = "Contacts couldn't be loaded. Please refresh.";
   }
 
-  return <ContactsClient initialLeads={leads} initialMessages={messages} />;
+  return <ContactsTable initialLeads={leads} loadError={loadError} />;
 }

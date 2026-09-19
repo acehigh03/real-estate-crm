@@ -1,15 +1,24 @@
-import { getPipelineData } from "@/lib/data";
-import { PipelineClient } from "@/components/pipeline/pipeline-client";
+import { redirect } from "next/navigation";
+
+import { PipelineKanban } from "@/components/pipeline/pipeline-kanban";
+import { BOARD_COLUMNS } from "@/lib/board";
+import { getLeadsByStage } from "@/lib/dashboard";
+import { logError } from "@/lib/errors";
+import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 export default async function PipelinePage() {
-  let cards: Awaited<ReturnType<typeof getPipelineData>>["cards"] = [];
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
+  let columns = BOARD_COLUMNS.map((column) => ({ key: column.key, label: column.label, emptyText: column.emptyText, emptyHref: column.emptyHref, count: 0, value: 0, leads: [] as Awaited<ReturnType<typeof getLeadsByStage>>[number]["leads"] }));
   try {
-    const data = await getPipelineData();
-    cards = data.cards;
+    columns = await getLeadsByStage(200);
   } catch (error) {
-    console.error("pipeline page data failed:", error);
+    logError("pipeline page", error);
   }
 
-  return <PipelineClient cards={cards} />;
+  return <PipelineKanban initialColumns={columns} />;
 }

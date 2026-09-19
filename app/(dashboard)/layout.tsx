@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { Sidebar } from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
-import { getInboxBadgeCount, getCampaignCount } from "@/lib/data";
+import { getCampaignCount } from "@/lib/data";
+import { getUnreadBadgeCount } from "@/lib/dashboard";
 
 export default async function DashboardLayout({
   children,
@@ -20,7 +21,7 @@ export default async function DashboardLayout({
 
   try {
     [inboxBadgeCount, campaignCount] = await Promise.all([
-      getInboxBadgeCount(),
+      getUnreadBadgeCount(),
       getCampaignCount(),
     ]);
   } catch (error) {

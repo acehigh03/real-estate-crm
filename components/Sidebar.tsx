@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -19,6 +20,7 @@ import {
   FileUp,
   Settings,
   Database,
+  Home,
 } from "lucide-react";
 
 import { useTheme } from "@/lib/theme-context";
@@ -32,7 +34,7 @@ interface SidebarProps {
 
 const WORKSPACE = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { label: "Messenger", icon: MessageSquare, href: "/inbox" },
+  { label: "Messenger", icon: MessageSquare, href: "/messenger" },
   { label: "Contacts", icon: Users, href: "/contacts" },
   { label: "Calendar", icon: Calendar, href: "/calendar" },
   { label: "Scheduled", icon: Clock, href: "/scheduled" },
@@ -60,6 +62,7 @@ const chipColors: Record<string, { bg: string; color: string }> = {
   amb: { bg: "var(--ambd)", color: "var(--amb)" },
   red: { bg: "var(--redd)", color: "var(--red)" },
   grn: { bg: "var(--gd)", color: "var(--g)" },
+  rose: { bg: "var(--c-rose)", color: "#ffffff" },
 };
 
 function NavItem({
@@ -89,10 +92,10 @@ function NavItem({
         minHeight: 34,
         padding: "0 10px",
         borderRadius: 8,
-        fontSize: 13,
+        fontSize: 13.5,
         fontWeight: isActive ? 600 : 500,
-        color: isActive ? "var(--g)" : "var(--t2)",
-        background: isActive ? "var(--gd)" : "transparent",
+        color: isActive ? "var(--c-accent-strong)" : "var(--t2)",
+        background: isActive ? "var(--c-accent-soft)" : "transparent",
         textDecoration: "none",
         position: "relative",
         transition: "background 0.1s, color 0.1s",
@@ -112,10 +115,12 @@ function NavItem({
       {chip && cc && (
         <span
           style={{
-            fontSize: 9,
+            fontSize: 10.5,
             fontFamily: "var(--font-mono)",
-            borderRadius: 4,
-            padding: "1px 5px",
+            borderRadius: 99,
+            minWidth: 18,
+            textAlign: "center",
+            padding: "1px 6px",
             background: cc.bg,
             color: cc.color,
             fontWeight: 500,
@@ -151,6 +156,33 @@ const HREF_TO_LABEL: Record<string, string> = {
 export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarProps) {
   const { theme, toggleTheme } = useTheme();
   const pathname = usePathname();
+
+  // Live unread count: refreshed on navigation, every 30s, when the tab regains focus, and
+  // instantly when a conversation is opened (messenger fires "crm:unread-changed").
+  const [unread, setUnread] = useState(inboxBadge);
+  const refreshUnread = useCallback(async () => {
+    try {
+      const response = await fetch("/api/messages/unread-count", { cache: "no-store" });
+      if (!response.ok) return;
+      const data = (await response.json()) as { count?: number };
+      if (typeof data.count === "number") setUnread(data.count);
+    } catch {
+      // keep the last known count
+    }
+  }, []);
+  useEffect(() => { setUnread(inboxBadge); }, [inboxBadge]);
+  useEffect(() => {
+    void refreshUnread();
+    const timer = setInterval(() => void refreshUnread(), 30_000);
+    const onVisible = () => { if (document.visibilityState === "visible") void refreshUnread(); };
+    window.addEventListener("crm:unread-changed", refreshUnread);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("crm:unread-changed", refreshUnread);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [pathname, refreshUnread]);
   const isDark = theme === "dark";
 
   // Lead records (/leads, /leads/[id]) belong to Contacts; anything unmapped falls back to activeItem.
@@ -187,37 +219,29 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {/* Logo mark */}
+          {/* Logo mark: indigo square with a house */}
           <div
+            aria-hidden
             style={{
               width: 28,
               height: 28,
-              borderRadius: 9,
-              background: "linear-gradient(135deg, #6d5dfc, #4544c8)",
-              boxShadow: "0 7px 18px rgba(91,92,226,.28)",
+              borderRadius: 8,
+              background: "var(--indigo-600)",
+              boxShadow: "0 6px 16px rgba(79,70,229,.30)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
             }}
           >
-            <svg width="14" height="11" viewBox="0 0 12 9" fill="none">
-              <polyline
-                points="1,7 4,4 6,5.5 9,2 11,3"
-                stroke="var(--on-g)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                fill="none"
-              />
-            </svg>
+            <Home size={15} strokeWidth={2.2} color="#ffffff" />
           </div>
           <span
             style={{
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: 700,
               color: "var(--t1)",
-              letterSpacing: "-0.01em",
+              letterSpacing: "-0.015em",
             }}
           >
             sellingmy.casa
@@ -285,8 +309,8 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
           <NavItem
             key={item.label}
             {...item}
-            {...(item.label === "Messenger" && inboxBadge > 0
-              ? { chip: String(inboxBadge), chipColor: "grn" }
+            {...(item.label === "Messenger" && unread > 0
+              ? { chip: unread > 99 ? "99+" : String(unread), chipColor: "rose" }
               : {})}
             isActive={activeLabel === item.label}
           />
@@ -344,8 +368,8 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
             width: 28,
             height: 28,
             borderRadius: 7,
-            background: "var(--g)",
-            color: "var(--on-g)",
+            background: "var(--c-accent)",
+            color: "#ffffff",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

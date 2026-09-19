@@ -7,6 +7,7 @@ export type LeadStage =
   | "Replied"
   | "Hot Lead"
   | "Follow Up"
+  | "Skip Traced"
   | "Offer Sent"
   | "Dead"
   | "Closed"
@@ -48,6 +49,7 @@ export interface Database {
           next_follow_up_at: string | null;
           notes_summary: string | null;
           phone: string;
+          pipeline_position: number | null;
           priority: LeadPriority | null;
           property_address: string;
           stage: LeadStage | null;
@@ -78,6 +80,7 @@ export interface Database {
           next_follow_up_at?: string | null;
           notes_summary?: string | null;
           phone: string;
+          pipeline_position?: number | null;
           priority?: LeadPriority | null;
           property_address: string;
           stage?: LeadStage | null;
@@ -182,6 +185,7 @@ export interface Database {
           id: string;
           lead_id: string | null;
           phone: string | null;
+          read_at: string | null;
           status: string | null;
           telnyx_message_id: string | null;
           to_number: string;
@@ -193,6 +197,7 @@ export interface Database {
           direction: "inbound" | "outbound";
           lead_id?: string | null;
           phone?: string | null;
+          read_at?: string | null;
           status?: string | null;
           telnyx_message_id?: string | null;
           to_number: string;

@@ -1,0 +1,55 @@
+/* Seller Command Center design tokens.
+   Raw palette first, then semantic aliases (--c-*) that flip in dark mode (.dk).
+   New components use the --c-* aliases so they follow the theme toggle. */
+:root {
+  --indigo-900: #1e1b4b; --indigo-700: #3730a3; --indigo-600: #4f46e5;
+  --indigo-500: #6366f1; --indigo-100: #e0e7ff; --indigo-50: #eef2ff;
+  --slate-900: #0f172a; --slate-700: #334155; --slate-500: #64748b;
+  --slate-300: #cbd5e1; --slate-100: #f1f5f9; --slate-50: #f8fafc;
+  --amber-500: #f59e0b; --amber-100: #fef3c7;
+  --rose-500: #f43f5e; --rose-100: #ffe4e6;
+  --emerald-500: #10b981; --emerald-100: #d1fae5;
+
+  --c-page: var(--slate-50);
+  --c-surface: #ffffff;
+  --c-surface-2: var(--slate-50);
+  --c-border: #e2e8f0;
+  --c-text: var(--slate-900);
+  --c-text-2: var(--slate-700);
+  --c-muted: var(--slate-500);
+  --c-accent: var(--indigo-600);
+  --c-accent-strong: var(--indigo-700);
+  --c-accent-soft: var(--indigo-50);
+  --c-accent-border: var(--indigo-100);
+  --c-amber: var(--amber-500);
+  --c-amber-soft: var(--amber-100);
+  --c-amber-text: #b45309;
+  --c-rose: var(--rose-500);
+  --c-rose-soft: var(--rose-100);
+  --c-rose-text: #be123c;
+  --c-emerald: var(--emerald-500);
+  --c-emerald-soft: var(--emerald-100);
+  --c-emerald-text: #047857;
+}
+
+.dk {
+  --c-page: #07090d;
+  --c-surface: #0c0f16;
+  --c-surface-2: #111520;
+  --c-border: #ffffff1a;
+  --c-text: #edf0f7;
+  --c-text-2: #c3c9d8;
+  --c-muted: #8b94ac;
+  --c-accent: var(--indigo-500);
+  --c-accent-strong: #a5b4fc;
+  --c-accent-soft: #6366f126;
+  --c-accent-border: #6366f14d;
+  --c-amber-soft: #f59e0b26;
+  --c-amber-text: #fbbf24;
+  --c-rose-soft: #f43f5e26;
+  --c-rose-text: #fb7185;
+  --c-emerald-soft: #10b98126;
+  --c-emerald-text: #34d399;
+}
+
+.num { font-family: var(--font-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; }

@@ -284,7 +284,7 @@ export function InboxClient({
           lead,
           messages,
           lastMessage,
-          unread: lastMessage?.direction === "inbound",
+          unread: lastMessage?.direction === "inbound" && !lastMessage.read_at,
         };
       })
       .sort((left, right) => {
@@ -311,6 +311,21 @@ export function InboxClient({
       null
     );
   }, [filteredConversations, selectedLeadId]);
+
+  // Opening a conversation marks its replies read (keeps the sidebar badge honest).
+  const openLeadId = selectedConversation?.lead.id ?? null;
+  const openIsUnread = selectedConversation?.unread ?? false;
+  useEffect(() => {
+    if (!openLeadId || !openIsUnread) return;
+    const now = new Date().toISOString();
+    setMessagesByLead((current) => ({
+      ...current,
+      [openLeadId]: (current[openLeadId] ?? []).map((message) => (message.direction === "inbound" && !message.read_at ? { ...message, read_at: now } : message)),
+    }));
+    void fetch("/api/messages/read", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ lead_id: openLeadId }) })
+      .then(() => window.dispatchEvent(new Event("crm:unread-changed")))
+      .catch(() => undefined);
+  }, [openLeadId, openIsUnread]);
 
   useEffect(() => {
     if (!selectedConversation) return;
@@ -467,6 +482,7 @@ export function InboxClient({
       to_number: selectedConversation.lead.phone,
       classification: null,
       phone: null,
+      read_at: null,
     };
 
     setComposeText("");

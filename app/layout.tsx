@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { DM_Mono, Inter } from "next/font/google";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme-context";
 import "./globals.css";
+import "../styles/tokens.css";
 
-const spaceGrotesk = Space_Grotesk({
+const inter = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const dmMono = DM_Mono({
   subsets: ["latin"],
   weight: ["400", "500"],
   variable: "--font-mono",
@@ -26,7 +27,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`lk ${spaceGrotesk.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`lk ${inter.variable} ${dmMono.variable}`} suppressHydrationWarning>
       <body>
         <ThemeProvider>
           <TooltipProvider>{children}</TooltipProvider>
