@@ -15,6 +15,23 @@ export function AppShell({
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
+  // Belt and braces: if anything ever scrolls the shell or sidebar sideways, snap it back so
+  // the sidebar's first letters are never cut off.
+  useEffect(() => {
+    const pinned = () => [
+      document.querySelector(".app-shell"),
+      document.querySelector(".app-sidebar"),
+      document.querySelector(".app-sidebar aside"),
+      document.querySelector(".app-sidebar nav"),
+      document.scrollingElement,
+      document.body,
+    ];
+    const reset = () => pinned().forEach((element) => { if (element && element.scrollLeft !== 0) element.scrollLeft = 0; });
+    reset();
+    window.addEventListener("scroll", reset, { capture: true, passive: true });
+    return () => window.removeEventListener("scroll", reset, { capture: true });
+  }, []);
+
   // Close the drawer after navigating, and on Escape.
   useEffect(() => setOpen(false), [pathname]);
   useEffect(() => {

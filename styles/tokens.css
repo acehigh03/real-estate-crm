@@ -104,7 +104,7 @@ button[class*="bg-[var(--c-accent)]"]:disabled { box-shadow: none; }
 .dash-glow {
   pointer-events: none;
   position: absolute;
-  inset: -48px -32px auto -32px;
+  inset: -48px 0 auto 0;
   height: 260px;
   background:
     radial-gradient(60% 100% at 78% 0%, rgba(99, 102, 241, 0.13), transparent 70%),

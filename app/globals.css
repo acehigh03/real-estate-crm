@@ -304,6 +304,32 @@
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+  /* clip (unlike hidden) is not a scroll container, so focus / scrollIntoView / swipes can never shift it */
+  overflow: clip;
+  max-width: 100vw;
+}
+html,
+body {
+  overflow-x: hidden;
+  overflow-x: clip;
+  max-width: 100%;
+}
+/* The sidebar is a fixed 224px column that never scrolls sideways or shrinks. */
+.app-sidebar {
+  min-width: 0;
+  overflow: hidden;
+  overflow: clip;
+}
+.app-sidebar aside {
+  width: 100% !important;
+  max-width: 100%;
+}
+.app-sidebar nav {
+  overflow-x: hidden;
+}
+.app-mobile-bar {
+  position: relative;
+  z-index: 2;
 }
 .app-main {
   overflow-y: auto;

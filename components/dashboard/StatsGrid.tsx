@@ -2,7 +2,7 @@
 
 import { DollarSign, MessageSquare, Send, Users } from "lucide-react";
 
-import { formatMoney } from "@/lib/format";
+import { formatMoneyCompact } from "@/lib/format";
 import { IconChip } from "./IconChip";
 
 export function StatsGrid({ contacted, replies, offersSent, pipelineValue }: { contacted: number; replies: number; offersSent: number; pipelineValue: number }) {
@@ -10,7 +10,7 @@ export function StatsGrid({ contacted, replies, offersSent, pipelineValue }: { c
     { label: "Leads contacted", value: contacted.toLocaleString("en-US"), icon: Users, tone: "accent" as const },
     { label: "Replies", value: replies.toLocaleString("en-US"), icon: MessageSquare, tone: "emerald" as const },
     { label: "Offers sent", value: offersSent.toLocaleString("en-US"), icon: Send, tone: "accent" as const },
-    { label: "Pipeline value", value: formatMoney(pipelineValue), icon: DollarSign, tone: "amber" as const },
+    { label: "Pipeline value", value: formatMoneyCompact(pipelineValue), icon: DollarSign, tone: "amber" as const },
   ];
   return (
     <section aria-label="Stats" className="grid grid-cols-2 gap-4">
