@@ -37,14 +37,18 @@
 
 .dk {
   --c-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 36px -14px rgba(0, 0, 0, 0.65);
-  --c-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.45), 0 22px 44px -14px rgba(99, 102, 241, 0.35);
-  --c-page: #07090d;
-  --c-surface: #0c0f16;
-  --c-surface-2: #111520;
-  --c-border: #ffffff1a;
-  --c-text: #edf0f7;
-  --c-text-2: #c3c9d8;
-  --c-muted: #8b94ac;
+  /* subtle neon-lime lift on hover */
+  --c-shadow-hover: 0 0 0 1px rgba(163, 255, 18, 0.28), 0 2px 4px rgba(0, 0, 0, 0.45), 0 18px 40px -16px rgba(163, 255, 18, 0.24);
+  --c-lime: #a3ff12;
+  --c-lime-soft: rgba(163, 255, 18, 0.12);
+  --c-lime-ink: #10140a;
+  --c-page: #20242b;
+  --c-surface: #2a2f38;
+  --c-surface-2: #242931;
+  --c-border: #3a414d;
+  --c-text: #f4f6f8;
+  --c-text-2: #b2bac7;
+  --c-muted: #949caa;
   --c-accent: var(--indigo-500);
   --c-accent-strong: #a5b4fc;
   --c-accent-soft: #6366f126;
@@ -106,3 +110,39 @@ button[class*="bg-[var(--c-accent)]"]:disabled { box-shadow: none; }
 
 .dk .chip-neutral { background: #ffffff14; color: var(--c-muted); }
 .dk .chip-neutral:hover { background: #ffffff1f; }
+
+/* ── Dark mode: neon lime for primary actions, active nav, key counts and money ─────────────
+   Indigo stays as the secondary/info colour. Everything here is scoped to .dk, so light mode is untouched. */
+
+/* Sidebar sits a step darker than the page and cards */
+.dk .app-sidebar aside { background: #1b1f25 !important; }
+.dk .app-mobile-bar { background: #1b1f25; }
+
+/* Primary buttons and links: lime fill, dark ink, soft lime glow */
+.dk button[class*="bg-[var(--c-accent)]"],
+.dk a[class*="bg-[var(--c-accent)]"] {
+  background-color: var(--c-lime);
+  background-image: linear-gradient(180deg, #b8ff47 0%, #a3ff12 100%);
+  color: var(--c-lime-ink);
+  box-shadow: 0 8px 22px -8px rgba(163, 255, 18, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.dk button[class*="bg-[var(--c-accent)]"]:hover:not(:disabled),
+.dk a[class*="bg-[var(--c-accent)]"]:hover {
+  box-shadow: 0 10px 28px -8px rgba(163, 255, 18, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.dk button[class*="bg-[var(--c-accent)]"]:disabled { box-shadow: none; }
+
+/* Active navigation item (the active link is the one rendered at font-weight 600) */
+.dk .app-sidebar a.nav-item[style*="font-weight:600"],
+.dk .app-sidebar a.nav-item[style*="font-weight: 600"] {
+  color: var(--c-lime) !important;
+  background: var(--c-lime-soft) !important;
+}
+
+/* Money metrics (pipeline value) and the headline "who do I contact" count */
+.dk .metric[class*="text-[var(--c-accent-strong)]"] { color: var(--c-lime); }
+.dk section[aria-label="Signals"] > a:first-child .metric { color: var(--c-lime); }
+
+/* Visible keyboard focus in lime */
+.dk a:focus-visible,
+.dk button:focus-visible { outline-color: var(--c-lime); }
