@@ -301,6 +301,8 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
             letterSpacing: "0.08em",
             color: "var(--t3)",
             padding: "16px 10px 6px",
+            flexShrink: 0,
+            whiteSpace: "nowrap",
           }}
         >
           Workspace
@@ -325,6 +327,8 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
             letterSpacing: "0.08em",
             color: "var(--t3)",
             padding: "16px 10px 6px",
+            flexShrink: 0,
+            whiteSpace: "nowrap",
           }}
         >
           Outreach
@@ -342,6 +346,8 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
             letterSpacing: "0.08em",
             color: "var(--t3)",
             padding: "16px 10px 6px",
+            flexShrink: 0,
+            whiteSpace: "nowrap",
           }}
         >
           System

@@ -11,9 +11,7 @@ export function PrioritiesBar({ unreadReplies, overdueFollowUps, stalledOffers }
     <section aria-label="Today's priorities" className="flex flex-wrap items-center gap-2.5">
       <Link
         href="/messenger"
-        className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13.5px] font-semibold text-white shadow-sm transition-colors ${
-          unreadReplies > 0 ? "bg-[var(--c-rose)] hover:bg-[#e11d48]" : "bg-[var(--slate-500)] hover:bg-[var(--slate-700)]"
-        }`}
+        className="inline-flex items-center gap-2 rounded-xl bg-[var(--c-rose)] px-4 py-2.5 text-[13.5px] font-semibold text-white shadow-sm transition-colors hover:bg-[#e11d48]"
       >
         <Flame size={16} aria-hidden />
         {unreadReplies > 0 ? (

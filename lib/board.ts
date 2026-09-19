@@ -21,7 +21,7 @@ export const BOARD_COLUMNS: BoardColumnDef[] = [
   { key: "new", label: "New Lead", stages: ["New"], emptyText: "Import your first list →", emptyHref: "/import", write: { status: "New", stage: "New" } },
   { key: "skip_traced", label: "Skip Traced", stages: ["Skip Traced"], emptyText: "Connect skip tracing →", emptyHref: "/settings", write: { status: "New", stage: "Skip Traced" } },
   { key: "contacted", label: "Contacted", stages: ["Contacted", "Replied", "Follow Up"], emptyText: "Start a campaign →", emptyHref: "/campaigns", write: { status: "Contacted", stage: "Contacted" } },
-  { key: "negotiating", label: "Negotiating", stages: ["Hot Lead", "Offer Sent"], emptyText: "Hot replies land here", emptyHref: "/messenger", write: { status: "Hot", stage: "Hot Lead", classification: "HOT" } },
+  { key: "negotiating", label: "Negotiating", stages: ["Hot Lead", "Offer Sent"], emptyText: "Start a campaign →", emptyHref: "/campaigns", write: { status: "Hot", stage: "Hot Lead", classification: "HOT" } },
 ];
 
 export const NEGOTIATING_STAGES: LeadStage[] = ["Hot Lead", "Offer Sent"];

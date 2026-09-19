@@ -22,7 +22,7 @@ export function SignalCards({ unreadReplies, newLeads, atRiskCount, atRiskValue,
         <ArrowUpRight size={16} className="absolute right-4 top-4 text-[var(--c-muted)] opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
       </Link>
 
-      <Link href="/pipeline" className={`${card} border-l-4 border-l-[var(--c-amber)]`}>
+      <Link href="/pipeline" className={`${card}`}>
         <p className="text-[13px] font-medium text-[var(--c-muted)]">What is at risk?</p>
         <p className="mt-3 flex items-baseline gap-2">
           <span className="num text-4xl font-medium text-[var(--c-text)]">{atRiskCount}</span>

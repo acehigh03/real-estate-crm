@@ -52,4 +52,5 @@
   --c-emerald-text: #34d399;
 }
 
-.num { font-family: var(--font-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+/* Numbers: Inter with tabular figures. DM Mono's zero is slashed and has no plain alternate. */
+.num { font-family: var(--font-sans), system-ui, sans-serif; font-variant-numeric: tabular-nums; }
