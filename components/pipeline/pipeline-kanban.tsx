@@ -168,7 +168,7 @@ function Column({ column, leads, total, hidden, onValue, onFollowUp }: {
           {leads.map((lead) => <SortableCard key={lead.id} lead={lead} onValue={onValue} onFollowUp={onFollowUp} />)}
         </SortableContext>
         {leads.length === 0 && (
-          <EmptyColumn text={column.emptyText} href={column.emptyHref} minHeight={96} />
+          <EmptyColumn columnKey={column.key} text={column.emptyText} href={column.emptyHref} minHeight={96} />
         )}
         {hidden > 0 && <p className="px-1 text-[12px] text-[var(--c-muted)]"><span className="num">{hidden}</span> more not shown</p>}
       </div>
@@ -289,10 +289,10 @@ export function PipelineKanban({ initialColumns }: { initialColumns: BoardColumn
     <div className="flex flex-1 flex-col overflow-hidden bg-[var(--c-page)]">
       <header className="flex shrink-0 flex-wrap items-end justify-between gap-3 border-b border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-4 sm:px-8">
         <div>
-          <h1 className="text-[20px] font-semibold tracking-tight text-[var(--c-text)]">Pipeline</h1>
+          <h1 className="h-display text-[26px]">Pipeline</h1>
           <p className="mt-0.5 text-[13px] text-[var(--c-muted)]">Drag cards between columns to change stage, or up and down to reorder. Click a deal value to edit it.</p>
         </div>
-        <div className="text-right"><p className="text-[12px] text-[var(--c-muted)]">Pipeline value</p><p className="num text-[20px] font-medium text-[var(--c-accent-strong)]">{formatMoney(grandTotal)}</p></div>
+        <div className="text-right"><p className="text-[12px] text-[var(--c-muted)]">Pipeline value</p><p className="metric text-[26px] text-[var(--c-accent-strong)]">{formatMoney(grandTotal)}</p></div>
       </header>
       {error && <div role="alert" className="mx-4 mt-3 rounded-xl border border-[var(--c-rose)]/30 bg-[var(--c-rose-soft)] px-4 py-2.5 text-[13px] text-[var(--c-rose-text)] sm:mx-8">{error}</div>}
       <main className="flex-1 overflow-auto px-4 py-5 sm:px-8">

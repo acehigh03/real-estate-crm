@@ -43,7 +43,7 @@ export function CampaignsClient({ campaigns }: { campaigns: CampaignStats[] }) {
     <div className="flex min-h-0 flex-1 flex-col bg-[var(--c-page)]">
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-4 sm:px-8">
         <div>
-          <h1 className="text-[20px] font-semibold tracking-tight text-[var(--c-text)]">Campaigns</h1>
+          <h1 className="h-display text-[26px]">Campaigns</h1>
           <p className="mt-0.5 text-[13px] text-[var(--c-muted)]">Reply rate is replies per person texted.</p>
         </div>
         <div className="flex gap-2">
@@ -57,7 +57,7 @@ export function CampaignsClient({ campaigns }: { campaigns: CampaignStats[] }) {
           {stats.map((stat) => (
             <div key={stat.label} className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
               <p className="text-[12px] font-medium text-[var(--c-muted)]">{stat.label}</p>
-              <p className="num mt-1.5 text-[22px] font-medium text-[var(--c-text)]">{stat.value}</p>
+              <p className="metric mt-2 text-[28px] text-[var(--c-text)]">{stat.value}</p>
             </div>
           ))}
         </section>

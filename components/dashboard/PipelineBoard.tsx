@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Handshake } from "lucide-react";
+import { ArrowRight, Handshake, Plus, Search, Send, type LucideIcon } from "lucide-react";
 
 import type { BoardColumnData, BoardLead } from "@/lib/dashboard";
-import { cardIdentity, nextActionFor, urgencyFor, type Urgency } from "@/lib/board";
+import { COLUMN_BY_KEY, cardIdentity, nextActionFor, urgencyFor, type BoardColumnKey, type Urgency } from "@/lib/board";
 import { formatMoneyCompact, formatMoney, formatPhone, formatShort } from "@/lib/format";
 
 export const urgencyStyle: Record<Urgency, string> = {
@@ -13,20 +13,24 @@ export const urgencyStyle: Record<Urgency, string> = {
   Cold: "bg-[var(--slate-100)] text-[var(--slate-500)] dark:bg-white/10",
 };
 
-/** Empty column: a call to action when there is one, otherwise a plain note. */
-export function EmptyColumn({ text, href, minHeight = 88 }: { text: string; href: string | null; minHeight?: number }) {
-  if (!href) {
-    return (
-      <div style={{ minHeight }} className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[var(--c-border)] px-3 text-center text-[13px] text-[var(--c-muted)]">
-        <Handshake size={18} aria-hidden />
-        {text}
-      </div>
-    );
-  }
-  return (
-    <Link href={href} style={{ minHeight }} className="flex items-center justify-center rounded-xl border border-dashed border-[var(--c-accent)]/60 px-3 text-center text-[13px] font-medium text-[var(--c-accent-strong)] hover:bg-[var(--c-accent-soft)]">
-      {text}
-    </Link>
+const EMPTY_ICON: Record<BoardColumnKey, LucideIcon> = { new: Plus, skip_traced: Search, contacted: Send, negotiating: Handshake };
+
+/** Empty column: icon, a call to action when there is one (otherwise plain text), and a supporting hint. */
+export function EmptyColumn({ columnKey, text, href, minHeight = 96 }: { columnKey: BoardColumnKey; text: string; href: string | null; minHeight?: number }) {
+  const Icon = EMPTY_ICON[columnKey];
+  const hint = COLUMN_BY_KEY[columnKey].emptyHint;
+  const body = (
+    <>
+      <span aria-hidden className="icon-chip icon-chip-accent h-9 w-9 rounded-full"><Icon size={17} strokeWidth={2} /></span>
+      <span className={`text-[13.5px] ${href ? "font-semibold text-[var(--c-accent-strong)]" : "font-medium text-[var(--c-text-2)]"}`}>{text}</span>
+      <span className="max-w-[220px] text-[12px] leading-snug text-[var(--c-muted)]">{hint}</span>
+    </>
+  );
+  const box = "flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed px-4 py-4 text-center";
+  return href ? (
+    <Link href={href} style={{ minHeight }} className={`${box} border-[var(--c-accent-border)] hover:bg-[var(--c-accent-soft)]`}>{body}</Link>
+  ) : (
+    <div style={{ minHeight }} className={`${box} border-[var(--c-border)]`}>{body}</div>
   );
 }
 
@@ -47,7 +51,7 @@ function LeadCard({ lead }: { lead: BoardLead }) {
   const urgency = urgencyFor(lead.last_contacted_at);
   const action = nextActionFor(lead);
   return (
-    <Link href={`/leads/${lead.id}`} className="block rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3 transition-shadow hover:shadow-md">
+    <Link href={`/leads/${lead.id}`} className="block rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3.5 shadow-sm transition-shadow hover:shadow-md">
       <CardIdentityLines lead={lead} />
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${urgencyStyle[urgency]}`}>{urgency}</span>
@@ -60,18 +64,18 @@ function LeadCard({ lead }: { lead: BoardLead }) {
 
 export function PipelineBoard({ columns }: { columns: BoardColumnData[] }) {
   return (
-    <section aria-label="Pipeline" className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface-2)] p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-[15px] font-semibold text-[var(--c-text)]">Pipeline</h2>
+    <section aria-label="Pipeline" className="c-card p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-[17px] font-bold text-[var(--c-text)]">Pipeline</h2>
         <Link href="/pipeline" className="inline-flex items-center gap-1 text-[13px] font-medium text-[var(--c-accent-strong)] hover:underline">
           Open full board <ArrowRight size={14} aria-hidden />
         </Link>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-4">
         {columns.map((column) => (
           <div key={column.key} className="flex min-w-0 flex-col">
             <div className="mb-2 flex items-center justify-between px-1">
-              <span className="text-[12.5px] font-semibold text-[var(--c-text-2)]">
+              <span className="text-[13.5px] font-bold text-[var(--c-text)]">
                 {column.label} <span className="num ml-1 text-[var(--c-muted)]">{column.count}</span>
               </span>
               {column.value > 0 && <span className="num text-[11.5px] text-[var(--c-muted)]">{formatMoneyCompact(column.value)}</span>}
@@ -80,7 +84,7 @@ export function PipelineBoard({ columns }: { columns: BoardColumnData[] }) {
               {column.leads.length ? (
                 column.leads.map((lead) => <LeadCard key={lead.id} lead={lead} />)
               ) : (
-                <EmptyColumn text={column.emptyText} href={column.emptyHref} />
+                <EmptyColumn columnKey={column.key} text={column.emptyText} href={column.emptyHref} />
               )}
               {column.count > column.leads.length && (
                 <Link href="/pipeline" className="block px-1 text-[12px] text-[var(--c-muted)] hover:text-[var(--c-accent-strong)]">

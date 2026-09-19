@@ -14,15 +14,17 @@ export interface BoardColumnDef {
   emptyText: string;
   /** null = plain empty state with no call to action. */
   emptyHref: string | null;
+  /** Small supporting line under the empty-state text. */
+  emptyHint: string;
   /** What dropping a card here (or bulk-changing to it) writes. Same shape updatePipelineStage writes. */
   write: { status: LeadStatus; stage: LeadStage; classification?: LeadClassification };
 }
 
 export const BOARD_COLUMNS: BoardColumnDef[] = [
-  { key: "new", label: "New Lead", stages: ["New"], emptyText: "Import your first list →", emptyHref: "/import", write: { status: "New", stage: "New" } },
-  { key: "skip_traced", label: "Skip Traced", stages: ["Skip Traced"], emptyText: "Connect skip tracing →", emptyHref: "/settings", write: { status: "New", stage: "Skip Traced" } },
-  { key: "contacted", label: "Contacted", stages: ["Contacted", "Replied", "Follow Up"], emptyText: "Start a campaign →", emptyHref: "/campaigns", write: { status: "Contacted", stage: "Contacted" } },
-  { key: "negotiating", label: "Negotiating", stages: ["Hot Lead", "Offer Sent"], emptyText: "No active negotiations", emptyHref: null, write: { status: "Hot", stage: "Hot Lead", classification: "HOT" } },
+  { key: "new", label: "New Lead", stages: ["New"], emptyText: "Import your first list →", emptyHref: "/import", emptyHint: "Start by importing leads to fill your pipeline.", write: { status: "New", stage: "New" } },
+  { key: "skip_traced", label: "Skip Traced", stages: ["Skip Traced"], emptyText: "Connect skip tracing →", emptyHref: "/settings", emptyHint: "Find owner info to move faster.", write: { status: "New", stage: "Skip Traced" } },
+  { key: "contacted", label: "Contacted", stages: ["Contacted", "Replied", "Follow Up"], emptyText: "Start a campaign →", emptyHref: "/campaigns", emptyHint: "Text new leads to start conversations.", write: { status: "Contacted", stage: "Contacted" } },
+  { key: "negotiating", label: "Negotiating", stages: ["Hot Lead", "Offer Sent"], emptyText: "No active negotiations", emptyHref: null, emptyHint: "Move hot leads here when offers are on the table.", write: { status: "Hot", stage: "Hot Lead", classification: "HOT" } },
 ];
 
 export const NEGOTIATING_STAGES: LeadStage[] = ["Hot Lead", "Offer Sent"];

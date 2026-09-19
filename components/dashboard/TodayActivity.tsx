@@ -1,18 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, CalendarDays } from "lucide-react";
 
 import type { TodayActivity as Activity } from "@/lib/dashboard";
 import { formatShort } from "@/lib/format";
+import { IconChip } from "./IconChip";
 
 export function TodayActivity({ activity }: { activity: Activity }) {
   return (
-    <section aria-label="Today's activity" className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
-      <h2 className="text-[15px] font-semibold text-[var(--c-text)]">Today</h2>
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <div><p className="num text-2xl font-medium text-[var(--c-text)]">{activity.textsSent}</p><p className="text-[12px] text-[var(--c-muted)]">texts sent</p></div>
-        <div><p className="num text-2xl font-medium text-[var(--c-text)]">{activity.repliesReceived}</p><p className="text-[12px] text-[var(--c-muted)]">replies received</p></div>
+    <section aria-label="Today's activity" className="c-card p-5">
+      <h2 className="flex items-center gap-2.5 text-[16px] font-bold text-[var(--c-text)]"><IconChip icon={CalendarDays} tone="accent" size={34} shape="square" />Today</h2>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div><p className="metric text-[28px] text-[var(--c-text)]">{activity.textsSent}</p><p className="text-[12px] text-[var(--c-muted)]">texts sent</p></div>
+        <div><p className="metric text-[28px] text-[var(--c-text)]">{activity.repliesReceived}</p><p className="text-[12px] text-[var(--c-muted)]">replies received</p></div>
       </div>
       {activity.events.length > 0 && (
         <ul className="mt-3 space-y-2 border-t border-[var(--c-border)] pt-3">

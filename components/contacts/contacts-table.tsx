@@ -117,7 +117,7 @@ export function ContactsTable({ initialLeads, loadError }: { initialLeads: Lead[
       <header className="shrink-0 border-b border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-4 sm:px-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-[20px] font-semibold tracking-tight text-[var(--c-text)]">Contacts</h1>
+            <h1 className="h-display text-[26px]">Contacts</h1>
             <p className="mt-0.5 text-[13px] text-[var(--c-muted)]"><span className="num">{filtered.length.toLocaleString("en-US")}</span> of <span className="num">{leads.length.toLocaleString("en-US")}</span> leads</p>
           </div>
           <Link href="/import" className="rounded-lg border border-[var(--c-border)] px-3 py-2 text-[13px] font-medium text-[var(--c-text-2)] hover:bg-[var(--c-surface-2)]">Import CSV</Link>

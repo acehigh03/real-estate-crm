@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import { DM_Mono, Inter } from "next/font/google";
+import { DM_Mono, Manrope } from "next/font/google";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme-context";
 import "./globals.css";
 import "../styles/tokens.css";
 
-const inter = Inter({
+const manrope = Manrope({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-sans",
 });
 
@@ -27,7 +27,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`lk ${inter.variable} ${dmMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`lk ${manrope.variable} ${dmMono.variable}`} suppressHydrationWarning>
       <body>
         <ThemeProvider>
           <TooltipProvider>{children}</TooltipProvider>

@@ -14,9 +14,12 @@
   --c-surface: #ffffff;
   --c-surface-2: var(--slate-50);
   --c-border: #e2e8f0;
-  --c-text: var(--slate-900);
-  --c-text-2: var(--slate-700);
-  --c-muted: var(--slate-500);
+  /* Deep slate navy instead of neutral gray */
+  --c-text: #0d1633;
+  --c-text-2: #33406a;
+  --c-muted: #56628a;
+  --c-shadow: 0 1px 2px rgba(13, 22, 51, 0.05), 0 14px 34px -14px rgba(55, 48, 163, 0.22);
+  --c-shadow-hover: 0 2px 4px rgba(13, 22, 51, 0.06), 0 22px 44px -14px rgba(55, 48, 163, 0.34);
   --c-accent: var(--indigo-600);
   --c-accent-strong: var(--indigo-700);
   --c-accent-soft: var(--indigo-50);
@@ -33,6 +36,8 @@
 }
 
 .dk {
+  --c-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 36px -14px rgba(0, 0, 0, 0.65);
+  --c-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.45), 0 22px 44px -14px rgba(99, 102, 241, 0.35);
   --c-page: #07090d;
   --c-surface: #0c0f16;
   --c-surface-2: #111520;
@@ -52,8 +57,64 @@
   --c-emerald-text: #34d399;
 }
 
-/* Numbers: Inter with tabular figures. DM Mono's zero is slashed and has no plain alternate. */
-.num { font-family: var(--font-sans), system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+/* Numbers: DM Mono for small figures (dates, counts, phones, status labels);
+   .metric is for the big dashboard numbers (Manrope bold, tabular). */
+.num { font-family: var(--font-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.metric { font-family: var(--font-sans), system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1; }
+
+/* Deeper navy text on the legacy light-theme tokens too (sidebar, older pages) */
+.lk { --t1: #0d1633; --t2: #38446b; --t3: #66719a; }
+
+/* Headings: heavier and tighter */
+h1, h2, h3, h4 { letter-spacing: -0.03em; }
+h1[class*="font-"] { font-weight: 800; }
+h2[class*="font-"], h3[class*="font-"] { font-weight: 700; }
+.h-display { font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; color: var(--c-text); }
+
+/* Cards: rounder, stronger shadow that lifts on hover */
+.c-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 20px;
+  box-shadow: var(--c-shadow);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+a.c-card:hover { box-shadow: var(--c-shadow-hover); transform: translateY(-1px); }
+
+/* Round tinted icon badge used at the top of cards */
+.icon-chip { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; }
+.icon-chip-accent { background: var(--c-accent-soft); color: var(--c-accent-strong); }
+.icon-chip-amber { background: var(--c-amber-soft); color: var(--c-amber-text); }
+.icon-chip-emerald { background: var(--c-emerald-soft); color: var(--c-emerald-text); }
+.icon-chip-rose { background: var(--c-rose-soft); color: var(--c-rose-text); }
+
+/* Primary purple buttons get a soft indigo gradient and glow */
+button[class*="bg-[var(--c-accent)]"], a[class*="bg-[var(--c-accent)]"] {
+  background-image: linear-gradient(180deg, #6d70f5 0%, #4f46e5 100%);
+  box-shadow: 0 8px 20px -6px rgba(79, 70, 229, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: box-shadow 0.15s ease, filter 0.15s ease;
+}
+button[class*="bg-[var(--c-accent)]"]:hover:not(:disabled), a[class*="bg-[var(--c-accent)]"]:hover {
+  box-shadow: 0 10px 26px -6px rgba(79, 70, 229, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  filter: brightness(1.05);
+}
+button[class*="bg-[var(--c-accent)]"]:disabled { box-shadow: none; }
+
+/* Very faint lavender-blue glow behind the dashboard header */
+.dash-glow {
+  pointer-events: none;
+  position: absolute;
+  inset: -48px -32px auto -32px;
+  height: 260px;
+  background:
+    radial-gradient(60% 100% at 78% 0%, rgba(99, 102, 241, 0.13), transparent 70%),
+    radial-gradient(45% 90% at 18% 0%, rgba(56, 189, 248, 0.09), transparent 70%);
+}
+.dk .dash-glow {
+  background:
+    radial-gradient(60% 100% at 78% 0%, rgba(99, 102, 241, 0.2), transparent 70%),
+    radial-gradient(45% 90% at 18% 0%, rgba(56, 189, 248, 0.08), transparent 70%);
+}
 
 .dk .chip-neutral { background: #ffffff14; color: var(--c-muted); }
 .dk .chip-neutral:hover { background: #ffffff1f; }

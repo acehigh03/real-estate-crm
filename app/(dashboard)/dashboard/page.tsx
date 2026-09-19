@@ -33,18 +33,19 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const negotiating = data.board.find((column) => column.key === "negotiating");
 
   return (
-    <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[var(--c-page)]">
-      <div className="mx-auto max-w-[1400px] space-y-6 px-4 py-6 sm:px-8">
-        <header>
-          <h1 className="text-[22px] font-semibold tracking-tight text-[var(--c-text)]">{greeting()}, {userName}</h1>
-          <p className="mt-1 text-[13.5px] text-[var(--c-muted)]">
+    <div className="relative flex-1 overflow-y-auto overflow-x-hidden bg-[var(--c-page)]">
+      <div className="relative mx-auto max-w-[1400px] space-y-7 px-4 py-7 sm:px-8">
+        <div aria-hidden className="dash-glow" />
+        <header className="relative">
+          <h1 className="h-display text-[28px] sm:text-[30px]">{greeting()}, {userName}</h1>
+          <p className="mt-1.5 text-[14px] font-medium text-[var(--c-muted)]">
             {isDemo ? "Sample data — nothing here is real or saved." : "Here’s what needs you today."}
           </p>
         </header>
 
-        <PrioritiesBar unreadReplies={data.unreadReplies} overdueFollowUps={data.atRisk.overdueFollowUps} stalledOffers={data.atRisk.staleOffers} />
+        <div className="relative"><PrioritiesBar unreadReplies={data.unreadReplies} overdueFollowUps={data.atRisk.overdueFollowUps} stalledOffers={data.atRisk.staleOffers} /></div>
 
-        <div className="grid grid-cols-1 gap-6 min-[1100px]:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
+        <div className="relative grid grid-cols-1 gap-6 min-[1100px]:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
           <div className="min-w-0 space-y-6">
             <SignalCards
               unreadReplies={data.unreadReplies}

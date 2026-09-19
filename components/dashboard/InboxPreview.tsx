@@ -1,16 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { Inbox } from "lucide-react";
 
 import type { ConversationPreview } from "@/lib/dashboard";
 import { initialsOf } from "@/lib/board";
 import { formatPhone, formatShort } from "@/lib/format";
+import { IconChip } from "./IconChip";
 
 export function InboxPreview({ conversations }: { conversations: ConversationPreview[] }) {
   return (
-    <section aria-label="Inbox" className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)]">
-      <div className="flex items-center justify-between px-4 pb-2 pt-4">
-        <h2 className="text-[15px] font-semibold text-[var(--c-text)]">Inbox</h2>
+    <section aria-label="Inbox" className="c-card overflow-hidden">
+      <div className="flex items-center justify-between px-5 pb-3 pt-5">
+        <h2 className="flex items-center gap-2.5 text-[16px] font-bold text-[var(--c-text)]"><IconChip icon={Inbox} tone="accent" size={34} shape="square" />Inbox</h2>
         <Link href="/messenger" className="text-[13px] font-medium text-[var(--c-accent-strong)] hover:underline">View all</Link>
       </div>
       {conversations.length === 0 ? (

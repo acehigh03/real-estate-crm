@@ -1,20 +1,26 @@
 "use client";
 
+import { DollarSign, MessageSquare, Send, Users } from "lucide-react";
+
 import { formatMoney } from "@/lib/format";
+import { IconChip } from "./IconChip";
 
 export function StatsGrid({ contacted, replies, offersSent, pipelineValue }: { contacted: number; replies: number; offersSent: number; pipelineValue: number }) {
   const items = [
-    { label: "Leads contacted", value: contacted.toLocaleString("en-US") },
-    { label: "Replies", value: replies.toLocaleString("en-US") },
-    { label: "Offers sent", value: offersSent.toLocaleString("en-US") },
-    { label: "Pipeline value", value: formatMoney(pipelineValue) },
+    { label: "Leads contacted", value: contacted.toLocaleString("en-US"), icon: Users, tone: "accent" as const },
+    { label: "Replies", value: replies.toLocaleString("en-US"), icon: MessageSquare, tone: "emerald" as const },
+    { label: "Offers sent", value: offersSent.toLocaleString("en-US"), icon: Send, tone: "accent" as const },
+    { label: "Pipeline value", value: formatMoney(pipelineValue), icon: DollarSign, tone: "amber" as const },
   ];
   return (
-    <section aria-label="Stats" className="grid grid-cols-2 gap-3">
+    <section aria-label="Stats" className="grid grid-cols-2 gap-4">
       {items.map((item) => (
-        <div key={item.label} className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
-          <p className="text-[12px] font-medium text-[var(--c-muted)]">{item.label}</p>
-          <p className="num mt-1.5 truncate text-[22px] font-medium text-[var(--c-text)]">{item.value}</p>
+        <div key={item.label} className="c-card min-w-0 p-4">
+          <div className="flex items-center gap-2.5">
+            <IconChip icon={item.icon} tone={item.tone} size={34} shape="square" />
+            <p className="min-w-0 text-[12.5px] font-medium leading-tight text-[var(--c-text-2)]">{item.label}</p>
+          </div>
+          <p className="metric mt-3 truncate text-[28px] text-[var(--c-text)]">{item.value}</p>
         </div>
       ))}
     </section>
