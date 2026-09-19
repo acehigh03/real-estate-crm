@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ArrowUpRight, BarChart3, TriangleAlert, Users } from "lucide-react";
 
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatMoneyCompact } from "@/lib/format";
 import { IconChip } from "./IconChip";
 
 const card = "c-card group relative flex flex-col p-6";
@@ -47,7 +47,7 @@ export function SignalCards({ unreadReplies, newLeads, atRiskCount, atRiskValue,
         <p className={question}>How much money is moving?</p>
         <div className="mt-4 flex items-center gap-3.5">
           <IconChip icon={BarChart3} tone="accent" />
-          <span className="metric truncate text-[40px] text-[var(--c-accent-strong)]">{formatMoney(pipelineValue)}</span>
+          <span title={formatMoney(pipelineValue)} className="metric truncate text-[40px] text-[var(--c-accent-strong)]">{formatMoneyCompact(pipelineValue)}</span>
         </div>
         <p className="mt-3 text-[13.5px] text-[var(--c-text-2)]">estimated pipeline value</p>
         <p className="mt-5 border-t border-[var(--c-border)] pt-4 text-[13px] text-[var(--c-muted)]">

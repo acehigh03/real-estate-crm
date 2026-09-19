@@ -100,21 +100,9 @@ button[class*="bg-[var(--c-accent)]"]:hover:not(:disabled), a[class*="bg-[var(--
 }
 button[class*="bg-[var(--c-accent)]"]:disabled { box-shadow: none; }
 
-/* Very faint lavender-blue glow behind the dashboard header */
-.dash-glow {
-  pointer-events: none;
-  position: absolute;
-  inset: -48px 0 auto 0;
-  height: 260px;
-  background:
-    radial-gradient(60% 100% at 78% 0%, rgba(99, 102, 241, 0.13), transparent 70%),
-    radial-gradient(45% 90% at 18% 0%, rgba(56, 189, 248, 0.09), transparent 70%);
-}
-.dk .dash-glow {
-  background:
-    radial-gradient(60% 100% at 78% 0%, rgba(99, 102, 241, 0.2), transparent 70%),
-    radial-gradient(45% 90% at 18% 0%, rgba(56, 189, 248, 0.08), transparent 70%);
-}
+/* Barely-there lavender glow behind the dashboard header only */
+.dash-header { background: radial-gradient(ellipse 80% 300px at 50% -20px, rgba(139, 92, 246, 0.08) 0%, transparent 70%); }
+.dk .dash-header { background: radial-gradient(ellipse 80% 300px at 50% -20px, rgba(139, 92, 246, 0.16) 0%, transparent 70%); }
 
 .dk .chip-neutral { background: #ffffff14; color: var(--c-muted); }
 .dk .chip-neutral:hover { background: #ffffff1f; }

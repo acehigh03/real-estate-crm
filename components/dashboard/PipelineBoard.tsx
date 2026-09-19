@@ -71,7 +71,7 @@ export function PipelineBoard({ columns }: { columns: BoardColumnData[] }) {
           Open full board <ArrowRight size={14} aria-hidden />
         </Link>
       </div>
-      <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid grid-flow-col auto-cols-[minmax(160px,1fr)] gap-4 overflow-x-auto overscroll-x-contain pb-2">
         {columns.map((column) => (
           <div key={column.key} className="flex min-w-0 flex-col">
             <div className="mb-2 flex items-center justify-between px-1">
