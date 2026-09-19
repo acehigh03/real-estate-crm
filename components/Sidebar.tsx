@@ -209,7 +209,7 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
       }}
     >
       {/* Brand bar */}
-      <div
+      <div className="sidebar-brand"
         style={{
           height: 58,
           display: "flex",
@@ -224,6 +224,7 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
           {/* Logo mark: indigo square with a house */}
           <div
             aria-hidden
+            className="sidebar-logo"
             style={{
               width: 28,
               height: 28,
@@ -239,6 +240,7 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
             <Home size={15} strokeWidth={2.2} color="#ffffff" />
           </div>
           <span
+            className="sidebar-wordmark"
             style={{
               fontSize: 15,
               fontWeight: 700,

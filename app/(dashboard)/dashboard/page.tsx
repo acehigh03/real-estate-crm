@@ -1,3 +1,5 @@
+import "@/styles/inbox-dashboard.css";
+import { InboxCommandCenter } from "@/components/dashboard/InboxCommandCenter";
 import { redirect } from "next/navigation";
 
 import { InboxPreview } from "@/components/dashboard/InboxPreview";
@@ -33,6 +35,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const negotiating = data.board.find((column) => column.key === "negotiating");
 
   return (
+    <InboxCommandCenter data={data} greeting={greeting()} userName={userName} isDemo={isDemo}>
     <div className="relative flex-1 overflow-y-auto overflow-x-hidden bg-[var(--c-page)]">
       <div className="relative mx-auto max-w-[1400px] space-y-7 px-4 py-7 sm:px-8">
         <div className="dash-header -mx-4 -mt-7 space-y-5 px-4 pb-1 pt-7 sm:-mx-8 sm:px-8">
@@ -68,5 +71,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </div>
       </div>
     </div>
+    </InboxCommandCenter>
   );
 }
