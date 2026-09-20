@@ -47,13 +47,13 @@ export function InboxCommandCenter({ data, greeting, userName, isDemo, children 
             <p className="command-eyebrow">Real estate · SMS wholesaling · Bigger tomorrows</p>
             <div className="command-tools">
               <div className="command-search"><Search size={16} aria-hidden /><input aria-label="Search preview (unavailable)" placeholder="Search contacts, addresses, or messages..." disabled /></div>
-              <Link href="/messenger" className="command-bell" aria-label={`Open messenger: ${data.unreadReplies} unread replies`}><Bell size={19} aria-hidden />{data.unreadReplies > 0 && <i />}</Link>
+              <Link href="/inbox" className="command-bell" aria-label={`Open inbox: ${data.unreadReplies} unread replies`}><Bell size={19} aria-hidden />{data.unreadReplies > 0 && <i />}</Link>
             </div>
           </div>
           <h1>{greeting}, {userName}</h1>
           <p className="command-subtitle">{isDemo ? "Sample data — nothing here is real or saved." : "Here’s what needs you today."}</p>
           <nav className="command-priorities" aria-label="Today's priorities">
-            <Link href="/messenger"><span className="command-bubble violet"><MessageSquare size={19} /></span><span><strong>{data.unreadReplies}</strong> {data.unreadReplies === 1 ? "reply" : "replies"} waiting</span></Link>
+            <Link href="/inbox"><span className="command-bubble violet"><MessageSquare size={19} /></span><span><strong>{data.unreadReplies}</strong> {data.unreadReplies === 1 ? "reply" : "replies"} waiting</span></Link>
             <Link href="/pipeline"><span className="command-bubble rose"><CircleAlert size={21} /></span><span><strong>{data.atRisk.overdueFollowUps}</strong> overdue {data.atRisk.overdueFollowUps === 1 ? "follow-up" : "follow-ups"}</span></Link>
             <Link href="/pipeline"><span className="command-bubble green"><Check size={21} /></span><span><strong>{data.atRisk.staleOffers}</strong> stalled {data.atRisk.staleOffers === 1 ? "offer" : "offers"}</span></Link>
           </nav>
@@ -62,7 +62,7 @@ export function InboxCommandCenter({ data, greeting, userName, isDemo, children 
         <div className="command-grid">
           <div className="command-primary">
             <section className="command-card command-queue" aria-label="Action queue">
-              <div className="command-panel-heading"><h2>Action queue <span className="command-count">{attentionCount} need you</span></h2><Link href="/messenger" aria-label="Open all conversations" className="command-icon-link"><ArrowRight size={18} /></Link></div>
+              <div className="command-panel-heading"><h2>Action queue <span className="command-count">{attentionCount} need you</span></h2><Link href="/inbox" aria-label="Open all conversations" className="command-icon-link"><ArrowRight size={18} /></Link></div>
               <nav className="command-tabs" aria-label="Queue views">
                 <button type="button" aria-pressed={filter === "needs"} onClick={() => setFilter("needs")}>Needs reply <span>{data.unreadReplies}</span></button>
                 <button type="button" aria-pressed={filter === "all"} onClick={() => setFilter("all")}>All activity</button>
@@ -80,7 +80,7 @@ export function InboxCommandCenter({ data, greeting, userName, isDemo, children 
                     <p className="command-message">{conversation.direction === "outbound" ? "You: " : ""}{conversation.preview}</p>
                     <div className="command-status">{status ? <span className={followUp ? "follow-up" : ""}>{followUp && <Clock3 size={12} aria-hidden />}{status}</span> : conversation.unread ? <span>Unread</span> : null}</div>
                     {conversation.at ? <time className="command-time" dateTime={conversation.at}>{formatShort(conversation.at)}</time> : <span className="command-time" />}
-                    <div className="command-row-actions"><Link className="command-reply" href={`/messenger?lead=${conversation.lead_id}`}><MessageCircle size={15} aria-hidden />Reply</Link>{conversation.phone && <a className="command-call" href={`tel:${conversation.phone}`} aria-label={`Call ${conversation.name}`}><Phone size={14} aria-hidden />Call</a>}</div>
+                    <div className="command-row-actions"><Link className="command-reply" href={`/inbox?lead=${conversation.lead_id}`}><MessageCircle size={15} aria-hidden />Reply</Link>{conversation.phone && <a className="command-call" href={`tel:${conversation.phone}`} aria-label={`Call ${conversation.name}`}><Phone size={14} aria-hidden />Call</a>}</div>
                   </article>;
                 })}
                 {rows.length === 0 && <div className="command-empty"><span className="command-bubble violet"><MessageSquare size={26} /></span><h3>{data.conversations.length ? "No replies waiting" : "No conversations yet."}</h3><p>{data.conversations.length ? "Your recent conversations are in All activity." : "Replies from sellers show up here."}</p>{data.conversations.length > 0 && <button type="button" onClick={() => setFilter("all")}>View all activity <ArrowRight size={15} /></button>}</div>}
