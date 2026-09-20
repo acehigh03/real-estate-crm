@@ -196,6 +196,11 @@ export function InboxClient({
   const [modalMessage, setModalMessage] = useState("");
   const [modalError, setModalError] = useState<string | null>(null);
   const [isCreatingLead, setIsCreatingLead] = useState(false);
+  const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState("");
+  const [followUpNote, setFollowUpNote] = useState("");
+  const [followUpError, setFollowUpError] = useState<string | null>(null);
+  const [isSchedulingFollowUp, setIsSchedulingFollowUp] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -381,6 +386,52 @@ export function InboxClient({
     setModalMessage("");
   }, []);
 
+  const openFollowUpModal = useCallback(() => {
+    const current = selectedConversation?.lead.next_follow_up_at;
+    const defaultDate = current ? current.slice(0, 10) : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    setFollowUpDate(defaultDate);
+    setFollowUpNote("");
+    setFollowUpError(null);
+    setIsFollowUpModalOpen(true);
+  }, [selectedConversation?.lead.next_follow_up_at]);
+
+  const closeFollowUpModal = useCallback(() => {
+    if (isSchedulingFollowUp) return;
+    setIsFollowUpModalOpen(false);
+    setFollowUpError(null);
+  }, [isSchedulingFollowUp]);
+
+  const scheduleFollowUp = useCallback(async () => {
+    const leadId = selectedConversation?.lead.id;
+    if (!leadId) return;
+    if (!followUpDate) {
+      setFollowUpError("Choose a follow-up date.");
+      return;
+    }
+
+    setIsSchedulingFollowUp(true);
+    setFollowUpError(null);
+    try {
+      const at = new Date(`${followUpDate}T09:00:00`).toISOString();
+      const response = await fetch(`/api/leads/${leadId}/followup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: followUpDate, at, note: followUpNote.trim() || null }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string; next_follow_up_at?: string };
+      if (!response.ok || !payload.next_follow_up_at) {
+        setFollowUpError(payload.error ?? "Couldn't schedule the follow-up.");
+        return;
+      }
+      setLeads((current) => current.map((lead) => lead.id === leadId ? { ...lead, next_follow_up_at: payload.next_follow_up_at! } : lead));
+      setIsFollowUpModalOpen(false);
+    } catch {
+      setFollowUpError("Couldn't schedule the follow-up. Check your connection and try again.");
+    } finally {
+      setIsSchedulingFollowUp(false);
+    }
+  }, [followUpDate, followUpNote, selectedConversation?.lead.id]);
+
   const startConversation = useCallback(async () => {
     const phoneDigits = manualPhone.replace(/\D/g, "");
     if (phoneDigits.length < 10) {
@@ -492,6 +543,35 @@ export function InboxClient({
               {modalError}
             </p>
           ) : null}
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  const followUpModal = isFollowUpModalOpen ? (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
+      <div className="crm-panel w-full max-w-md overflow-hidden">
+        <div className="bg-gradient-to-b from-white to-slate-50/80 px-5 py-4">
+          <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">Schedule follow-up</h2>
+              <p className="mt-1 text-sm text-gray-500">This creates a task for {selectedConversation ? leadDisplayName(selectedConversation.lead) : "this lead"}.</p>
+            </div>
+            <button type="button" onClick={closeFollowUpModal} disabled={isSchedulingFollowUp} aria-label="Close follow-up scheduler" className="rounded-full px-2 py-1 text-sm text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50">✕</button>
+          </div>
+        </div>
+        <div className="space-y-3 px-5 py-5">
+          <label className="block text-sm font-medium text-gray-700">Follow-up date
+            <input type="date" value={followUpDate} min={new Date().toISOString().slice(0, 10)} onChange={(event) => setFollowUpDate(event.target.value)} disabled={isSchedulingFollowUp} className="mt-1.5 w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50" />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">Note <span className="font-normal text-gray-400">(optional)</span>
+            <textarea value={followUpNote} onChange={(event) => setFollowUpNote(event.target.value)} maxLength={300} rows={3} placeholder="What needs to happen?" disabled={isSchedulingFollowUp} className="mt-1.5 w-full resize-y rounded-xl border px-3 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50" />
+          </label>
+          {followUpError ? <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{followUpError}</p> : null}
+          <div className="flex justify-end gap-3 pt-1">
+            <button type="button" onClick={closeFollowUpModal} disabled={isSchedulingFollowUp} className="crm-button-secondary">Cancel</button>
+            <button type="button" onClick={() => void scheduleFollowUp()} disabled={isSchedulingFollowUp || !followUpDate} className="crm-button-primary">{isSchedulingFollowUp ? "Scheduling…" : "Schedule follow-up"}</button>
+          </div>
         </div>
       </div>
     </div>
@@ -673,6 +753,7 @@ export function InboxClient({
       </div>
 
       {startConversationModal}
+      {followUpModal}
 
       <div className="command-center-grid grid min-h-0 flex-1 gap-0 xl:grid-cols-[minmax(290px,26%)_minmax(0,1fr)_minmax(290px,26%)]">
         <aside className="command-queue flex min-h-0 flex-col border-r border-[#e8edf2] bg-[#f7f8fa]">
@@ -921,10 +1002,10 @@ export function InboxClient({
             <div className="command-rail-section"><dt><DollarSign size={14} />Offer</dt><dd>{lead.deal_value ? compactMoney(Number(lead.deal_value)) : "No offer sent yet"}</dd></div>
             <div className="command-rail-section"><dt><CalendarClock size={14} />Next follow-up</dt><dd>{lead.next_follow_up_at ? format(new Date(lead.next_follow_up_at), "MMM d, yyyy · h:mm a") : "Not scheduled"}</dd></div>
           </dl>
-          <div className="command-next-action">
+          <button type="button" onClick={openFollowUpModal} className="command-next-action w-full text-left" title="Schedule a follow-up">
             <span><CalendarClock size={15} /></span>
             <div><p>Next action</p><strong>{nextAction}</strong></div>
-          </div>
+          </button>
           <a className="command-call-link" href={lead.phone ? `tel:${lead.phone}` : undefined} aria-disabled={!lead.phone}>
             <PhoneCall size={14} /> Call contact
           </a>
