@@ -732,7 +732,7 @@ export function InboxClient({
                       isActive ? "border-[#2563eb] bg-white" : conversation.unread ? "border-transparent bg-[#f7f8fa]" : "border-transparent bg-[#f7f8fa] hover:bg-white"
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="command-queue-row-inner flex items-center gap-3">
                       <div
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
                         style={{
@@ -742,7 +742,7 @@ export function InboxClient({
                         {initials(conversation.lead)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="command-queue-row-top flex items-center justify-between gap-2">
                           <p className={`truncate text-[13px] ${conversation.unread ? "font-bold text-[#132044]" : "font-semibold text-[#263552]"}`}>
                             {leadDisplayName(conversation.lead)}
                           </p>
@@ -756,7 +756,7 @@ export function InboxClient({
                         <p className="command-queue-address truncate">
                           {isImportedLead(conversation.lead) ? conversation.lead.property_address : formatPhoneDisplay(conversation.lead.phone)}
                         </p>
-                        <div className="mt-0.5 flex items-center gap-2">
+                        <div className="command-queue-row-preview mt-0.5 flex items-center gap-2">
                           <p className="min-w-0 flex-1 truncate text-[11px] leading-4 text-[#66758f]">
                             {messageSnippet(conversation.lastMessage?.body, 58)}
                           </p>
@@ -776,20 +776,20 @@ export function InboxClient({
           <div className="command-thread-header border-b border-[#eaecf0] bg-white px-5 py-4">
             <div className="flex items-center gap-3">
               <div
-                className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
+                className="command-thread-avatar flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
                 style={{ background: avatarBg(`${lead.first_name} ${lead.last_name}`) }}
               >
                 {initials(lead)}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+                <div className="command-thread-name-line flex items-center gap-2">
                   <h2 className="truncate text-sm font-semibold text-[#0f1117]">
                     {leadDisplayName(lead)}
                   </h2>
                   {classificationBadge(lead.classification)}
                   <SentimentBadge sentiment={latestInboundSentiment(leadMessages, sentiments)} />
                 </div>
-                <p className="mt-1 truncate text-xs text-[#6b7280]">
+                <p className="command-thread-subline mt-1 truncate text-xs text-[#6b7280]">
                   {formatPhoneDisplay(lead.phone)}{campaignName ? ` · ${fallbackCampaignName(campaignName)}` : ""}
                 </p>
               </div>
@@ -799,14 +799,14 @@ export function InboxClient({
           </div>
 
           <ScrollArea className="command-message-area min-h-[280px] flex-1 bg-[#f7f8fa] px-5 py-5 xl:min-h-0">
-            <div className="space-y-4">
+            <div className="command-message-stack space-y-4">
               <div className="command-conversation-divider"><span>Conversation</span></div>
               {leadMessages.map((message) => (
                 <div
                   key={message.id}
                   className={`flex ${message.direction === "outbound" ? "justify-end" : "justify-start"}`}
                 >
-                  <div className="max-w-[78%]">
+                  <div className={`command-message-group max-w-[78%] ${message.direction === "outbound" ? "is-outbound" : "is-inbound"}`}>
                     <div
                       className={`${
                         message.direction === "outbound"
@@ -817,7 +817,7 @@ export function InboxClient({
                       {message.body}
                     </div>
                     <div
-                      className={`mt-1 flex items-center gap-2 text-[11px] text-gray-400 ${
+                      className={`command-message-meta mt-1 flex items-center gap-2 text-[11px] text-gray-400 ${
                         message.direction === "outbound" ? "justify-end" : "justify-start"
                       }`}
                     >
@@ -848,7 +848,7 @@ export function InboxClient({
               </div>
             </div>
 
-            <div className="command-quick-replies mb-2 flex gap-2 overflow-x-auto">
+            <div className="command-quick-replies mb-2 flex gap-2 overflow-x-auto" aria-label="Quick replies">
               {[
                 "Would you be open to a quick cash offer this week?",
                 "What timeline are you hoping for if you sell?",
@@ -902,12 +902,12 @@ export function InboxClient({
           </div>
           <div className="command-rail-tabs"><span className="is-active"><Home size={14} /> Lead</span><span><Users size={14} /> Contact</span></div>
           <dl className="command-rail-fields">
-            <div><dt><Users size={14} />Contact</dt><dd>{knownContact ? <><span>{leadDisplayName(lead)}</span><small>{lead.phone ? formatPhoneDisplay(lead.phone) : "No phone on record"}</small></> : "Unknown contact"}</dd>{!knownContact ? <Link href="/leads" className="command-link-lead">Link to lead</Link> : null}</div>
-            <div><dt><Home size={14} />Property</dt><dd>{isImportedLead(lead) ? lead.property_address : "No property linked yet."}</dd></div>
-            <div><dt><ClipboardList size={14} />Deal status</dt><dd>{lead.stage ?? lead.status ?? "Not set"}</dd></div>
-            <div><dt><Tag size={14} />Lead tags</dt><dd>{lead.tag || "No tags"}</dd></div>
-            <div><dt><DollarSign size={14} />Offer</dt><dd>{lead.deal_value ? compactMoney(Number(lead.deal_value)) : "No offer sent yet"}</dd></div>
-            <div><dt><CalendarClock size={14} />Next follow-up</dt><dd>{lead.next_follow_up_at ? format(new Date(lead.next_follow_up_at), "MMM d, yyyy · h:mm a") : "Not scheduled"}</dd></div>
+            <div className="command-rail-section"><dt><Users size={14} />Contact</dt><dd>{knownContact ? <><span>{leadDisplayName(lead)}</span><small>{lead.phone ? formatPhoneDisplay(lead.phone) : "No phone on record"}</small></> : "Unknown contact"}</dd>{!knownContact ? <Link href="/leads" className="command-link-lead">Link to lead</Link> : null}</div>
+            <div className="command-rail-section"><dt><Home size={14} />Property</dt><dd>{isImportedLead(lead) ? lead.property_address : "No property linked yet."}</dd></div>
+            <div className="command-rail-section"><dt><ClipboardList size={14} />Deal status</dt><dd>{lead.stage ?? lead.status ?? "Not set"}</dd></div>
+            <div className="command-rail-section"><dt><Tag size={14} />Lead tags</dt><dd>{lead.tag || "No tags"}</dd></div>
+            <div className="command-rail-section"><dt><DollarSign size={14} />Offer</dt><dd>{lead.deal_value ? compactMoney(Number(lead.deal_value)) : "No offer sent yet"}</dd></div>
+            <div className="command-rail-section"><dt><CalendarClock size={14} />Next follow-up</dt><dd>{lead.next_follow_up_at ? format(new Date(lead.next_follow_up_at), "MMM d, yyyy · h:mm a") : "Not scheduled"}</dd></div>
           </dl>
           <div className="command-next-action">
             <span><CalendarClock size={15} /></span>
