@@ -40,6 +40,7 @@ interface InboxClientProps {
   /** Reply sentiments keyed by Telnyx message id (for the sentiment badges). */
   initialSentiments?: Record<string, string>;
   userId: string;
+  userName: string;
   autoOpenComposer?: boolean;
   /** Conversation to open first (from a dashboard "Draft Reply" link). */
   initialLeadId?: string | null;
@@ -158,6 +159,7 @@ export function InboxClient({
   initialCampaigns,
   initialSentiments = {},
   userId,
+  userName,
   autoOpenComposer = false,
   initialLeadId = null,
 }: InboxClientProps) {
@@ -617,23 +619,41 @@ export function InboxClient({
     .reduce((sum, item) => sum + Number(item.deal_value ?? 0), 0);
   const sourceLabel = campaignName ?? lead.lead_source ?? "No source recorded";
   const knownContact = Boolean(lead.first_name.trim() || lead.last_name.trim() || lead.phone.trim());
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const nextAction = lead.next_follow_up_at
+    ? `Follow up ${format(new Date(lead.next_follow_up_at), "MMM d, h:mm a")}`
+    : lastInbound
+      ? "Reply to seller"
+      : "Schedule follow-up";
 
   return (
     <div className="command-center crm-page flex h-full flex-col overflow-hidden">
-      <div className="command-status-strip" aria-label="Live inbox status">
-        <span><MessageSquare size={14} /><strong>{conversations.filter((item) => item.unread).length}</strong> replies waiting</span>
-        <span><CalendarClock size={14} /><strong>{overdueFollowUps}</strong> overdue follow-ups</span>
-        <span><ClipboardList size={14} /><strong>{messagesToday}</strong> texts today</span>
-        <span><DollarSign size={14} /><strong>{compactMoney(activePipelineValue)}</strong> active pipeline</span>
-      </div>
-      <div className="crm-page-header command-center-header flex items-center justify-between px-6 py-4">
-        <div>
-          <p className="command-center-kicker">Command center</p>
-          <h1 className="crm-header-title">Inbox</h1>
+      <header className="command-center-header">
+        <div className="command-greeting">
+          <h1>{greeting}, {userName}</h1>
+          <p>{conversations.filter((item) => item.unread).length} {conversations.filter((item) => item.unread).length === 1 ? "seller needs" : "sellers need"} you today.</p>
         </div>
-        <button type="button" onClick={() => setIsModalOpen(true)} className="crm-button-primary">
-          Start conversation
-        </button>
+        <div className="command-header-actions">
+          <label className="command-global-search">
+            <Search size={16} aria-hidden />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search contacts, addresses, or messages..."
+              aria-label="Search conversations"
+            />
+          </label>
+          <button type="button" onClick={() => setIsModalOpen(true)} className="crm-button-primary">
+            Start conversation
+          </button>
+        </div>
+      </header>
+      <div className="command-priority-grid" aria-label="Live inbox status">
+        <div><span className="priority-icon replies"><MessageSquare size={18} /></span><p><strong>{conversations.filter((item) => item.unread).length}</strong> replies waiting</p></div>
+        <div><span className="priority-icon overdue"><CalendarClock size={18} /></span><p><strong>{overdueFollowUps}</strong> overdue follow-ups</p></div>
+        <div><span className="priority-icon activity"><ClipboardList size={18} /></span><p><strong>{messagesToday}</strong> texts today</p></div>
+        <div><span className="priority-icon value"><DollarSign size={18} /></span><p><strong>{compactMoney(activePipelineValue)}</strong> active pipeline</p></div>
       </div>
 
       {startConversationModal}
@@ -659,18 +679,6 @@ export function InboxClient({
             </Link>
           </div>
           </div>
-          <div className="border-b border-[#eaecf0] px-4 py-4">
-            <div className="flex items-center gap-2 rounded-[6px] border border-[#eaecf0] bg-[#f8f9fb] px-3 py-2">
-              <Search size={14} className="text-gray-400" />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search conversations"
-                className="w-full bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none"
-              />
-            </div>
-          </div>
-
           <ScrollArea className="max-h-[260px] min-h-0 flex-1 xl:max-h-none">
             <div className="divide-y divide-[#eaecf0]">
               {filteredConversations.map((conversation) => {
@@ -865,6 +873,10 @@ export function InboxClient({
             <div><dt><Tag size={14} />Tags</dt><dd>{lead.tag || "No tags"}</dd></div>
             <div><dt><CalendarClock size={14} />Next follow-up</dt><dd>{lead.next_follow_up_at ? format(new Date(lead.next_follow_up_at), "MMM d, yyyy · h:mm a") : "Not scheduled"}</dd></div>
           </dl>
+          <div className="command-next-action">
+            <span><CalendarClock size={15} /></span>
+            <div><p>Next action</p><strong>{nextAction}</strong></div>
+          </div>
           <a className="command-call-link" href={lead.phone ? `tel:${lead.phone}` : undefined} aria-disabled={!lead.phone}>
             <PhoneCall size={14} /> Call contact
           </a>
