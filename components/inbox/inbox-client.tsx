@@ -667,7 +667,7 @@ export function InboxClient({
 
       {startConversationModal}
 
-      <div className="command-center-grid grid min-h-0 flex-1 gap-0 xl:grid-cols-[minmax(290px,29%)_minmax(0,1fr)_minmax(250px,22%)]">
+      <div className="command-center-grid grid min-h-0 flex-1 gap-0 xl:grid-cols-[minmax(290px,26%)_minmax(0,1fr)_minmax(290px,26%)]">
         <aside className="command-queue flex min-h-0 flex-col border-r border-[#e8edf2] bg-[#f7f8fa]">
           <div className="command-queue-heading px-4 pt-4">
           <div className="flex items-center justify-between">
@@ -715,13 +715,13 @@ export function InboxClient({
                     key={conversation.lead.id}
                     type="button"
                     onClick={() => setSelectedLeadId(conversation.lead.id)}
-                    className={`command-queue-row w-full border-l-[3px] px-4 py-3 text-left transition ${
+                    className={`command-queue-row w-full border-l-[3px] px-4 py-2.5 text-left transition ${
                       isActive ? "border-[#2563eb] bg-white" : conversation.unread ? "border-transparent bg-[#f7f8fa]" : "border-transparent bg-[#f7f8fa] hover:bg-white"
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
                         style={{
                           background: avatarBg(`${conversation.lead.first_name} ${conversation.lead.last_name}`),
                         }}
@@ -743,12 +743,10 @@ export function InboxClient({
                         <p className="command-queue-address truncate">
                           {isImportedLead(conversation.lead) ? conversation.lead.property_address : formatPhoneDisplay(conversation.lead.phone)}
                         </p>
-                        <div className="mt-1 flex items-center gap-2">
+                        <div className="mt-0.5 flex items-center gap-2">
                           <p className="min-w-0 flex-1 truncate text-[11px] leading-4 text-[#66758f]">
                             {messageSnippet(conversation.lastMessage?.body, 58)}
                           </p>
-                        </div>
-                        <div className="command-queue-meta">
                           <SentimentBadge sentiment={latestInboundSentiment(conversation.messages, sentiments)} />
                           {classificationBadge(conversation.lead.classification)}
                         </div>
@@ -887,23 +885,11 @@ export function InboxClient({
         <aside className="command-lead-rail min-h-0 overflow-y-auto border-l border-[#e8edf2] bg-[#fbfcff] p-5">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-lg font-bold tracking-[-0.03em] text-[#132044]">Lead details</h2>
-            <Link href={`/leads/${lead.id}`} className="command-details-link">More details <ExternalLink size={13} /></Link>
+            <span className="command-source-badge">{isImportedLead(lead) ? "Imported record" : sourceLabel}</span>
           </div>
           <div className="command-rail-tabs"><span className="is-active"><Home size={14} /> Lead</span><span><Users size={14} /> Contact</span></div>
-          <div className="mt-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
-              {knownContact ? initials(lead) || "•" : "?"}
-            </div>
-            <div className="min-w-0">
-              <h3 className="truncate text-sm font-semibold text-[#132044]">{knownContact ? leadDisplayName(lead) : "Unknown contact"}</h3>
-              <p className="mt-0.5 truncate text-xs text-[#6b789b]">{lead.phone ? formatPhoneDisplay(lead.phone) : "No phone on record"}</p>
-            </div>
-          </div>
-
-          {!knownContact ? <Link href="/leads" className="command-link-lead">Link to lead</Link> : null}
-
           <dl className="command-rail-fields">
-            <div><dt><Users size={14} />Source</dt><dd>{sourceLabel}</dd></div>
+            <div><dt><Users size={14} />Contact</dt><dd>{knownContact ? <><span>{leadDisplayName(lead)}</span><small>{lead.phone ? formatPhoneDisplay(lead.phone) : "No phone on record"}</small></> : "Unknown contact"}</dd>{!knownContact ? <Link href="/leads" className="command-link-lead">Link to lead</Link> : null}</div>
             <div><dt><Home size={14} />Property</dt><dd>{isImportedLead(lead) ? lead.property_address : "No property linked yet."}</dd></div>
             <div><dt><ClipboardList size={14} />Deal status</dt><dd>{lead.stage ?? lead.status ?? "Not set"}</dd></div>
             <div><dt><Tag size={14} />Lead tags</dt><dd>{lead.tag || "No tags"}</dd></div>
@@ -917,6 +903,7 @@ export function InboxClient({
           <a className="command-call-link" href={lead.phone ? `tel:${lead.phone}` : undefined} aria-disabled={!lead.phone}>
             <PhoneCall size={14} /> Call contact
           </a>
+          <Link href={`/leads/${lead.id}`} className="command-more-details">More details <ExternalLink size={13} /></Link>
         </aside>
       </div>
     </div>
