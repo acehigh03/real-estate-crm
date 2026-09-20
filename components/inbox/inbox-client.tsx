@@ -680,7 +680,13 @@ export function InboxClient({
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold tracking-[-0.03em] text-[#132044]">Inbox</h2>
-              <p className="mt-0.5 text-xs text-[#6b789b]">{queueCounts.needs} conversations need attention</p>
+              <p className="mt-0.5 text-xs text-[#6b789b]">
+                {effectiveQueueTab === "needs"
+                  ? `${queueCounts.needs} ${queueCounts.needs === 1 ? "conversation needs" : "conversations need"} attention`
+                  : effectiveQueueTab === "all"
+                    ? `${queueCounts.all} ${queueCounts.all === 1 ? "conversation" : "conversations"}`
+                    : `${queueCounts.scheduled} scheduled ${queueCounts.scheduled === 1 ? "conversation" : "conversations"}`}
+              </p>
             </div>
             <Link
               href="#"
