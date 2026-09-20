@@ -450,7 +450,7 @@ export function InboxClient({
             onClick={closeModal}
             className="rounded-full px-2 py-1 text-sm text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
           >
-            â
+            ✕
           </button>
         </div>
         </div>
@@ -666,10 +666,10 @@ export function InboxClient({
         </div>
       </header>
       <div className="command-priority-grid" aria-label="Live inbox status">
-        <div className="command-priority-card"><span className="priority-icon replies"><MessageSquare size={18} /></span><p><strong>{conversations.filter((item) => item.unread).length}</strong><span>replies waiting</span></p><b aria-hidden>âº</b></div>
-        <div className="command-priority-card"><span className="priority-icon overdue"><CalendarClock size={18} /></span><p><strong>{overdueFollowUps}</strong><span>overdue follow-ups</span></p><b aria-hidden>âº</b></div>
-        <div className="command-priority-card"><span className="priority-icon activity"><ClipboardList size={18} /></span><p><strong>{messagesToday}</strong><span>texts today</span></p><b aria-hidden>âº</b></div>
-        <div className="command-priority-card"><span className="priority-icon value"><DollarSign size={18} /></span><p><strong>{compactMoney(activePipelineValue)}</strong><span>active pipeline</span></p><b aria-hidden>âº</b></div>
+        <div className="command-priority-card"><span className="priority-icon replies"><MessageSquare size={18} /></span><p><strong>{conversations.filter((item) => item.unread).length}</strong><span>replies waiting</span></p><b aria-hidden>›</b></div>
+        <div className="command-priority-card"><span className="priority-icon overdue"><CalendarClock size={18} /></span><p><strong>{overdueFollowUps}</strong><span>overdue follow-ups</span></p><b aria-hidden>›</b></div>
+        <div className="command-priority-card"><span className="priority-icon activity"><ClipboardList size={18} /></span><p><strong>{messagesToday}</strong><span>texts today</span></p><b aria-hidden>›</b></div>
+        <div className="command-priority-card"><span className="priority-icon value"><DollarSign size={18} /></span><p><strong>{compactMoney(activePipelineValue)}</strong><span>active pipeline</span></p><b aria-hidden>›</b></div>
       </div>
 
       {startConversationModal}
@@ -790,7 +790,7 @@ export function InboxClient({
                   <SentimentBadge sentiment={latestInboundSentiment(leadMessages, sentiments)} />
                 </div>
                 <p className="command-thread-subline mt-1 truncate text-xs text-[#6b7280]">
-                  {formatPhoneDisplay(lead.phone)}{campaignName ? ` Â· ${fallbackCampaignName(campaignName)}` : ""}
+                  {formatPhoneDisplay(lead.phone)}{campaignName ? ` · ${fallbackCampaignName(campaignName)}` : ""}
                 </p>
               </div>
               {lead.phone ? <a href={`tel:${lead.phone}`} className="command-thread-call"><PhoneCall size={15} /> Call</a> : null}
@@ -919,7 +919,7 @@ export function InboxClient({
             <div className="command-rail-section"><dt><ClipboardList size={14} />Deal status</dt><dd>{lead.stage ?? lead.status ?? "Not set"}</dd></div>
             <div className="command-rail-section"><dt><Tag size={14} />Lead tags</dt><dd>{lead.tag || "No tags"}</dd></div>
             <div className="command-rail-section"><dt><DollarSign size={14} />Offer</dt><dd>{lead.deal_value ? compactMoney(Number(lead.deal_value)) : "No offer sent yet"}</dd></div>
-            <div className="command-rail-section"><dt><CalendarClock size={14} />Next follow-up</dt><dd>{lead.next_follow_up_at ? format(new Date(lead.next_follow_up_at), "MMM d, yyyy Â· h:mm a") : "Not scheduled"}</dd></div>
+            <div className="command-rail-section"><dt><CalendarClock size={14} />Next follow-up</dt><dd>{lead.next_follow_up_at ? format(new Date(lead.next_follow_up_at), "MMM d, yyyy · h:mm a") : "Not scheduled"}</dd></div>
           </dl>
           <div className="command-next-action">
             <span><CalendarClock size={15} /></span>
