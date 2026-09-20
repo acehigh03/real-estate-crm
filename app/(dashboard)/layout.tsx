@@ -32,7 +32,7 @@ export default async function DashboardLayout({
 
   return (
     <AppShell
-      sidebar={<Sidebar activeItem="Inbox" inboxBadge={inboxBadgeCount} userEmail={user.email ?? ""} />}
+      sidebar={<Sidebar activeItem="Dashboard" inboxBadge={inboxBadgeCount} userEmail={user.email ?? ""} />}
     >
       {children}
     </AppShell>
