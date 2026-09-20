@@ -56,13 +56,15 @@
 .command-global-search:focus-within { border-color: #8dafef; box-shadow: 0 0 0 3px #dbeafe; }
 
 .command-priority-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 8px 14px; border-bottom: 1px solid var(--command-line); background: #f7f8fa; }
-.command-priority-grid > div { position: relative; display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 42px; padding: 7px 12px; border: 1px solid #e5eaf1; border-radius: 10px; background: #fff; box-shadow: 0 3px 10px rgba(22, 37, 65, .035); }
+.command-priority-grid > div { position: relative; display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 50px; padding: 8px 14px; border: 1px solid #e5eaf1; border-radius: 10px; background: #fff; box-shadow: 0 3px 10px rgba(22, 37, 65, .035); }
 .command-priority-grid > div::before { position: absolute; left: 0; width: 3px; height: 22px; border-radius: 0 3px 3px 0; background: #8aaef7; content: ""; }
 .command-priority-grid > div:nth-child(2)::before { background: #f3a14b; }
 .command-priority-grid > div:nth-child(3)::before, .command-priority-grid > div:nth-child(4)::before { background: #35a875; }
-.command-priority-grid p { min-width: 0; color: #56647d; font-size: 11px; font-weight: 560; white-space: nowrap; }
-.command-priority-grid strong { color: var(--command-navy); font-size: 15px; font-weight: 820; margin-right: 3px; }
-.priority-icon { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 9px; }
+.command-priority-grid p { display: flex; flex: 1; flex-direction: column; min-width: 0; color: #64718a; font-size: 10px; font-weight: 600; line-height: 1.2; white-space: nowrap; }
+.command-priority-grid p span { overflow: hidden; text-overflow: ellipsis; }
+.command-priority-grid strong { color: var(--command-navy); font-size: 17px; font-weight: 820; line-height: 1; }
+.command-priority-card > b { color: #7f91ae; font-size: 18px; font-weight: 450; }
+.priority-icon { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 31px; height: 31px; border-radius: 10px; }
 .priority-icon.replies { background: #e7efff; color: #2563eb; }
 .priority-icon.overdue { background: #fff1e5; color: #ea6d14; }
 .priority-icon.activity { background: #e8f8ee; color: #15803d; }
@@ -80,6 +82,8 @@
 .command-center .crm-button-primary { background: var(--command-cobalt); box-shadow: 0 6px 16px rgba(37, 99, 235, .2); }
 .command-center .crm-button-primary:hover { background: #1d4ed8; }
 .command-queue { background: #fbfcfd; }
+.command-queue-compose { background: #1f5fe0 !important; box-shadow: 0 5px 12px rgba(31, 95, 224, .2); }
+.command-queue-compose:hover { background: #194fc0 !important; }
 .command-queue-heading { border-bottom: 1px solid var(--command-line); }
 .command-queue-tabs { display: flex; gap: 18px; margin-top: 16px; }
 .command-queue-tabs button { position: relative; padding: 0 0 10px; color: #7180a1; font-size: 11px; font-weight: 650; white-space: nowrap; }
@@ -87,11 +91,11 @@
 .command-queue-tabs button.is-active { color: #2457c5; }
 .command-queue-tabs button.is-active::after { position: absolute; right: 0; bottom: -1px; left: 0; height: 2px; border-radius: 2px; background: #2563eb; content: ""; }
 .command-queue-tabs button.is-active span { background: #2563eb; color: #fff; }
-.command-queue-row { min-height: 70px; border-bottom-color: #edf0f4 !important; }
+.command-queue-row { min-height: 77px; border-bottom-color: #edf0f4 !important; }
 .command-queue-row:hover { background: #f3f6fb !important; }
 .command-queue-row.border-\[\#2563eb\] { background: #edf4ff !important; box-shadow: inset 0 1px 0 rgba(37, 99, 235, .05), inset 0 -1px 0 rgba(37, 99, 235, .05); }
 .command-queue-row:focus-visible { outline: 2px solid var(--command-cobalt); outline-offset: -3px; }
-.command-queue-row-inner { min-height: 51px; }
+.command-queue-row-inner { min-height: 57px; }
 .command-queue-row-inner > div:first-child { box-shadow: 0 4px 10px rgba(40, 65, 111, .12); }
 .command-queue-row-top p { letter-spacing: -.015em; }
 .command-queue-row-preview > p { color: #73809a; }
@@ -114,7 +118,7 @@
 .command-thread .bg-\[\#f7f8fa\] { background: #f4f7fb; }
 .command-thread input:focus { border-color: #93b4f8; box-shadow: 0 0 0 3px #dbeafe; }
 .command-message-area { position: relative; background: #f8fafc !important; }
-.command-message-stack { max-width: 860px; margin: 0 auto; }
+.command-message-stack { max-width: 810px; margin: 0 auto; }
 .command-conversation-divider { display: flex; align-items: center; gap: 10px; padding: 3px 0 7px; color: #8b98ae; font-size: 9px; font-weight: 750; letter-spacing: .08em; text-align: center; text-transform: uppercase; }
 .command-conversation-divider::before, .command-conversation-divider::after { flex: 1; height: 1px; background: #dfe7f1; content: ""; }
 .command-message-group { min-width: 110px; }
@@ -161,8 +165,8 @@
 .command-rail-fields dd small { margin-top: 1px; color: #657590; font-size: 11px; font-weight: 500; }
 .command-rail-section { position: relative; }
 .command-rail-section:hover { background: #fafcff; }
-.command-rail-section:nth-child(3) dd { display: inline-flex; margin-top: 7px; padding: 4px 8px; border: 1px solid #d8e4f6; border-radius: 6px; background: #f7faff; color: #315587; font-size: 11px; }
-.command-rail-section:nth-child(4) dd { display: inline-flex; margin-top: 7px; padding: 3px 8px; border-radius: 999px; background: #eef4ff; color: #416694; font-size: 10px; }
+.command-rail-section:nth-child(4) dd { display: inline-flex; margin-top: 7px; padding: 4px 8px; border: 1px solid #d8e4f6; border-radius: 6px; background: #f7faff; color: #315587; font-size: 11px; }
+.command-rail-section:nth-child(5) dd { display: inline-flex; margin-top: 7px; padding: 3px 8px; border-radius: 999px; background: #eef4ff; color: #416694; font-size: 10px; }
 .command-call-link { width: 100%; justify-content: center; margin-top: 16px; padding: 9px 12px; border: 1px solid #c9dafa; border-radius: 8px; background: #f5f8ff; }
 .command-call-link:hover { border-color: #9dbcf3; background: #edf4ff; }
 .command-call-link[aria-disabled="true"] { pointer-events: none; opacity: .45; }

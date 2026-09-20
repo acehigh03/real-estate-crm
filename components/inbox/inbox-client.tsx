@@ -666,10 +666,10 @@ export function InboxClient({
         </div>
       </header>
       <div className="command-priority-grid" aria-label="Live inbox status">
-        <div><span className="priority-icon replies"><MessageSquare size={18} /></span><p><strong>{conversations.filter((item) => item.unread).length}</strong> replies waiting</p></div>
-        <div><span className="priority-icon overdue"><CalendarClock size={18} /></span><p><strong>{overdueFollowUps}</strong> overdue follow-ups</p></div>
-        <div><span className="priority-icon activity"><ClipboardList size={18} /></span><p><strong>{messagesToday}</strong> texts today</p></div>
-        <div><span className="priority-icon value"><DollarSign size={18} /></span><p><strong>{compactMoney(activePipelineValue)}</strong> active pipeline</p></div>
+        <div className="command-priority-card"><span className="priority-icon replies"><MessageSquare size={18} /></span><p><strong>{conversations.filter((item) => item.unread).length}</strong><span>replies waiting</span></p><b aria-hidden>›</b></div>
+        <div className="command-priority-card"><span className="priority-icon overdue"><CalendarClock size={18} /></span><p><strong>{overdueFollowUps}</strong><span>overdue follow-ups</span></p><b aria-hidden>›</b></div>
+        <div className="command-priority-card"><span className="priority-icon activity"><ClipboardList size={18} /></span><p><strong>{messagesToday}</strong><span>texts today</span></p><b aria-hidden>›</b></div>
+        <div className="command-priority-card"><span className="priority-icon value"><DollarSign size={18} /></span><p><strong>{compactMoney(activePipelineValue)}</strong><span>active pipeline</span></p><b aria-hidden>›</b></div>
       </div>
 
       {startConversationModal}
@@ -694,7 +694,7 @@ export function InboxClient({
                 event.preventDefault();
                 setIsModalOpen(true);
               }}
-              className="flex h-9 w-9 items-center justify-center rounded-[6px] bg-[#00c08b] text-white"
+              className="command-queue-compose flex h-9 w-9 items-center justify-center rounded-[6px] bg-[#00c08b] text-white"
               title="Start conversation"
             >
               <Plus size={16} />
@@ -903,6 +903,7 @@ export function InboxClient({
           <div className="command-rail-tabs"><span className="is-active"><Home size={14} /> Lead</span><span><Users size={14} /> Contact</span></div>
           <dl className="command-rail-fields">
             <div className="command-rail-section"><dt><Users size={14} />Contact</dt><dd>{knownContact ? <><span>{leadDisplayName(lead)}</span><small>{lead.phone ? formatPhoneDisplay(lead.phone) : "No phone on record"}</small></> : "Unknown contact"}</dd>{!knownContact ? <Link href="/leads" className="command-link-lead">Link to lead</Link> : null}</div>
+            <div className="command-rail-section"><dt><MessageSquare size={14} />Source</dt><dd>{sourceLabel}</dd></div>
             <div className="command-rail-section"><dt><Home size={14} />Property</dt><dd>{isImportedLead(lead) ? lead.property_address : "No property linked yet."}</dd></div>
             <div className="command-rail-section"><dt><ClipboardList size={14} />Deal status</dt><dd>{lead.stage ?? lead.status ?? "Not set"}</dd></div>
             <div className="command-rail-section"><dt><Tag size={14} />Lead tags</dt><dd>{lead.tag || "No tags"}</dd></div>
