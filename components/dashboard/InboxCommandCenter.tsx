@@ -57,7 +57,6 @@ export function InboxCommandCenter({ data, greeting, userName, isDemo, children 
             <Link href="/pipeline"><span className="command-bubble rose"><CircleAlert size={21} /></span><span><strong>{data.atRisk.overdueFollowUps}</strong> overdue {data.atRisk.overdueFollowUps === 1 ? "follow-up" : "follow-ups"}</span></Link>
             <Link href="/pipeline"><span className="command-bubble green"><Check size={21} /></span><span><strong>{data.atRisk.staleOffers}</strong> stalled {data.atRisk.staleOffers === 1 ? "offer" : "offers"}</span></Link>
           </nav>
-          <span className="command-motto" aria-hidden>More deals.<br />Brighter tomorrows.</span>
         </header>
 
         <div className="command-grid">

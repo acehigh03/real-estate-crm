@@ -21,8 +21,6 @@ import {
   Settings,
   Database,
   Home,
-  Crown,
-  ChevronRight,
 } from "lucide-react";
 
 import { useTheme } from "@/lib/theme-context";
@@ -35,7 +33,7 @@ interface SidebarProps {
 }
 
 const WORKSPACE = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+  { label: "Inbox", icon: LayoutDashboard, href: "/inbox" },
   { label: "Messenger", icon: MessageSquare, href: "/messenger" },
   { label: "Contacts", icon: Users, href: "/contacts" },
   { label: "Calendar", icon: Calendar, href: "/calendar" },
@@ -136,8 +134,8 @@ function NavItem({
 }
 
 const HREF_TO_LABEL: Record<string, string> = {
-  "/dashboard":      "Dashboard",
-  "/inbox":          "Messenger",
+  "/dashboard":      "Inbox",
+  "/inbox":          "Inbox",
   "/messenger":      "Messenger",
   "/contacts":       "Contacts",
   "/calendar":       "Calendar",
@@ -360,47 +358,6 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
           <NavItem key={item.label} {...item} isActive={activeLabel === item.label} />
         ))}
       </nav>
-
-      {/* Product callout */}
-      <div style={{ padding: "0 12px 12px", flexShrink: 0 }}>
-        <Link
-          href="/campaigns"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "10px 10px",
-            borderRadius: 14,
-            textDecoration: "none",
-            border: "1px solid var(--c-accent-border)",
-            background: "linear-gradient(135deg, var(--c-accent-soft), rgba(56,189,248,0.10))",
-            boxShadow: "0 8px 22px -12px rgba(79,70,229,.45)",
-          }}
-        >
-          <span
-            aria-hidden
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 10,
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "linear-gradient(180deg, #6d70f5, #4f46e5)",
-              boxShadow: "0 6px 14px -4px rgba(79,70,229,.6)",
-            }}
-          >
-            <Crown size={16} color="#ffffff" strokeWidth={2.2} />
-          </span>
-          <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, lineHeight: 1.3, color: "var(--t2)", whiteSpace: "nowrap" }}>
-            Close more deals
-            <br />
-            <strong style={{ color: "var(--t1)", fontWeight: 700 }}>with SellingMy.Casa</strong>
-          </span>
-          <ChevronRight size={16} style={{ color: "var(--t3)", flexShrink: 0 }} aria-hidden />
-        </Link>
-      </div>
 
       {/* Footer — the signed-in user */}
       <div
