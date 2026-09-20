@@ -32,6 +32,7 @@ interface SidebarProps {
 }
 
 const WORKSPACE = [
+  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { label: "Inbox", icon: LayoutDashboard, href: "/inbox" },
   { label: "Contacts", icon: Users, href: "/contacts" },
   { label: "Calendar", icon: Calendar, href: "/calendar" },
@@ -132,7 +133,7 @@ function NavItem({
 }
 
 const HREF_TO_LABEL: Record<string, string> = {
-  "/dashboard":      "Inbox",
+  "/dashboard":      "Dashboard",
   "/inbox":          "Inbox",
   "/messenger":      "Inbox",
   "/contacts":       "Contacts",
@@ -311,7 +312,7 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
           <NavItem
             key={item.label}
             {...item}
-            {...(item.label === "Messenger" && unread > 0
+            {...(item.label === "Inbox" && unread > 0
               ? { chip: unread > 99 ? "99+" : String(unread), chipColor: "rose" }
               : {})}
             isActive={activeLabel === item.label}
