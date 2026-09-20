@@ -319,6 +319,10 @@ export function InboxClient({
   // rendering the full inbox empty whenever the attention-only filter has no matches.
   const effectiveQueueTab = queueTab === "needs" && queueCounts.needs === 0 ? "all" : queueTab;
 
+  useEffect(() => {
+    if (queueTab === "needs" && queueCounts.needs === 0) setQueueTab("all");
+  }, [queueCounts.needs, queueTab]);
+
   const filteredConversations = useMemo(() => {
     const query = search.trim().toLowerCase();
     return conversations.filter((conversation) => {
