@@ -8,3 +8,6 @@ coverage
 *.log
 tsconfig.tsbuildinfo
 .vercel
+
+# Playwright authenticated browser state (contains session cookies)
+playwright/.auth/
