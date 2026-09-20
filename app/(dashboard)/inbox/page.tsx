@@ -17,6 +17,12 @@ export default async function InboxPage({
   let leads = [] as Awaited<ReturnType<typeof getInboxData>>["leads"];
   let messages = [] as Awaited<ReturnType<typeof getInboxData>>["messages"];
   let campaigns = [] as Awaited<ReturnType<typeof getInboxData>>["campaigns"];
+  const namePart = (user?.email?.split("@")[0] ?? "").replace(/\d+/g, "");
+  const userName = namePart
+    .split(/[._-]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ") || "there";
 
   try {
     ({ leads, messages, campaigns } = await getInboxData());
@@ -47,6 +53,7 @@ export default async function InboxPage({
       initialCampaigns={campaigns}
       initialSentiments={sentiments}
       userId={user?.id ?? ""}
+      userName={userName}
       autoOpenComposer={openComposer === "1"}
       initialLeadId={leadParam ?? null}
     />

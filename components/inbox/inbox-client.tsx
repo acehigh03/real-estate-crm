@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
-import { CalendarClock, ClipboardList, DollarSign, ExternalLink, Home, MessageSquare, PhoneCall, Plus, Search, Send, Tag, Users } from "lucide-react";
+import { CalendarClock, ClipboardList, DollarSign, ExternalLink, FileText, Home, MessageSquare, MoreHorizontal, Paperclip, PhoneCall, Plus, Search, Send, Tag, Users } from "lucide-react";
 
 import { generateInboxDraftReply, getClassificationLabel } from "@/lib/ai/classify-lead";
 import { messageSentiment, SentimentBadge } from "@/components/automation/sentiment-badge";
@@ -11,7 +11,6 @@ import { useSentiments } from "@/components/automation/use-sentiments";
 import { createClient } from "@/lib/supabase/browser";
 import {
   fallbackCampaignName,
-  fallbackCampaignType,
   formatClassificationColor,
   leadDisplayName,
   messageSnippet,
@@ -40,6 +39,7 @@ interface InboxClientProps {
   /** Reply sentiments keyed by Telnyx message id (for the sentiment badges). */
   initialSentiments?: Record<string, string>;
   userId: string;
+  userName: string;
   autoOpenComposer?: boolean;
   /** Conversation to open first (from a dashboard "Draft Reply" link). */
   initialLeadId?: string | null;
@@ -158,6 +158,7 @@ export function InboxClient({
   initialCampaigns,
   initialSentiments = {},
   userId,
+  userName,
   autoOpenComposer = false,
   initialLeadId = null,
 }: InboxClientProps) {
@@ -184,6 +185,7 @@ export function InboxClient({
   });
   const [composeText, setComposeText] = useState("");
   const [search, setSearch] = useState("");
+  const [queueTab, setQueueTab] = useState<"needs" | "all" | "scheduled">("needs");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notesDraft, setNotesDraft] = useState("");
@@ -308,15 +310,31 @@ export function InboxClient({
       });
   }, [leads, messagesByLead]);
 
+  const queueCounts = useMemo(() => ({
+    needs: conversations.filter((conversation) => conversation.unread || conversation.lastMessage?.direction === "inbound").length,
+    all: conversations.length,
+    scheduled: conversations.filter((conversation) => Boolean(conversation.lead.next_follow_up_at)).length,
+  }), [conversations]);
+  // A thread remains real even when it does not need a reply. Fall back to All rather than
+  // rendering the full inbox empty whenever the attention-only filter has no matches.
+  const effectiveQueueTab = queueTab === "needs" && queueCounts.needs === 0 ? "all" : queueTab;
+
+  useEffect(() => {
+    if (queueTab === "needs" && queueCounts.needs === 0) setQueueTab("all");
+  }, [queueCounts.needs, queueTab]);
+
   const filteredConversations = useMemo(() => {
-    if (!search.trim()) return conversations;
-    const query = search.toLowerCase();
-    return conversations.filter((conversation) =>
-      `${conversation.lead.first_name} ${conversation.lead.last_name} ${conversation.lead.property_address}`
-        .toLowerCase()
-        .includes(query)
-    );
-  }, [conversations, search]);
+    const query = search.trim().toLowerCase();
+    return conversations.filter((conversation) => {
+      const matchesTab = effectiveQueueTab === "all"
+        ? true
+        : effectiveQueueTab === "needs"
+          ? conversation.unread || conversation.lastMessage?.direction === "inbound"
+          : Boolean(conversation.lead.next_follow_up_at);
+      const searchable = `${conversation.lead.first_name} ${conversation.lead.last_name} ${conversation.lead.phone} ${conversation.lead.property_address} ${conversation.lead.lead_source ?? ""} ${conversation.lastMessage?.body ?? ""}`.toLowerCase();
+      return matchesTab && (!query || searchable.includes(query));
+    });
+  }, [conversations, effectiveQueueTab, search]);
 
   const selectedConversation = useMemo(() => {
     return (
@@ -617,34 +635,52 @@ export function InboxClient({
     .reduce((sum, item) => sum + Number(item.deal_value ?? 0), 0);
   const sourceLabel = campaignName ?? lead.lead_source ?? "No source recorded";
   const knownContact = Boolean(lead.first_name.trim() || lead.last_name.trim() || lead.phone.trim());
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const nextAction = lead.next_follow_up_at
+    ? `Follow up ${format(new Date(lead.next_follow_up_at), "MMM d, h:mm a")}`
+    : lastInbound
+      ? "Reply to seller"
+      : "Schedule follow-up";
 
   return (
     <div className="command-center crm-page flex h-full flex-col overflow-hidden">
-      <div className="command-status-strip" aria-label="Live inbox status">
-        <span><MessageSquare size={14} /><strong>{conversations.filter((item) => item.unread).length}</strong> replies waiting</span>
-        <span><CalendarClock size={14} /><strong>{overdueFollowUps}</strong> overdue follow-ups</span>
-        <span><ClipboardList size={14} /><strong>{messagesToday}</strong> texts today</span>
-        <span><DollarSign size={14} /><strong>{compactMoney(activePipelineValue)}</strong> active pipeline</span>
-      </div>
-      <div className="crm-page-header command-center-header flex items-center justify-between px-6 py-4">
-        <div>
-          <p className="command-center-kicker">Command center</p>
-          <h1 className="crm-header-title">Inbox</h1>
+      <header className="command-center-header">
+        <div className="command-greeting">
+          <h1>{greeting}, {userName}</h1>
+          <p>{conversations.filter((item) => item.unread).length} {conversations.filter((item) => item.unread).length === 1 ? "seller needs" : "sellers need"} you today.</p>
         </div>
-        <button type="button" onClick={() => setIsModalOpen(true)} className="crm-button-primary">
-          Start conversation
-        </button>
+        <div className="command-header-actions">
+          <label className="command-global-search">
+            <Search size={16} aria-hidden />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search contacts, addresses, or messages..."
+              aria-label="Search conversations"
+            />
+          </label>
+          <button type="button" onClick={() => setIsModalOpen(true)} className="crm-button-primary">
+            Start conversation
+          </button>
+        </div>
+      </header>
+      <div className="command-priority-grid" aria-label="Live inbox status">
+        <div><span className="priority-icon replies"><MessageSquare size={18} /></span><p><strong>{conversations.filter((item) => item.unread).length}</strong> replies waiting</p></div>
+        <div><span className="priority-icon overdue"><CalendarClock size={18} /></span><p><strong>{overdueFollowUps}</strong> overdue follow-ups</p></div>
+        <div><span className="priority-icon activity"><ClipboardList size={18} /></span><p><strong>{messagesToday}</strong> texts today</p></div>
+        <div><span className="priority-icon value"><DollarSign size={18} /></span><p><strong>{compactMoney(activePipelineValue)}</strong> active pipeline</p></div>
       </div>
 
       {startConversationModal}
 
-      <div className="command-center-grid grid min-h-0 flex-1 gap-0 xl:grid-cols-[minmax(280px,30%)_minmax(0,1fr)_minmax(220px,20%)]">
+      <div className="command-center-grid grid min-h-0 flex-1 gap-0 xl:grid-cols-[minmax(290px,26%)_minmax(0,1fr)_minmax(290px,26%)]">
         <aside className="command-queue flex min-h-0 flex-col border-r border-[#e8edf2] bg-[#f7f8fa]">
-          <div className="px-4 py-4">
-          <div className="flex items-center justify-between border-b border-[#eaecf0] pb-4">
+          <div className="command-queue-heading px-4 pt-4">
+          <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-[#0f1117]">Inbox queue</h2>
-              <p className="mt-1 text-xs text-[#6b7280]">{filteredConversations.length} active threads</p>
+              <h2 className="text-lg font-bold tracking-[-0.03em] text-[#132044]">Inbox</h2>
+              <p className="mt-0.5 text-xs text-[#6b789b]">{queueCounts.needs} conversations need attention</p>
             </div>
             <Link
               href="#"
@@ -658,19 +694,25 @@ export function InboxClient({
               <Plus size={16} />
             </Link>
           </div>
+          <div className="command-queue-tabs" role="tablist" aria-label="Inbox filters">
+            {([
+              ["needs", "Needs reply", queueCounts.needs],
+              ["all", "All", queueCounts.all],
+              ["scheduled", "Scheduled", queueCounts.scheduled],
+            ] as const).map(([tab, label, count]) => (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={effectiveQueueTab === tab}
+                onClick={() => setQueueTab(tab)}
+                className={effectiveQueueTab === tab ? "is-active" : ""}
+              >
+                {label}{tab !== "all" ? <span>{count}</span> : null}
+              </button>
+            ))}
           </div>
-          <div className="border-b border-[#eaecf0] px-4 py-4">
-            <div className="flex items-center gap-2 rounded-[6px] border border-[#eaecf0] bg-[#f8f9fb] px-3 py-2">
-              <Search size={14} className="text-gray-400" />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search conversations"
-                className="w-full bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none"
-              />
-            </div>
           </div>
-
           <ScrollArea className="max-h-[260px] min-h-0 flex-1 xl:max-h-none">
             <div className="divide-y divide-[#eaecf0]">
               {filteredConversations.map((conversation) => {
@@ -680,13 +722,13 @@ export function InboxClient({
                     key={conversation.lead.id}
                     type="button"
                     onClick={() => setSelectedLeadId(conversation.lead.id)}
-                    className={`command-queue-row w-full border-l-2 px-4 py-3 text-left transition ${
+                    className={`command-queue-row w-full border-l-[3px] px-4 py-2.5 text-left transition ${
                       isActive ? "border-[#2563eb] bg-white" : conversation.unread ? "border-transparent bg-[#f7f8fa]" : "border-transparent bg-[#f7f8fa] hover:bg-white"
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
                         style={{
                           background: avatarBg(`${conversation.lead.first_name} ${conversation.lead.last_name}`),
                         }}
@@ -695,19 +737,22 @@ export function InboxClient({
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
-                          <p className={`truncate text-sm ${conversation.unread ? "font-semibold text-gray-900" : "font-medium text-gray-800"}`}>
+                          <p className={`truncate text-[13px] ${conversation.unread ? "font-bold text-[#132044]" : "font-semibold text-[#263552]"}`}>
                             {leadDisplayName(conversation.lead)}
                           </p>
                           <div className="flex items-center gap-1">
                             {conversation.unread ? <span className="h-2 w-2 rounded-full bg-[#2563eb]" /> : null}
-                            <span className="shrink-0 text-[11px] text-gray-400">
+                            <span className="shrink-0 text-[10px] font-medium text-[#8b98ae]">
                               {conversation.lastMessage ? format(new Date(conversation.lastMessage.created_at), "h:mm a") : ""}
                             </span>
                           </div>
                         </div>
-                        <div className="mt-1 flex items-center gap-2">
-                          <p className="min-w-0 flex-1 truncate text-xs text-gray-500">
-                            {messageSnippet(conversation.lastMessage?.body, 42)}
+                        <p className="command-queue-address truncate">
+                          {isImportedLead(conversation.lead) ? conversation.lead.property_address : formatPhoneDisplay(conversation.lead.phone)}
+                        </p>
+                        <div className="mt-0.5 flex items-center gap-2">
+                          <p className="min-w-0 flex-1 truncate text-[11px] leading-4 text-[#66758f]">
+                            {messageSnippet(conversation.lastMessage?.body, 58)}
                           </p>
                           <SentimentBadge sentiment={latestInboundSentiment(conversation.messages, sentiments)} />
                           {classificationBadge(conversation.lead.classification)}
@@ -722,7 +767,7 @@ export function InboxClient({
         </aside>
 
         <section className="command-thread flex min-h-0 flex-col bg-white">
-          <div className="border-b border-[#eaecf0] bg-white px-5 py-4">
+          <div className="command-thread-header border-b border-[#eaecf0] bg-white px-5 py-4">
             <div className="flex items-center gap-3">
               <div
                 className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
@@ -739,16 +784,17 @@ export function InboxClient({
                   <SentimentBadge sentiment={latestInboundSentiment(leadMessages, sentiments)} />
                 </div>
                 <p className="mt-1 truncate text-xs text-[#6b7280]">
-                  {campaignName
-                    ? `${fallbackCampaignName(campaignName)} · ${fallbackCampaignType(campaignType)}`
-                    : formatPhoneDisplay(lead.phone)}
+                  {formatPhoneDisplay(lead.phone)}{campaignName ? ` · ${fallbackCampaignName(campaignName)}` : ""}
                 </p>
               </div>
+              {lead.phone ? <a href={`tel:${lead.phone}`} className="command-thread-call"><PhoneCall size={15} /> Call</a> : null}
+              <Link href={`/leads/${lead.id}`} className="command-thread-more" aria-label="Open lead details"><MoreHorizontal size={18} /></Link>
             </div>
           </div>
 
-          <ScrollArea className="min-h-[280px] flex-1 bg-[#f7f8fa] px-5 py-5 xl:min-h-0">
+          <ScrollArea className="command-message-area min-h-[280px] flex-1 bg-[#f7f8fa] px-5 py-5 xl:min-h-0">
             <div className="space-y-4">
+              <div className="command-conversation-divider"><span>Conversation</span></div>
               {leadMessages.map((message) => (
                 <div
                   key={message.id}
@@ -779,24 +825,24 @@ export function InboxClient({
             </div>
           </ScrollArea>
 
-          <div className="border-t border-[#eaecf0] bg-white px-5 py-4">
-            <div className="mb-3 rounded-[10px] border border-[#00c08b]/20 bg-[#eaf9f5] p-3">
+          <div className="command-composer-wrap border-t border-[#eaecf0] bg-white px-5 py-4">
+            <div className="command-suggested-reply mb-2 rounded-[10px] border border-[#dbe7fb] bg-[#f1f6ff] p-2.5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-medium text-[#6b7280]">Suggested reply</p>
-                  <p className="mt-1 text-sm text-[#0f1117]">{suggestedReply}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[.08em] text-[#6b789b]">Suggested reply</p>
+                  <p className="mt-0.5 text-xs leading-5 text-[#223452]">{suggestedReply}</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setComposeText(suggestedReply)}
-                  className="rounded-[6px] bg-[#00c08b] px-3 py-2 text-xs font-medium text-white"
+                  className="rounded-[6px] bg-[#2563eb] px-3 py-1.5 text-xs font-semibold text-white"
                 >
                   Use reply
                 </button>
               </div>
             </div>
 
-            <div className="mb-2 flex flex-wrap gap-2">
+            <div className="command-quick-replies mb-2 flex gap-2 overflow-x-auto">
               {[
                 "Would you be open to a quick cash offer this week?",
                 "What timeline are you hoping for if you sell?",
@@ -806,7 +852,7 @@ export function InboxClient({
                   key={quickReply}
                   type="button"
                   onClick={() => setComposeText(quickReply)}
-                  className="rounded-full border border-[#eaecf0] bg-white px-3 py-1 text-[11px] text-gray-600"
+                  className="shrink-0 rounded-full border border-[#dfe7f3] bg-white px-3 py-1 text-[11px] text-[#52617f]"
                 >
                   {quickReply}
                 </button>
@@ -815,7 +861,7 @@ export function InboxClient({
 
             {error ? <p className="mb-2 text-xs text-red-500">{error}</p> : null}
 
-            <div className="flex items-center gap-2">
+            <div className="command-composer">
               <input
                 value={composeText}
                 onChange={(event) => setComposeText(event.target.value)}
@@ -826,16 +872,18 @@ export function InboxClient({
                   }
                 }}
                 disabled={isSending || lead.status === "DNC"}
-                placeholder={lead.status === "DNC" ? "Messaging disabled for DNC lead" : "Type a message"}
-                className="flex-1 rounded-[6px] border border-[#eaecf0] bg-white px-4 py-2.5 text-sm outline-none disabled:bg-gray-50 disabled:text-gray-400"
+                placeholder={lead.status === "DNC" ? "Messaging disabled for DNC lead" : `Type a reply to ${leadDisplayName(lead)}...`}
+                className="flex-1 bg-transparent px-3 py-2.5 text-sm outline-none disabled:bg-gray-50 disabled:text-gray-400"
               />
+              <Paperclip className="command-composer-icon" size={17} aria-hidden />
+              <FileText className="command-composer-icon" size={17} aria-hidden />
               <button
                 type="button"
                 onClick={sendMessage}
                 disabled={isSending || !composeText.trim() || lead.status === "DNC"}
-                className="flex h-10 w-10 items-center justify-center rounded-[6px] bg-[#00c08b] text-white disabled:cursor-not-allowed disabled:opacity-40"
+                className="command-send-button"
               >
-                <Send size={16} />
+                <Send size={16} /> Send
               </button>
             </div>
           </div>
@@ -843,31 +891,26 @@ export function InboxClient({
 
         <aside className="command-lead-rail min-h-0 overflow-y-auto border-l border-[#e8edf2] bg-[#fbfcff] p-5">
           <div className="flex items-center justify-between gap-2">
-            <p className="command-center-kicker">Lead details</p>
-            <Link href={`/leads/${lead.id}`} className="command-details-link">More details <ExternalLink size={13} /></Link>
+            <h2 className="text-lg font-bold tracking-[-0.03em] text-[#132044]">Lead details</h2>
+            <span className="command-source-badge">{isImportedLead(lead) ? "Imported record" : sourceLabel}</span>
           </div>
-          <div className="mt-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
-              {knownContact ? initials(lead) || "•" : "?"}
-            </div>
-            <div className="min-w-0">
-              <h3 className="truncate text-sm font-semibold text-[#132044]">{knownContact ? leadDisplayName(lead) : "Unknown contact"}</h3>
-              <p className="mt-0.5 truncate text-xs text-[#6b789b]">{lead.phone ? formatPhoneDisplay(lead.phone) : "No phone on record"}</p>
-            </div>
-          </div>
-
-          {!knownContact ? <Link href="/leads" className="command-link-lead">Link to lead</Link> : null}
-
+          <div className="command-rail-tabs"><span className="is-active"><Home size={14} /> Lead</span><span><Users size={14} /> Contact</span></div>
           <dl className="command-rail-fields">
-            <div><dt><Users size={14} />Source</dt><dd>{sourceLabel}</dd></div>
+            <div><dt><Users size={14} />Contact</dt><dd>{knownContact ? <><span>{leadDisplayName(lead)}</span><small>{lead.phone ? formatPhoneDisplay(lead.phone) : "No phone on record"}</small></> : "Unknown contact"}</dd>{!knownContact ? <Link href="/leads" className="command-link-lead">Link to lead</Link> : null}</div>
             <div><dt><Home size={14} />Property</dt><dd>{isImportedLead(lead) ? lead.property_address : "No property linked yet."}</dd></div>
-            <div><dt><ClipboardList size={14} />Stage</dt><dd>{lead.stage ?? lead.status ?? "Not set"}</dd></div>
-            <div><dt><Tag size={14} />Tags</dt><dd>{lead.tag || "No tags"}</dd></div>
+            <div><dt><ClipboardList size={14} />Deal status</dt><dd>{lead.stage ?? lead.status ?? "Not set"}</dd></div>
+            <div><dt><Tag size={14} />Lead tags</dt><dd>{lead.tag || "No tags"}</dd></div>
+            <div><dt><DollarSign size={14} />Offer</dt><dd>{lead.deal_value ? compactMoney(Number(lead.deal_value)) : "No offer sent yet"}</dd></div>
             <div><dt><CalendarClock size={14} />Next follow-up</dt><dd>{lead.next_follow_up_at ? format(new Date(lead.next_follow_up_at), "MMM d, yyyy · h:mm a") : "Not scheduled"}</dd></div>
           </dl>
+          <div className="command-next-action">
+            <span><CalendarClock size={15} /></span>
+            <div><p>Next action</p><strong>{nextAction}</strong></div>
+          </div>
           <a className="command-call-link" href={lead.phone ? `tel:${lead.phone}` : undefined} aria-disabled={!lead.phone}>
             <PhoneCall size={14} /> Call contact
           </a>
+          <Link href={`/leads/${lead.id}`} className="command-more-details">More details <ExternalLink size={13} /></Link>
         </aside>
       </div>
     </div>
