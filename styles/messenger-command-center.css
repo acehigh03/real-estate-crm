@@ -200,3 +200,36 @@
   .command-lead-rail { display: block; }
   .command-rail-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 22px; }
 }
+
+/* Wow-rebuild: turn the existing live-data workspace into a composed premium surface. */
+.command-center { background: #eff4fa; }
+.command-center-header {
+  min-height: 68px;
+  padding: 0 28px;
+  background: linear-gradient(108deg, #ffffff 0%, #f7f9ff 72%, #edf4ff 100%);
+}
+.command-greeting h1 { font-size: 25px; font-weight: 850; }
+.command-greeting p { color: #637291; font-size: 12px; font-weight: 600; }
+.command-priority-grid { gap: 12px; padding: 12px 20px 14px; background: #f7f9fd; }
+.command-priority-grid > div { min-height: 66px; padding: 11px 16px; border-radius: 14px; box-shadow: 0 10px 24px rgba(37, 61, 108, .055); }
+.command-priority-grid p { font-size: 11px; font-weight: 650; }
+.command-priority-grid strong { font-size: 22px; font-weight: 850; }
+.priority-icon { width: 38px; height: 38px; border-radius: 12px; }
+.command-center-grid { padding: 14px; gap: 14px !important; background: #eff4fa; }
+.command-center-grid > aside, .command-center-grid > section { border: 1px solid #dfe7f2 !important; border-radius: 16px; box-shadow: 0 12px 28px rgba(32, 56, 103, .07); overflow: hidden; }
+.command-queue { background: #ffffff; }
+.command-queue-row { min-height: 88px; }
+.command-queue-row-inner { min-height: 66px; }
+.command-thread { background: #ffffff; }
+.command-thread-header { min-height: 76px; box-shadow: 0 3px 12px rgba(30, 51, 92, .035); }
+.command-message-area { background: radial-gradient(circle at 82% 10%, #edf4ff 0, transparent 28%), #f7f9fc !important; }
+.command-message-stack { max-width: 760px; }
+.command-thread-context { display: flex; align-items: stretch; justify-content: space-between; gap: 12px; margin: 4px 0 18px; padding: 12px; border: 1px solid #dbe7fa; border-radius: 14px; background: rgba(255,255,255,.8); box-shadow: 0 8px 18px rgba(44, 76, 130, .045); }
+.command-thread-context > div { min-width: 0; }
+.command-thread-context span { display: block; color: #7282a1; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.command-thread-context strong { display: block; margin-top: 4px; color: #14234a; font-size: 13px; font-weight: 800; }
+.command-thread-context p { overflow: hidden; margin-top: 2px; color: #61708e; font-size: 11px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.command-thread-context-action { align-self: center; padding: 9px 12px; border-radius: 10px; background: #fff4df; }
+.command-thread-context-action strong { color: #8a5412; }
+.command-lead-rail { background: #ffffff !important; }
+.command-next-action { padding: 14px; border-color: #f4c675; border-radius: 12px; background: linear-gradient(135deg, #fffaf0, #fff2d8); box-shadow: 0 8px 18px rgba(189, 116, 21, .08); }
