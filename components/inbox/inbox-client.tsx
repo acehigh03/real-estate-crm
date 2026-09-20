@@ -315,19 +315,22 @@ export function InboxClient({
     all: conversations.length,
     scheduled: conversations.filter((conversation) => Boolean(conversation.lead.next_follow_up_at)).length,
   }), [conversations]);
+  // A thread remains real even when it does not need a reply. Fall back to All rather than
+  // rendering the full inbox empty whenever the attention-only filter has no matches.
+  const effectiveQueueTab = queueTab === "needs" && queueCounts.needs === 0 ? "all" : queueTab;
 
   const filteredConversations = useMemo(() => {
     const query = search.trim().toLowerCase();
     return conversations.filter((conversation) => {
-      const matchesTab = queueTab === "all"
+      const matchesTab = effectiveQueueTab === "all"
         ? true
-        : queueTab === "needs"
+        : effectiveQueueTab === "needs"
           ? conversation.unread || conversation.lastMessage?.direction === "inbound"
           : Boolean(conversation.lead.next_follow_up_at);
       const searchable = `${conversation.lead.first_name} ${conversation.lead.last_name} ${conversation.lead.phone} ${conversation.lead.property_address} ${conversation.lead.lead_source ?? ""} ${conversation.lastMessage?.body ?? ""}`.toLowerCase();
       return matchesTab && (!query || searchable.includes(query));
     });
-  }, [conversations, queueTab, search]);
+  }, [conversations, effectiveQueueTab, search]);
 
   const selectedConversation = useMemo(() => {
     return (
@@ -697,9 +700,9 @@ export function InboxClient({
                 key={tab}
                 type="button"
                 role="tab"
-                aria-selected={queueTab === tab}
+                aria-selected={effectiveQueueTab === tab}
                 onClick={() => setQueueTab(tab)}
-                className={queueTab === tab ? "is-active" : ""}
+                className={effectiveQueueTab === tab ? "is-active" : ""}
               >
                 {label}{tab !== "all" ? <span>{count}</span> : null}
               </button>
