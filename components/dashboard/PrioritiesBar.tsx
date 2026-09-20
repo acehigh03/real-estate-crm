@@ -10,7 +10,7 @@ export function PrioritiesBar({ unreadReplies, overdueFollowUps, stalledOffers }
   return (
     <section aria-label="Today's priorities" className="flex flex-wrap items-center gap-2.5">
       <Link
-        href="/messenger"
+        href="/inbox"
         className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[13.5px] font-semibold transition-colors ${
           unreadReplies > 0
             ? "bg-[var(--c-rose)] text-white shadow-md shadow-rose-500/30 hover:bg-[#e11d48]"

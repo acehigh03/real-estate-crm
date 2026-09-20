@@ -271,7 +271,7 @@ function SlideOver({ lead, onClose, onSaved }: { lead: Lead; onClose: () => void
         <form onSubmit={save} className="flex min-h-0 flex-1 flex-col">
           <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
             <div className="flex gap-2">
-              <Link href={`/messenger?lead=${lead.id}`} className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--c-border)] px-3 py-1.5 text-[13px] font-medium text-[var(--c-text-2)] hover:bg-[var(--c-surface-2)]"><MessageSquare size={14} aria-hidden />Open conversation</Link>
+              <Link href={`/inbox?lead=${lead.id}`} className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--c-border)] px-3 py-1.5 text-[13px] font-medium text-[var(--c-text-2)] hover:bg-[var(--c-surface-2)]"><MessageSquare size={14} aria-hidden />Open conversation</Link>
               <Link href={`/leads/${lead.id}`} className="rounded-lg border border-[var(--c-border)] px-3 py-1.5 text-[13px] font-medium text-[var(--c-text-2)] hover:bg-[var(--c-surface-2)]">Full lead page</Link>
             </div>
             {(lead.is_dnc || lead.status === "DNC") && <p className="rounded-lg bg-[var(--c-rose-soft)] px-3 py-2 text-[12.5px] text-[var(--c-rose-text)]">Opted out{lead.dnc_reason ? ` — ${lead.dnc_reason}` : ""}. This contact can’t be texted.</p>}

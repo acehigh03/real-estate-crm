@@ -1,0 +1,101 @@
+.command-center {
+  --command-navy: #132044;
+  --command-cobalt: #2563eb;
+  --command-line: #e3e9f4;
+  background: #f4f7fb;
+  color: var(--command-navy);
+}
+
+.command-status-strip {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-height: 36px;
+  padding: 0 24px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--command-line);
+  background: #edf2f8;
+  color: #627091;
+  font-size: 11px;
+}
+
+.command-status-strip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 18px;
+  padding: 0 18px;
+  white-space: nowrap;
+  border-right: 1px solid #dbe3ef;
+}
+
+.command-status-strip span:first-child { padding-left: 0; }
+.command-status-strip strong { color: var(--command-navy); font-weight: 750; }
+.command-status-strip span:nth-child(1) svg { color: var(--command-cobalt); }
+.command-status-strip span:nth-child(2) svg { color: #d97706; }
+.command-status-strip span:nth-child(3) svg { color: #0f766e; }
+.command-status-strip span:nth-child(4) svg { color: #2563eb; }
+
+.command-center-header {
+  min-height: 64px;
+  background: #fff;
+  border-bottom-color: var(--command-line);
+}
+
+.command-center-kicker {
+  color: #7180a1;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.command-center .crm-header-title { margin-top: 2px; color: var(--command-navy); font-size: 19px; }
+.command-center .crm-button-primary { background: var(--command-cobalt); box-shadow: 0 6px 16px rgba(37, 99, 235, .2); }
+.command-center .crm-button-primary:hover { background: #1d4ed8; }
+.command-queue { background: #f8fafd; }
+.command-queue-row { min-height: 72px; }
+.command-queue-row:focus-visible { outline: 2px solid var(--command-cobalt); outline-offset: -3px; }
+
+.command-thread { min-width: 0; }
+.command-thread > div:first-child { border-bottom-color: var(--command-line); }
+.command-thread .crm-chat-bubble-outbound { background: #1f5ed8; color: #fff; }
+.command-thread .crm-chat-bubble-inbound { background: #fff; border-color: var(--command-line); color: var(--command-navy); }
+.command-thread .bg-\[\#f7f8fa\] { background: #f4f7fb; }
+.command-thread input:focus { border-color: #93b4f8; box-shadow: 0 0 0 3px #dbeafe; }
+
+.command-lead-rail { color: var(--command-navy); }
+.command-details-link, .command-link-lead, .command-call-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #2457c5;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.command-link-lead { margin-top: 13px; }
+.command-rail-fields { display: grid; gap: 15px; margin-top: 24px; }
+.command-rail-fields div { padding-bottom: 13px; border-bottom: 1px solid var(--command-line); }
+.command-rail-fields dt { display: flex; align-items: center; gap: 7px; color: #7381a1; font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+.command-rail-fields dd { margin-top: 6px; color: #1a284b; font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
+.command-call-link { width: 100%; justify-content: center; margin-top: 20px; padding: 9px 12px; border: 1px solid #bfdbfe; border-radius: 8px; background: #eff6ff; }
+.command-call-link[aria-disabled="true"] { pointer-events: none; opacity: .45; }
+
+@media (max-width: 1279px) {
+  .command-center-grid { grid-template-columns: minmax(280px, 38%) minmax(0, 1fr) !important; }
+  .command-lead-rail { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; border-top: 1px solid var(--command-line); border-left: 0; }
+  .command-lead-rail > :not(.command-rail-fields) { grid-column: span 1; }
+  .command-rail-fields { grid-column: 1 / -1; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 0; }
+}
+
+@media (max-width: 767px) {
+  .command-status-strip { padding-inline: 14px; }
+  .command-status-strip span { padding-inline: 12px; }
+  .command-center-header { padding-inline: 16px; }
+  .command-center-grid { display: flex; flex-direction: column; overflow-y: auto; }
+  .command-queue { max-height: 320px; border-bottom: 1px solid var(--command-line); }
+  .command-thread { min-height: 620px; }
+  .command-lead-rail { display: block; }
+  .command-rail-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 22px; }
+}
