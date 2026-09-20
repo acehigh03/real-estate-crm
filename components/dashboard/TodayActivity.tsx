@@ -20,7 +20,7 @@ export function TodayActivity({ activity }: { activity: Activity }) {
           {activity.events.slice(0, 5).map((event) => (
             <li key={event.id} className="flex items-center gap-2 text-[12.5px]">
               {event.kind === "sent" ? <ArrowUpRight size={13} className="shrink-0 text-[var(--c-accent-strong)]" aria-hidden /> : <ArrowDownLeft size={13} className="shrink-0 text-[var(--c-emerald-text)]" aria-hidden />}
-              {event.lead_id ? <Link href={`/messenger?lead=${event.lead_id}`} className="min-w-0 flex-1 truncate text-[var(--c-text-2)] hover:text-[var(--c-accent-strong)]">{event.name}</Link> : <span className="min-w-0 flex-1 truncate text-[var(--c-text-2)]">{event.name}</span>}
+              {event.lead_id ? <Link href={`/inbox?lead=${event.lead_id}`} className="min-w-0 flex-1 truncate text-[var(--c-text-2)] hover:text-[var(--c-accent-strong)]">{event.name}</Link> : <span className="min-w-0 flex-1 truncate text-[var(--c-text-2)]">{event.name}</span>}
               <span className="num shrink-0 text-[11px] text-[var(--c-muted)]">{formatShort(event.at)}</span>
             </li>
           ))}

@@ -117,7 +117,7 @@ function CardBody({
       <p className={`mt-2 text-[12px] ${action.overdue ? "font-medium text-[var(--c-rose-text)]" : "text-[var(--c-text-2)]"}`}>{action.label}</p>
 
       <div className="mt-3 flex items-center gap-1.5">
-        <Link href={`/messenger?lead=${lead.id}`} className="inline-flex items-center gap-1 rounded-lg border border-[var(--c-border)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--c-text-2)] hover:bg-[var(--c-surface-2)]"><MessageSquare size={13} aria-hidden />Text</Link>
+        <Link href={`/inbox?lead=${lead.id}`} className="inline-flex items-center gap-1 rounded-lg border border-[var(--c-border)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--c-text-2)] hover:bg-[var(--c-surface-2)]"><MessageSquare size={13} aria-hidden />Text</Link>
         <a href={`tel:${lead.phone}`} className="inline-flex items-center gap-1 rounded-lg border border-[var(--c-border)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--c-text-2)] hover:bg-[var(--c-surface-2)]"><Phone size={13} aria-hidden />Call</a>
         <button type="button" onClick={() => setPicking((open) => !open)} aria-expanded={picking} className="inline-flex items-center gap-1 rounded-lg border border-[var(--c-border)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--c-text-2)] hover:bg-[var(--c-surface-2)]"><CalendarClock size={13} aria-hidden />Follow-up</button>
       </div>

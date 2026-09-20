@@ -15,7 +15,7 @@ export function SignalCards({ unreadReplies, newLeads, atRiskCount, atRiskValue,
 }) {
   return (
     <section aria-label="Signals" className="grid gap-5 sm:grid-cols-2 sm:[&>*:nth-child(3)]:col-span-2 xl:grid-cols-3 xl:[&>*:nth-child(3)]:col-span-1">
-      <Link href="/messenger" className={card}>
+      <Link href="/inbox" className={card}>
         <p className={question}>Who do I contact?</p>
         <div className="mt-4 flex items-center gap-3.5">
           <IconChip icon={Users} tone="accent" />

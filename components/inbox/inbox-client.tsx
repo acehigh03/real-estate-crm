@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
-import { MessageSquare, Plus, Search, Send } from "lucide-react";
+import { CalendarClock, ClipboardList, DollarSign, ExternalLink, Home, MessageSquare, PhoneCall, Plus, Search, Send, Tag, Users } from "lucide-react";
 
 import { generateInboxDraftReply, getClassificationLabel } from "@/lib/ai/classify-lead";
 import { messageSentiment, SentimentBadge } from "@/components/automation/sentiment-badge";
@@ -20,6 +20,7 @@ import {
 } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Database, LeadClassification } from "@/types/database";
+import "@/styles/messenger-command-center.css";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type Message = Database["public"]["Tables"]["messages"]["Row"];
@@ -94,6 +95,19 @@ function avatarBg(name: string) {
 
 function campaignForLead(campaigns: CampaignSummary[], campaignId: string | null) {
   return campaignId ? campaigns.find((campaign) => campaign.id === campaignId) ?? null : null;
+}
+
+function isImportedLead(lead: Lead) {
+  return Boolean(lead.lead_source) && lead.property_address.trim().toLowerCase() !== "inbox conversation";
+}
+
+function compactMoney(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
 }
 
 function classificationBadge(classification: LeadClassification) {
@@ -590,11 +604,33 @@ export function InboxClient({
     lastInboundBody: lastInbound?.body ?? null,
     classification: lastInbound?.classification ?? lead.classification,
   });
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const messagesToday = Object.values(messagesByLead)
+    .flat()
+    .filter((message) => new Date(message.created_at) >= startOfDay).length;
+  const overdueFollowUps = leads.filter(
+    (item) => item.next_follow_up_at && new Date(item.next_follow_up_at) < new Date()
+  ).length;
+  const activePipelineValue = leads
+    .filter((item) => !item.is_dnc && item.status !== "Dead" && item.status !== "DNC")
+    .reduce((sum, item) => sum + Number(item.deal_value ?? 0), 0);
+  const sourceLabel = campaignName ?? lead.lead_source ?? "No source recorded";
+  const knownContact = Boolean(lead.first_name.trim() || lead.last_name.trim() || lead.phone.trim());
 
   return (
-    <div className="crm-page flex h-full flex-col overflow-hidden">
-      <div className="crm-page-header flex items-center justify-between px-6 py-4">
-        <h1 className="crm-header-title">Inbox</h1>
+    <div className="command-center crm-page flex h-full flex-col overflow-hidden">
+      <div className="command-status-strip" aria-label="Live inbox status">
+        <span><MessageSquare size={14} /><strong>{conversations.filter((item) => item.unread).length}</strong> replies waiting</span>
+        <span><CalendarClock size={14} /><strong>{overdueFollowUps}</strong> overdue follow-ups</span>
+        <span><ClipboardList size={14} /><strong>{messagesToday}</strong> texts today</span>
+        <span><DollarSign size={14} /><strong>{compactMoney(activePipelineValue)}</strong> active pipeline</span>
+      </div>
+      <div className="crm-page-header command-center-header flex items-center justify-between px-6 py-4">
+        <div>
+          <p className="command-center-kicker">Command center</p>
+          <h1 className="crm-header-title">Inbox</h1>
+        </div>
         <button type="button" onClick={() => setIsModalOpen(true)} className="crm-button-primary">
           Start conversation
         </button>
@@ -602,12 +638,12 @@ export function InboxClient({
 
       {startConversationModal}
 
-      <div className="grid min-h-0 flex-1 gap-0 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="flex min-h-0 flex-col border-r border-[#e8edf2] bg-[#f7f8fa]">
+      <div className="command-center-grid grid min-h-0 flex-1 gap-0 xl:grid-cols-[minmax(280px,30%)_minmax(0,1fr)_minmax(220px,20%)]">
+        <aside className="command-queue flex min-h-0 flex-col border-r border-[#e8edf2] bg-[#f7f8fa]">
           <div className="px-4 py-4">
           <div className="flex items-center justify-between border-b border-[#eaecf0] pb-4">
             <div>
-              <h2 className="text-sm font-medium text-[#0f1117]">Conversations</h2>
+              <h2 className="text-sm font-semibold text-[#0f1117]">Inbox queue</h2>
               <p className="mt-1 text-xs text-[#6b7280]">{filteredConversations.length} active threads</p>
             </div>
             <Link
@@ -644,8 +680,8 @@ export function InboxClient({
                     key={conversation.lead.id}
                     type="button"
                     onClick={() => setSelectedLeadId(conversation.lead.id)}
-                    className={`w-full border-l-2 px-4 py-2 text-left transition ${
-                      isActive ? "border-[#00c08b] bg-white" : conversation.unread ? "border-transparent bg-[#f7f8fa]" : "border-transparent bg-[#f7f8fa] hover:bg-white"
+                    className={`command-queue-row w-full border-l-2 px-4 py-3 text-left transition ${
+                      isActive ? "border-[#2563eb] bg-white" : conversation.unread ? "border-transparent bg-[#f7f8fa]" : "border-transparent bg-[#f7f8fa] hover:bg-white"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -663,7 +699,7 @@ export function InboxClient({
                             {leadDisplayName(conversation.lead)}
                           </p>
                           <div className="flex items-center gap-1">
-                            {conversation.unread ? <span className="h-2 w-2 rounded-full bg-[#00c08b]" /> : null}
+                            {conversation.unread ? <span className="h-2 w-2 rounded-full bg-[#2563eb]" /> : null}
                             <span className="shrink-0 text-[11px] text-gray-400">
                               {conversation.lastMessage ? format(new Date(conversation.lastMessage.created_at), "h:mm a") : ""}
                             </span>
@@ -685,7 +721,7 @@ export function InboxClient({
           </ScrollArea>
         </aside>
 
-        <section className="flex min-h-0 flex-col bg-white">
+        <section className="command-thread flex min-h-0 flex-col bg-white">
           <div className="border-b border-[#eaecf0] bg-white px-5 py-4">
             <div className="flex items-center gap-3">
               <div
@@ -804,6 +840,35 @@ export function InboxClient({
             </div>
           </div>
         </section>
+
+        <aside className="command-lead-rail min-h-0 overflow-y-auto border-l border-[#e8edf2] bg-[#fbfcff] p-5">
+          <div className="flex items-center justify-between gap-2">
+            <p className="command-center-kicker">Lead details</p>
+            <Link href={`/leads/${lead.id}`} className="command-details-link">More details <ExternalLink size={13} /></Link>
+          </div>
+          <div className="mt-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
+              {knownContact ? initials(lead) || "•" : "?"}
+            </div>
+            <div className="min-w-0">
+              <h3 className="truncate text-sm font-semibold text-[#132044]">{knownContact ? leadDisplayName(lead) : "Unknown contact"}</h3>
+              <p className="mt-0.5 truncate text-xs text-[#6b789b]">{lead.phone ? formatPhoneDisplay(lead.phone) : "No phone on record"}</p>
+            </div>
+          </div>
+
+          {!knownContact ? <Link href="/leads" className="command-link-lead">Link to lead</Link> : null}
+
+          <dl className="command-rail-fields">
+            <div><dt><Users size={14} />Source</dt><dd>{sourceLabel}</dd></div>
+            <div><dt><Home size={14} />Property</dt><dd>{isImportedLead(lead) ? lead.property_address : "No property linked yet."}</dd></div>
+            <div><dt><ClipboardList size={14} />Stage</dt><dd>{lead.stage ?? lead.status ?? "Not set"}</dd></div>
+            <div><dt><Tag size={14} />Tags</dt><dd>{lead.tag || "No tags"}</dd></div>
+            <div><dt><CalendarClock size={14} />Next follow-up</dt><dd>{lead.next_follow_up_at ? format(new Date(lead.next_follow_up_at), "MMM d, yyyy · h:mm a") : "Not scheduled"}</dd></div>
+          </dl>
+          <a className="command-call-link" href={lead.phone ? `tel:${lead.phone}` : undefined} aria-disabled={!lead.phone}>
+            <PhoneCall size={14} /> Call contact
+          </a>
+        </aside>
       </div>
     </div>
   );
