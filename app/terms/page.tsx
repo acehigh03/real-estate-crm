@@ -68,6 +68,8 @@ export default function TermsPage() {
             <section>
               <h2 className="text-[15px] font-semibold text-[#1a1f36]">Privacy</h2>
               <p className="mt-2">
+                Mobile information and SMS consent will not be sold or shared with third parties for
+                promotional or marketing purposes. {" "}
                 How we handle your information is described in our{" "}
                 <Link href="/privacy" className="font-medium text-[#00c08b] hover:underline">
                   Privacy Policy
