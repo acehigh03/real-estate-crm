@@ -14,32 +14,32 @@ interface TemplateLead {
 
 const TEMPLATE_LIBRARY: Record<Exclude<SmsCampaignType, "custom">, string[]> = {
   probate: [
-    "Hi [[first_name]], this is Senay with Texas Relief Group. I work with families managing inherited properties. Would you be open to a quick cash offer on [[address]]? Reply YES or NO.",
+    "Hi [[first_name]], this is Sam with SSB Management. I work with families managing inherited properties. Would you be open to a quick cash offer on [[address]]? Reply YES or NO.",
   ],
   tax_sale: [
-    "Hi [[first_name]], this is Senay with Texas Relief Group. I saw your property at [[address]] may have tax issues. I can help — interested in a cash offer? Reply YES or NO.",
+    "Hi [[first_name]], this is Sam with SSB Management. I saw your property at [[address]] may have tax issues. I can help — interested in a cash offer? Reply YES or NO.",
   ],
   cash_offer: [
-    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Senay with Texas Relief Group. {{Quick question -|Just checking -|Wanted to ask -}} is [[address]] still yours? {{I came across it|I saw it}} and wanted to see if you'd be open to {{a cash offer|an as-is cash offer}}. {{Reply YES or NO.|Would you consider it? Reply YES or NO.}}",
-    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Senay with Texas Relief Group. {{Quick question -|Just checking -|Wanted to ask -}} I was looking at [[address]] and wanted to see if you'd consider {{a cash offer|an as-is cash offer}}. {{Reply YES or NO.|Would you be open to that? Reply YES or NO.}}",
-    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Senay with Texas Relief Group. {{Wanted to ask -|Quick question -|Just checking -}} is [[address]] a property you’d ever consider selling? {{I came across it|I saw it}} and may be able to make {{a cash offer|an as-is cash offer}}. {{Reply YES or NO.|Let me know with YES or NO.}}",
+    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Sam with SSB Management. {{Quick question -|Just checking -|Wanted to ask -}} is [[address]] still yours? {{I came across it|I saw it}} and wanted to see if you'd be open to {{a cash offer|an as-is cash offer}}. {{Reply YES or NO.|Would you consider it? Reply YES or NO.}}",
+    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Sam with SSB Management. {{Quick question -|Just checking -|Wanted to ask -}} I was looking at [[address]] and wanted to see if you'd consider {{a cash offer|an as-is cash offer}}. {{Reply YES or NO.|Would you be open to that? Reply YES or NO.}}",
+    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Sam with SSB Management. {{Wanted to ask -|Quick question -|Just checking -}} is [[address]] a property you’d ever consider selling? {{I came across it|I saw it}} and may be able to make {{a cash offer|an as-is cash offer}}. {{Reply YES or NO.|Let me know with YES or NO.}}",
   ],
   foreclosure_help: [
-    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Senay with Texas Relief Group. {{Quick question -|Just checking -|Wanted to ask -}} is [[address]] still yours? {{Looks like|Seems like}} it may be {{heading toward|facing}} foreclosure. {{There may still be time to|You may still have time to}} {{delay|pause}} it before the auction. {{Want me to take a quick look?|Want me to check what options you have?}}",
-    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Senay with Texas Relief Group. {{Wanted to ask -|Quick question -|Just checking -}} are you the owner of [[address]]? {{Looks like|Seems like}} it may be {{heading toward|facing}} foreclosure, and {{there may still be time to|you may still have time to}} {{delay|pause}} it before auction. {{Want me to take a quick look?|Want me to check your options?}}",
-    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Senay with Texas Relief Group. {{Just checking -|Wanted to ask -|Quick question -}} is [[address]] still yours? {{It looks like|Seems like}} foreclosure may be coming up. {{There may still be time to|You may still have time to}} {{delay|pause}} that process. {{Want me to take a quick look?|Want me to check what options may be available?}}",
+    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Sam with SSB Management. {{Quick question -|Just checking -|Wanted to ask -}} is [[address]] still yours? {{Looks like|Seems like}} it may be {{heading toward|facing}} foreclosure. {{There may still be time to|You may still have time to}} {{delay|pause}} it before the auction. {{Want me to take a quick look?|Want me to check what options you have?}}",
+    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Sam with SSB Management. {{Wanted to ask -|Quick question -|Just checking -}} are you the owner of [[address]]? {{Looks like|Seems like}} it may be {{heading toward|facing}} foreclosure, and {{there may still be time to|you may still have time to}} {{delay|pause}} it before auction. {{Want me to take a quick look?|Want me to check your options?}}",
+    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Sam with SSB Management. {{Just checking -|Wanted to ask -|Quick question -}} is [[address]] still yours? {{It looks like|Seems like}} foreclosure may be coming up. {{There may still be time to|You may still have time to}} {{delay|pause}} that process. {{Want me to take a quick look?|Want me to check what options may be available?}}",
   ],
 };
 
 export const DEFAULT_FIRST_SMS_TEMPLATES: Record<SmsCampaignType, string> = {
   cash_offer:
-    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Senay with Texas Relief Group. {{Quick question -|Just checking -|Wanted to ask -}} is [[address]] still yours? {{I came across it|I saw it}} and wanted to see if you'd be open to {{a cash offer|an as-is cash offer}}. {{Reply YES or NO.|Would you consider it? Reply YES or NO.}}",
+    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Sam with SSB Management. {{Quick question -|Just checking -|Wanted to ask -}} is [[address]] still yours? {{I came across it|I saw it}} and wanted to see if you'd be open to {{a cash offer|an as-is cash offer}}. {{Reply YES or NO.|Would you consider it? Reply YES or NO.}}",
   foreclosure_help:
-    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Senay with Texas Relief Group. {{Quick question -|Just checking -|Wanted to ask -}} is [[address]] still yours? {{Looks like|Seems like}} it may be {{heading toward|facing}} foreclosure. {{There may still be time to|You may still have time to}} {{delay|pause}} it before the auction. {{Want me to take a quick look?|Want me to check what options you have?}}",
+    "{{Hey|Hi|Hello}} [[first_name]], {{this is|it's}} Sam with SSB Management. {{Quick question -|Just checking -|Wanted to ask -}} is [[address]] still yours? {{Looks like|Seems like}} it may be {{heading toward|facing}} foreclosure. {{There may still be time to|You may still have time to}} {{delay|pause}} it before the auction. {{Want me to take a quick look?|Want me to check what options you have?}}",
   probate:
-    "Hi [[first_name]], this is Senay with Texas Relief Group. I work with families managing inherited properties. Would you be open to a quick cash offer on [[address]]? Reply YES or NO.",
+    "Hi [[first_name]], this is Sam with SSB Management. I work with families managing inherited properties. Would you be open to a quick cash offer on [[address]]? Reply YES or NO.",
   tax_sale:
-    "Hi [[first_name]], this is Senay with Texas Relief Group. I saw your property at [[address]] may have tax issues. I can help — interested in a cash offer? Reply YES or NO.",
+    "Hi [[first_name]], this is Sam with SSB Management. I saw your property at [[address]] may have tax issues. I can help — interested in a cash offer? Reply YES or NO.",
   custom: "",
 };
 
