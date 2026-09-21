@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { MessageTemplatesClient } from "@/components/templates/message-templates-client";
 
 export default function TemplatesPage() {
-  return <ComingSoon title="Templates" />;
+  return <MessageTemplatesClient />;
 }
