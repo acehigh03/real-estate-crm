@@ -26,6 +26,38 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export interface Database {
   public: {
     Tables: {
+      sms_opt_ins: {
+        Row: {
+          id: string;
+          full_name: string;
+          phone: string;
+          phone_normalized: string;
+          property_address: string | null;
+          consented: boolean;
+          consent_text: string;
+          consent_version: string;
+          source_url: string;
+          user_agent: string | null;
+          ip_hash: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          full_name: string;
+          phone: string;
+          phone_normalized: string;
+          property_address?: string | null;
+          consented: boolean;
+          consent_text: string;
+          consent_version: string;
+          source_url: string;
+          user_agent?: string | null;
+          ip_hash?: string | null;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
       leads: {
         Row: {
           campaign_id: string | null;

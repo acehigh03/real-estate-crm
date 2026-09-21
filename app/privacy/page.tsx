@@ -40,6 +40,16 @@ export default function PrivacyPage() {
             </p>
 
             <section>
+              <h2 className="text-[15px] font-semibold text-[#1a1f36]">SMS consent records</h2>
+              <p className="mt-2">
+                When you submit our SMS opt-in form, we record the phone number, the consent language shown,
+                the date and time, the source page, and limited technical information used to document your
+                choice. Mobile information and SMS consent will not be sold or shared with third parties for
+                promotional or marketing purposes.
+              </p>
+            </section>
+
+            <section>
               <h2 className="text-[15px] font-semibold text-[#1a1f36]">Information we collect</h2>
               <p className="mt-2">We collect the following information about property owners we contact:</p>
               <ul className="mt-2 list-disc space-y-1 pl-5">

@@ -36,8 +36,9 @@ export default function TermsPage() {
             <section>
               <h2 className="text-[15px] font-semibold text-[#1a1f36]">SMS consent</h2>
               <p className="mt-2">
-                By providing your phone number, you consent to receive SMS text messages from SSB Management
-                about cash offers on real estate. Consent is not a condition of any purchase or sale.
+                If you actively select the SMS consent checkbox and submit our opt-in form, you agree to
+                receive recurring marketing text messages from SSB Management about real estate and property
+                services at the number provided. Consent is not a condition of any purchase or sale.
               </p>
             </section>
 
