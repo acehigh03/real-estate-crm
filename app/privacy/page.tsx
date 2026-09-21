@@ -82,6 +82,17 @@ export default function PrivacyPage() {
             </section>
 
             <section>
+              <h2 className="text-[15px] font-semibold text-[#1a1f36]">SMS program terms</h2>
+              <p className="mt-2">
+                Message frequency varies. Message and data rates may apply. Reply{" "}
+                <strong className="font-semibold text-[#1a1f36]">STOP</strong> to unsubscribe or{" "}
+                <strong className="font-semibold text-[#1a1f36]">HELP</strong> for help. Mobile information
+                and SMS consent will not be sold or shared with third parties for promotional or marketing
+                purposes.
+              </p>
+            </section>
+
+            <section>
               <h2 className="text-[15px] font-semibold text-[#1a1f36]">Sharing of information</h2>
               <p className="mt-2">
                 We do not sell your personal information to third parties. We do not share your phone number
