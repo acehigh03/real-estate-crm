@@ -54,7 +54,13 @@ export async function POST(request: NextRequest) {
 
   if (error) {
     console.error("[sms-opt-in] Failed to record consent", error);
-    return NextResponse.json({ error: "We could not save your request. Please try again." }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "We could not save your request. Please try again.",
+        reference: error.code || "DATABASE_ERROR",
+      },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ ok: true }, { status: 201 });
