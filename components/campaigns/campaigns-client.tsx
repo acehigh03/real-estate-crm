@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
 
 import type { CampaignStats } from "@/lib/campaigns";
 import { formatShort } from "@/lib/format";
 import { DEFAULT_FIRST_SMS_TEMPLATES } from "@/lib/sms/templates";
+import { readSavedMessageTemplates, type SavedMessageTemplates } from "@/lib/sms/template-settings";
 import type { CampaignType } from "@/types/database";
 
 const TYPE_LABELS: Record<CampaignType, string> = {
@@ -106,6 +107,13 @@ function NewCampaign({ onClose, onCreated }: { onClose: () => void; onCreated: (
   const [template, setTemplate] = useState(DEFAULT_FIRST_SMS_TEMPLATES.cash_offer);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [savedTemplates, setSavedTemplates] = useState<SavedMessageTemplates>({ ...DEFAULT_FIRST_SMS_TEMPLATES });
+
+  useEffect(() => {
+    const saved = readSavedMessageTemplates();
+    setSavedTemplates(saved);
+    setTemplate(saved.cash_offer);
+  }, []);
 
   async function create(event: React.FormEvent) {
     event.preventDefault();
@@ -134,14 +142,14 @@ function NewCampaign({ onClose, onCreated }: { onClose: () => void; onCreated: (
         <div className="space-y-3 px-5 py-4">
           <label className="block text-[12px] font-medium text-[var(--c-muted)]">Name<input required autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="Harris County probate, September" className={input} /></label>
           <label className="block text-[12px] font-medium text-[var(--c-muted)]">Type
-            <select value={type} onChange={(event) => { const next = event.target.value as CampaignType; setType(next); setTemplate(DEFAULT_FIRST_SMS_TEMPLATES[next] ?? ""); }} className={input}>
+            <select value={type} onChange={(event) => { const next = event.target.value as CampaignType; setType(next); setTemplate(savedTemplates[next] ?? ""); }} className={input}>
               {(Object.keys(TYPE_LABELS) as CampaignType[]).map((key) => <option key={key} value={key}>{TYPE_LABELS[key]}</option>)}
             </select>
           </label>
           <label className="block text-[12px] font-medium text-[var(--c-muted)]">First text
             <textarea required rows={5} value={template} onChange={(event) => setTemplate(event.target.value)} className={input} />
           </label>
-          <p className="text-[12px] text-[var(--c-muted)]">Use [[first_name]] and [[address]]. “Reply STOP to opt out.” is added automatically. Attach leads by importing a CSV into this campaign.</p>
+          <p className="text-[12px] text-[var(--c-muted)]">Use [[first_name]] and [[address]]. “Reply STOP to opt out.” is added automatically. Change defaults on the <Link href="/templates" className="font-medium text-[var(--c-accent-strong)] hover:underline">Templates page</Link>.</p>
           {error && <p role="alert" className="text-[13px] text-[var(--c-rose-text)]">{error}</p>}
         </div>
         <div className="flex justify-end gap-2 border-t border-[var(--c-border)] px-5 py-3">
