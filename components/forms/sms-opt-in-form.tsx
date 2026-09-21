@@ -29,9 +29,10 @@ export function SmsOptInForm() {
       }),
     });
 
-    const body = (await response.json().catch(() => null)) as { error?: string } | null;
+    const body = (await response.json().catch(() => null)) as { error?: string; reference?: string } | null;
     if (!response.ok) {
-      setError(body?.error || "We could not save your request. Please try again.");
+      const reference = body?.reference ? ` Error code: ${body.reference}` : "";
+      setError(`${body?.error || "We could not save your request. Please try again."}${reference}`);
       setStatus("error");
       return;
     }
