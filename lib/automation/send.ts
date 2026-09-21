@@ -57,6 +57,7 @@ export async function sendAndRecord(
     lead_id: lead.id,
     phone: to,
     direction: "outbound",
+    from_number: from,
     body: text,
     to_number: to,
     status: sent.to?.[0]?.status ?? "queued",

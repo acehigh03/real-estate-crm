@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { processDueDrips } from "@/lib/automation/drip-runner";
 import { logError } from "@/lib/errors";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { processDueSmsQueue } from "@/lib/sms/queue-runner";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -31,8 +32,12 @@ async function run(request: Request) {
   }
 
   try {
-    const result = await processDueDrips(getSupabaseAdmin());
-    return NextResponse.json(result);
+    const admin = getSupabaseAdmin();
+    const [drips, queue] = await Promise.all([
+      processDueDrips(admin, new Date(), 50),
+      processDueSmsQueue(admin, new Date(), 50),
+    ]);
+    return NextResponse.json({ drips, queue });
   } catch (error) {
     // Never let a failure escape as a crash: report it and let the next run retry.
     logError("cron/drip", error);

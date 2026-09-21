@@ -1,9 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { classifyLeadMock } from "@/lib/ai/classify-lead";
+import { pickSenderNumber } from "@/lib/automation/rules";
 import { logError } from "@/lib/errors";
 import { sendTelnyxMessage, TelnyxSendError } from "@/lib/telnyx/send-sms";
-import { normalizePhone, withStopLanguage } from "@/lib/utils";
+import { normalizePhone, prepareOutboundMessage } from "@/lib/utils";
 import type { Database } from "@/types/database";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
@@ -51,11 +52,25 @@ export async function sendSmsToLead({
     return { ok: false, status: 400, error: "This lead has no valid phone number." };
   }
 
-  const body = withStopLanguage(message);
+  // The opt-out disclosure belongs on the first outbound message in a conversation,
+  // not every reply. Existing text that already contains STOP remains unchanged.
+  const { count: priorOutboundCount, error: historyError } = await db
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("lead_id", lead.id)
+    .eq("direction", "outbound");
+  if (historyError) {
+    logError("send-lead-sms", historyError, { leadId: lead.id, step: "check first outbound message" });
+    return { ok: false, status: 500, error: "Could not verify this conversation before sending." };
+  }
+
+  const body = prepareOutboundMessage(message, priorOutboundCount ?? 0);
+  const from = pickSenderNumber(lead.id);
 
   let telnyxMessage: Awaited<ReturnType<typeof sendTelnyxMessage>>;
   try {
-    telnyxMessage = await sendTelnyxMessage({ to, text: body });
+    telnyxMessage = await sendTelnyxMessage({ to, text: body, from });
   } catch (error) {
     if (error instanceof TelnyxSendError) {
       return { ok: false, status: error.status >= 500 || error.status === 401 ? 502 : 422, error: telnyxFailureMessage(error) };
@@ -73,6 +88,7 @@ export async function sendSmsToLead({
       lead_id: lead.id,
       phone: to,
       direction: "outbound",
+      from_number: from,
       body,
       to_number: to,
       status: telnyxMessage.to?.[0]?.status ?? "queued",

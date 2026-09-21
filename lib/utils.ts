@@ -31,6 +31,11 @@ export function withStopLanguage(message: string) {
     : `${trimmed}${stopText}`;
 }
 
+/** Adds the opt-out disclosure only when this is the lead's first outbound message. */
+export function prepareOutboundMessage(message: string, priorOutboundCount: number) {
+  return priorOutboundCount === 0 ? withStopLanguage(message) : message.trim();
+}
+
 export function formatStatusColor(status: string) {
   switch (status) {
     case "Hot":

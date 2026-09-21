@@ -155,7 +155,7 @@ async function runAction(
 
         const sent = await sendTelnyxMessage({ to, text, from });
         await admin.from("messages").insert({
-          user_id: lead.user_id, lead_id: lead.id, phone: to, direction: "outbound", body: text, to_number: to,
+          user_id: lead.user_id, lead_id: lead.id, phone: to, direction: "outbound", from_number: from, body: text, to_number: to,
           status: sent.to?.[0]?.status ?? "queued", telnyx_message_id: sent.id,
         });
         await admin.from("leads").update({ last_contacted_at: new Date().toISOString() }).eq("id", lead.id);

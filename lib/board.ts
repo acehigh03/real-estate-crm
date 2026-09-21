@@ -4,7 +4,7 @@ import type { Database, LeadClassification, LeadStage, LeadStatus } from "@/type
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 
-export type BoardColumnKey = "new" | "skip_traced" | "contacted" | "negotiating";
+export type BoardColumnKey = "new" | "skip_traced" | "contacted" | "negotiating" | "under_contract" | "closed";
 
 export interface BoardColumnDef {
   key: BoardColumnKey;
@@ -25,11 +25,13 @@ export const BOARD_COLUMNS: BoardColumnDef[] = [
   { key: "skip_traced", label: "Skip Traced", stages: ["Skip Traced"], emptyText: "Connect skip tracing →", emptyHref: "/settings", emptyHint: "Find owner info to move faster.", write: { status: "New", stage: "Skip Traced" } },
   { key: "contacted", label: "Contacted", stages: ["Contacted", "Replied", "Follow Up"], emptyText: "Start a campaign →", emptyHref: "/campaigns", emptyHint: "Text new leads to start conversations.", write: { status: "Contacted", stage: "Contacted" } },
   { key: "negotiating", label: "Negotiating", stages: ["Hot Lead", "Offer Sent"], emptyText: "No active negotiations", emptyHref: null, emptyHint: "Move hot leads here when offers are on the table.", write: { status: "Hot", stage: "Hot Lead", classification: "HOT" } },
+  { key: "under_contract", label: "Under Contract", stages: ["Under Contract"], emptyText: "No signed contracts", emptyHref: null, emptyHint: "Move signed deals here until closing.", write: { status: "Hot", stage: "Under Contract", classification: "HOT" } },
+  { key: "closed", label: "Closed", stages: ["Closed"], emptyText: "No closed deals", emptyHref: null, emptyHint: "Completed deals stay visible here.", write: { status: "Hot", stage: "Closed", classification: "HOT" } },
 ];
 
 export const NEGOTIATING_STAGES: LeadStage[] = ["Hot Lead", "Offer Sent"];
 /** Leads in these stages are off the board and out of pipeline value. */
-export const INACTIVE_STAGES: LeadStage[] = ["Dead", "Closed", "DNC"];
+export const INACTIVE_STAGES: LeadStage[] = ["Dead", "DNC"];
 
 export const COLUMN_BY_KEY = Object.fromEntries(BOARD_COLUMNS.map((column) => [column.key, column])) as Record<BoardColumnKey, BoardColumnDef>;
 
@@ -99,7 +101,7 @@ export function initialsOf(name: string) {
 }
 
 // ── Stage writes (shared by drag-and-drop, bulk change and the contact editor) ────────────────
-export const EDITABLE_STAGES: LeadStage[] = ["New", "Skip Traced", "Contacted", "Replied", "Hot Lead", "Follow Up", "Offer Sent", "Dead"];
+export const EDITABLE_STAGES: LeadStage[] = ["New", "Skip Traced", "Contacted", "Replied", "Hot Lead", "Follow Up", "Offer Sent", "Under Contract", "Closed", "Dead"];
 
 const STAGE_WRITES: Partial<Record<LeadStage, { status: LeadStatus; classification?: LeadClassification }>> = {
   New: { status: "New" },
@@ -109,6 +111,8 @@ const STAGE_WRITES: Partial<Record<LeadStage, { status: LeadStatus; classificati
   "Hot Lead": { status: "Hot", classification: "HOT" },
   "Follow Up": { status: "Contacted" },
   "Offer Sent": { status: "Contacted" },
+  "Under Contract": { status: "Hot", classification: "HOT" },
+  Closed: { status: "Hot", classification: "HOT" },
   Dead: { status: "Dead", classification: "DEAD" },
 };
 

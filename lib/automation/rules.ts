@@ -58,7 +58,7 @@ export const TRIGGER_TYPES = ["keyword", "any_reply", "first_reply", "sentiment"
 export type TriggerType = (typeof TRIGGER_TYPES)[number];
 
 /** Lead stage values a condition or "Move Stage" action can use (same set the pipeline writes). */
-export const STAGE_OPTIONS = ["New Leads", "Contacted", "Replied", "Qualified", "Offer Sent", "Dead"] as const;
+export const STAGE_OPTIONS = ["New Leads", "Contacted", "Replied", "Qualified", "Offer Sent", "Under Contract", "Closed", "Dead"] as const;
 export type StageOption = (typeof STAGE_OPTIONS)[number];
 
 // What "Move Stage" writes, kept in step with updatePipelineStage() in app/actions.ts.
@@ -68,6 +68,8 @@ export const STAGE_WRITE: Record<StageOption, { status: string; stage: string; c
   Replied: { status: "Replied", stage: "Replied" },
   Qualified: { status: "Hot", stage: "Hot Lead", classification: "HOT" },
   "Offer Sent": { status: "Contacted", stage: "Offer Sent" },
+  "Under Contract": { status: "Hot", stage: "Under Contract", classification: "HOT" },
+  Closed: { status: "Hot", stage: "Closed", classification: "HOT" },
   Dead: { status: "Dead", stage: "Dead", classification: "DEAD" },
 };
 

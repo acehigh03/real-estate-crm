@@ -73,14 +73,21 @@ export async function POST(request: Request) {
 
     const admin = getSupabaseAdmin();
 
-    // 3. Match the lead (most recent one if the same number exists more than once).
-    const { data: lead, error: leadLookupError } = await admin
-      .from("leads")
-      .select("*")
+    // 3. Match the exact pooled-number conversation first. Fall back to the newest lead for
+    // older message rows created before from_number was recorded.
+    const { data: priorThread, error: threadError } = await admin
+      .from("messages")
+      .select("lead_id")
       .eq("phone", from)
+      .eq("from_number", to)
+      .eq("direction", "outbound")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
+    if (threadError) logError("telnyx/inbound", threadError, { step: "pooled thread lookup", from, to });
+    let leadQuery = admin.from("leads").select("*");
+    leadQuery = priorThread?.lead_id ? leadQuery.eq("id", priorThread.lead_id) : leadQuery.eq("phone", from).order("created_at", { ascending: false }).limit(1);
+    const { data: lead, error: leadLookupError } = await leadQuery.maybeSingle();
     if (leadLookupError) {
       logError("telnyx/inbound", leadLookupError, { step: "lead lookup", from });
     }
@@ -93,6 +100,7 @@ export async function POST(request: Request) {
             user_id: lead?.user_id ?? null,
             lead_id: lead?.id ?? null,
             direction: "inbound",
+            from_number: from,
             body: inboundText,
             to_number: to,
             status: "received",
@@ -104,6 +112,7 @@ export async function POST(request: Request) {
           user_id: lead?.user_id ?? null,
           lead_id: lead?.id ?? null,
           direction: "inbound",
+          from_number: from,
           body: inboundText,
           to_number: to,
           status: "received",
@@ -247,8 +256,8 @@ async function enrichInboundMessage({
 function verifySignature(rawBody: string, headers: Headers): string | null {
   const publicKeyB64 = process.env.TELNYX_PUBLIC_KEY;
   if (!publicKeyB64) {
-    // Fail-open by design so local/dev setups work, but make it visible.
-    console.warn("[telnyx/inbound] TELNYX_PUBLIC_KEY is not set — webhook signatures are NOT being verified");
+    if (process.env.TELNYX_REQUIRE_SIGNATURE === "true") return "Webhook verification is not configured";
+    console.warn("[telnyx/inbound] TELNYX_PUBLIC_KEY is not set — signature enforcement is not enabled");
     return null;
   }
 

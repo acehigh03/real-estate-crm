@@ -8,7 +8,7 @@ import type { Database } from "@/types/database";
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type Message = Database["public"]["Tables"]["messages"]["Row"];
 
-export type PipelineBucket = "New Leads" | "Contacted" | "Replied" | "Qualified" | "Offer Sent" | "Dead";
+export type PipelineBucket = "New Leads" | "Contacted" | "Replied" | "Qualified" | "Offer Sent" | "Under Contract" | "Closed" | "Dead";
 
 /**
  * Board columns, left to right. Only new / contacted / negotiating / offer_sent have a data
@@ -32,6 +32,8 @@ const BUCKET_TO_BOARD: Partial<Record<PipelineBucket, BoardStageKey>> = {
   Replied: "negotiating",
   Qualified: "negotiating",
   "Offer Sent": "offer_sent",
+  "Under Contract": "under_contract",
+  Closed: "closed",
 };
 
 export type FlagKind = "reply" | "overdue" | "deadline" | "due";
@@ -373,8 +375,7 @@ export function buildDashboardView(
       hint: overdueLeads.length > 0 ? `${overdueLeads.length} overdue` : "due today or earlier",
     },
     offersSent: { value: offersSent.length, delta: null, spark: null, hint: `${offerLeads.length} awaiting reply` },
-    // TODO(data source): nothing records a lead reaching "Under Contract" yet.
-    contracts: { value: 0, delta: null, spark: null, hint: "not tracked yet" },
+    contracts: { value: leads.filter((lead) => lead.stage === "Under Contract").length, delta: null, spark: null, hint: "signed deals" },
     pipelineValue: {
       value: valued.reduce((sum, lead) => sum + (valueOf(lead) ?? 0), 0),
       delta: null,

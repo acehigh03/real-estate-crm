@@ -9,6 +9,7 @@ export type LeadStage =
   | "Follow Up"
   | "Skip Traced"
   | "Offer Sent"
+  | "Under Contract"
   | "Dead"
   | "Closed"
   | "DNC";
@@ -26,6 +27,12 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export interface Database {
   public: {
     Tables: {
+      message_templates: {
+        Row: { user_id: string; campaign_type: CampaignType; body: string; updated_at: string };
+        Insert: { user_id: string; campaign_type: CampaignType; body: string; updated_at?: string };
+        Update: { body?: string; updated_at?: string };
+        Relationships: [];
+      };
       sms_opt_ins: {
         Row: {
           id: string;
@@ -214,6 +221,7 @@ export interface Database {
           classification: MessageClassification | null;
           created_at: string;
           direction: "inbound" | "outbound";
+          from_number: string | null;
           id: string;
           lead_id: string | null;
           phone: string | null;
@@ -227,6 +235,7 @@ export interface Database {
           body: string;
           classification?: MessageClassification | null;
           direction: "inbound" | "outbound";
+          from_number?: string | null;
           lead_id?: string | null;
           phone?: string | null;
           read_at?: string | null;
@@ -364,6 +373,7 @@ export interface Database {
         Update: {
           status?: string;
           sent_at?: string | null;
+          scheduled_for?: string | null;
         };
         Relationships: [];
       };

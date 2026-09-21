@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Handshake, Plus, Search, Send, type LucideIcon } from "lucide-react";
+import { ArrowRight, BadgeCheck, Handshake, House, Plus, Search, Send, type LucideIcon } from "lucide-react";
 
 import type { BoardColumnData, BoardLead } from "@/lib/dashboard";
 import { COLUMN_BY_KEY, cardIdentity, nextActionFor, urgencyFor, type BoardColumnKey, type Urgency } from "@/lib/board";
@@ -13,7 +13,7 @@ export const urgencyStyle: Record<Urgency, string> = {
   Cold: "bg-[var(--slate-100)] text-[var(--slate-500)] dark:bg-white/10",
 };
 
-const EMPTY_ICON: Record<BoardColumnKey, LucideIcon> = { new: Plus, skip_traced: Search, contacted: Send, negotiating: Handshake };
+const EMPTY_ICON: Record<BoardColumnKey, LucideIcon> = { new: Plus, skip_traced: Search, contacted: Send, negotiating: Handshake, under_contract: House, closed: BadgeCheck };
 
 /** Empty column: icon, a call to action when there is one (otherwise plain text), and a supporting hint. */
 export function EmptyColumn({ columnKey, text, href, minHeight = 96 }: { columnKey: BoardColumnKey; text: string; href: string | null; minHeight?: number }) {

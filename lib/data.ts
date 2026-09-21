@@ -156,12 +156,13 @@ function derivePipelineStage(lead: Lead): PipelineStage {
   if (lead.stage === "Replied" || lead.stage === "Follow Up") return "Replied";
   if (lead.stage === "Hot Lead") return "Qualified";
   if (lead.stage === "Offer Sent") return "Offer Sent";
+  if (lead.stage === "Under Contract") return "Under Contract";
   if (lead.stage === "Dead" || lead.stage === "DNC") return "Dead";
   // Legacy rows: "Closed" used to mean both Offer Sent and Dead. Dead-looking leads are Dead.
   if (lead.stage === "Closed") {
     const looksDead =
       lead.status === "Dead" || lead.status === "DNC" || lead.classification === "DEAD" || lead.classification === "OPT_OUT";
-    return looksDead ? "Dead" : "Offer Sent";
+    return looksDead ? "Dead" : "Closed";
   }
 
   const tag = (lead.tag ?? "").toLowerCase();
@@ -573,6 +574,8 @@ export async function getPipelineData() {
       "Replied",
       "Qualified",
       "Offer Sent",
+      "Under Contract",
+      "Closed",
       "Dead",
     ];
 
@@ -583,7 +586,7 @@ export async function getPipelineData() {
   } catch (error) {
     logDataLoaderFailure("getPipelineData", error);
     return {
-      stageOrder: ["New Leads", "Contacted", "Replied", "Qualified", "Offer Sent", "Dead"] as PipelineStage[],
+      stageOrder: ["New Leads", "Contacted", "Replied", "Qualified", "Offer Sent", "Under Contract", "Closed", "Dead"] as PipelineStage[],
       cards: [],
     };
   }

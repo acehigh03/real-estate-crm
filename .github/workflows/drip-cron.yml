@@ -1,4 +1,4 @@
-# Runs the drip worker every 10 minutes.
+# Runs the drip and queued first-message workers every 10 minutes.
 #
 # Vercel's Hobby plan only allows one cron run per day (vercel.json is that daily backstop) and
 # rejects the deployment if a cron is scheduled more often. On a Pro plan you can instead change

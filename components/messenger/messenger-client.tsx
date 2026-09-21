@@ -144,7 +144,7 @@ export function MessengerClient({ initialLeads, initialMessages, initialSentimen
       if (!response.ok) return setSendError(payload.error ?? "Failed to send message.");
       if (payload.warning) setSendError(payload.warning);
       const saved: Message = payload.message ?? {
-        id: `temp-${Date.now()}`, body: text.trim(), direction: "outbound", created_at: new Date().toISOString(), lead_id: selected.id, phone: selected.phone,
+        id: `temp-${Date.now()}`, body: text.trim(), direction: "outbound", from_number: null, created_at: new Date().toISOString(), lead_id: selected.id, phone: selected.phone,
         to_number: selected.phone, user_id: null, classification: null, status: "queued", telnyx_message_id: null, read_at: null,
       };
       setMessages((current) => mergeMessage(current, saved));

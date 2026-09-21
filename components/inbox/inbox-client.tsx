@@ -586,6 +586,7 @@ export function InboxClient({
       id: tempId,
       body: text,
       direction: "outbound",
+      from_number: null,
       lead_id: selectedConversation.lead.id,
       created_at: new Date().toISOString(),
       user_id: userId,

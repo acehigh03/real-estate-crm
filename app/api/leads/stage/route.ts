@@ -11,7 +11,7 @@ const schema = z
   .object({
     lead_ids: z.array(z.string().uuid()).min(1).max(500),
     /** A board column (its canonical stage is written) ... */
-    column: z.enum(["new", "skip_traced", "contacted", "negotiating"]).optional(),
+    column: z.enum(["new", "skip_traced", "contacted", "negotiating", "under_contract", "closed"]).optional(),
     /** ... or an exact stage. */
     stage: z.enum(EDITABLE_STAGES as [LeadStage, ...LeadStage[]]).optional(),
     /** The column's cards in their new top-to-bottom order (persists drag-to-reorder). */

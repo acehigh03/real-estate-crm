@@ -52,7 +52,7 @@ export function suggestActionsPrompt(trigger: TriggerType, value: string | null 
     `Trigger: ${trigger}${value ? ` = "${clean(value, 60)}"` : ""}. ` +
     "Return ONLY a JSON array (2-4 items) of actions in order. Allowed items: " +
     '{"type":"send_sms","message":"<under 160 chars, may use [[first_name]] and [[address]]>"}, {"type":"tag_lead","tag":"<short>"}, ' +
-    '{"type":"update_stage","stage":"New Leads|Contacted|Replied|Qualified|Offer Sent|Dead"}, {"type":"notify","message":"<short>"}, {"type":"cancel_drips"}. ' +
+    '{"type":"update_stage","stage":"New Leads|Contacted|Replied|Qualified|Offer Sent|Under Contract|Closed|Dead"}, {"type":"notify","message":"<short>"}, {"type":"cancel_drips"}. ' +
     "Never include send_sms when the trigger is the stop sentiment."
   );
 }

@@ -22,18 +22,33 @@ const EDITABLE_TYPES: Array<{ type: Exclude<SmsCampaignType, "custom">; label: s
 export function MessageTemplatesClient() {
   const [templates, setTemplates] = useState<SavedMessageTemplates>(getDefaultMessageTemplates);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => setTemplates(readSavedMessageTemplates()), []);
+  useEffect(() => {
+    const local = readSavedMessageTemplates();
+    setTemplates(local);
+    fetch("/api/settings/templates").then(async (response) => {
+      if (!response.ok) return;
+      const data = await response.json();
+      const merged = { ...local, ...(data.templates ?? {}) } as SavedMessageTemplates;
+      setTemplates(merged); saveMessageTemplates(merged);
+    }).catch(() => undefined);
+  }, []);
 
   function update(type: SmsCampaignType, value: string) {
     setSaved(false);
     setTemplates((current) => ({ ...current, [type]: value }));
   }
 
-  function handleSave(event: React.FormEvent) {
+  async function handleSave(event: React.FormEvent) {
     event.preventDefault();
+    setError("");
     saveMessageTemplates(templates);
-    setSaved(true);
+    try {
+      const response = await fetch("/api/settings/templates", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ templates }) });
+      if (!response.ok) throw new Error();
+      setSaved(true);
+    } catch { setError("Saved on this browser, but cloud sync needs the latest database migration."); }
     window.setTimeout(() => setSaved(false), 3000);
   }
 
@@ -87,7 +102,8 @@ export function MessageTemplatesClient() {
             <button type="button" onClick={resetDefaults} className="inline-flex items-center gap-2 rounded-lg border border-[var(--c-border)] px-4 py-2.5 text-[13px] font-medium text-[var(--c-text-2)] hover:bg-[var(--c-surface-2)]">
               <RotateCcw size={15} aria-hidden /> Restore defaults
             </button>
-            {saved && <span className="text-[12.5px] font-medium text-[var(--c-accent-strong)]">Saved for this browser.</span>}
+            {saved && <span className="text-[12.5px] font-medium text-[var(--c-accent-strong)]">Saved across your devices.</span>}
+            {error && <span role="alert" className="text-[12.5px] text-[var(--c-rose-text)]">{error}</span>}
           </div>
         </form>
       </main>

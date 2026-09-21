@@ -10,6 +10,8 @@ export type PipelineStage =
   | "Replied"
   | "Qualified"
   | "Offer Sent"
+  | "Under Contract"
+  | "Closed"
   | "Dead";
 
 export interface DashboardRevenueMetrics {
@@ -57,7 +59,7 @@ export const EMPTY_ATTENTION: DashboardAttention = {
   atRisk: [],
   hotNoOffer: [],
   hotNoOfferCount: 0,
-  stageCounts: { "New Leads": 0, Contacted: 0, Replied: 0, Qualified: 0, "Offer Sent": 0, Dead: 0 },
+  stageCounts: { "New Leads": 0, Contacted: 0, Replied: 0, Qualified: 0, "Offer Sent": 0, "Under Contract": 0, Closed: 0, Dead: 0 },
 };
 
 export const EMPTY_REVENUE_METRICS: DashboardRevenueMetrics = {

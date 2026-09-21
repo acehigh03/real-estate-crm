@@ -223,7 +223,7 @@ export const POST = withErrorHandling("api/upload-csv", async (request: Request)
   let sendFailures = 0;
   let firstSendError: string | null = null;
 
-  if (newRows.length > 0 && campaignTemplate) {
+  if (newRows.length > 0 && campaignTemplate && autoSendEnabled) {
     const newPhones = newRows.map((r) => r.phone_normalized);
     const { data: smsTargets, error: smsTargetsError } = await db
       .from("leads")
@@ -246,8 +246,8 @@ export const POST = withErrorHandling("api/upload-csv", async (request: Request)
         })
       );
 
-      // Queue the message if auto-send is on but we're outside the window
-      if (autoSendEnabled && !insideWindow && smsSettings) {
+      // Queue the message when we're outside the user's allowed send window.
+      if (!insideWindow && smsSettings) {
         const scheduledFor = nextWindowOpenUTC(
           smsSettings.send_window_start,
           smsSettings.timezone
@@ -269,7 +269,7 @@ export const POST = withErrorHandling("api/upload-csv", async (request: Request)
         continue;
       }
 
-      // Send immediately (auto-send off = send right away; inside window = send right away).
+      // Auto-send is enabled and we're inside the allowed window.
       // A failure here never aborts the import: the lead is saved, just not messaged.
       const result = await sendSmsToLead({ db, userId: user.id, lead, message: text });
       if (result.ok) {

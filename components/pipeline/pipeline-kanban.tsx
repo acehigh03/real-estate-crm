@@ -34,6 +34,8 @@ const stageBadge: Record<string, string> = {
   "Follow Up": "bg-[var(--c-amber-soft)] text-[var(--c-amber-text)]",
   "Hot Lead": "bg-[var(--c-rose-soft)] text-[var(--c-rose-text)]",
   "Offer Sent": "bg-[var(--c-accent-soft)] text-[var(--c-accent-strong)]",
+  "Under Contract": "bg-[var(--c-amber-soft)] text-[var(--c-amber-text)]",
+  Closed: "bg-[var(--c-emerald-soft)] text-[var(--c-emerald-text)]",
 };
 
 const findColumn = (board: Board, id: string): BoardColumnKey | null => {
