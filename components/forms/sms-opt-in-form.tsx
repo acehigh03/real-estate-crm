@@ -9,6 +9,7 @@ const DISCLOSURE =
 export function SmsOptInForm() {
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [error, setError] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -29,7 +30,7 @@ export function SmsOptInForm() {
       }),
     });
 
-    const body = (await response.json().catch(() => null)) as { error?: string; reference?: string } | null;
+    const body = (await response.json().catch(() => null)) as { error?: string; reference?: string; consented?: boolean } | null;
     if (!response.ok) {
       const reference = body?.reference ? ` Error code: ${body.reference}` : "";
       setError(`${body?.error || "We could not save your request. Please try again."}${reference}`);
@@ -38,6 +39,7 @@ export function SmsOptInForm() {
     }
 
     form.reset();
+    setSubscribed(body?.consented === true);
     setStatus("success");
   }
 
@@ -45,9 +47,11 @@ export function SmsOptInForm() {
     return (
       <div className="rounded-xl border border-[#b8eadb] bg-[#effcf7] p-6 text-center" role="status">
         <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-[#00a878] text-xl text-white">✓</div>
-        <h2 className="mt-3 text-lg font-semibold text-[#1a1f36]">You’re signed up</h2>
+        <h2 className="mt-3 text-lg font-semibold text-[#1a1f36]">{subscribed ? "You’re signed up" : "Request submitted"}</h2>
         <p className="mt-1 text-sm leading-6 text-[#596579]">
-          SSB Management may now text you at the number you provided. Reply STOP at any time to unsubscribe.
+          {subscribed
+            ? "SSB Management may now text you at the number you provided. Reply STOP at any time to unsubscribe."
+            : "You were not enrolled in SMS updates because text-message consent was not selected."}
         </p>
       </div>
     );
@@ -79,7 +83,7 @@ export function SmsOptInForm() {
       </div>
 
       <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-[#d8dee8] bg-[#f8fafb] p-4">
-        <input name="consented" type="checkbox" required className="mt-1 h-5 w-5 shrink-0 accent-[#00a878]" />
+        <input name="consented" type="checkbox" className="mt-1 h-5 w-5 shrink-0 accent-[#00a878]" />
         <span className="text-[13px] leading-5 text-[#3c4257]">
           {DISCLOSURE} Mobile information and SMS consent will not be sold or shared with third parties for promotional or marketing purposes. View our{" "}
           <Link href="/privacy" target="_blank" className="font-medium text-[#008e67] underline">Privacy Policy</Link>{" "}
@@ -91,7 +95,7 @@ export function SmsOptInForm() {
 
       <button type="submit" disabled={status === "submitting"}
         className="w-full rounded-lg bg-[#00a878] px-4 py-3.5 text-sm font-semibold text-white shadow-sm hover:bg-[#008e67] disabled:cursor-not-allowed disabled:opacity-60">
-        {status === "submitting" ? "Submitting…" : "Agree and submit"}
+        {status === "submitting" ? "Submitting…" : "Submit"}
       </button>
     </form>
   );

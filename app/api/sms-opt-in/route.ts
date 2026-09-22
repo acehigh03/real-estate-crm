@@ -12,7 +12,7 @@ const schema = z.object({
   fullName: z.string().trim().min(2).max(120),
   phone: z.string().trim().min(10).max(30),
   propertyAddress: z.string().trim().max(240).optional().default(""),
-  consented: z.literal(true),
+  consented: z.boolean(),
   website: z.string().max(0).optional().default(""),
 });
 
@@ -26,7 +26,7 @@ function normalizeUsPhone(value: string) {
 export async function POST(request: NextRequest) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "Enter a valid name and mobile number, then check the consent box." }, { status: 400 });
+    return NextResponse.json({ error: "Enter a valid name and mobile number." }, { status: 400 });
   }
 
   const phoneNormalized = normalizeUsPhone(parsed.data.phone);
@@ -44,7 +44,9 @@ export async function POST(request: NextRequest) {
     phone: parsed.data.phone,
     phone_normalized: phoneNormalized,
     property_address: parsed.data.propertyAddress || null,
-    consented: true,
+    // The checkbox is deliberately optional for carrier compliance. False records the
+    // request but never represents permission to send marketing SMS.
+    consented: parsed.data.consented,
     consent_text: CONSENT_TEXT,
     consent_version: CONSENT_VERSION,
     source_url: new URL("/opt-in", request.url).toString(),
@@ -63,5 +65,5 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ ok: true }, { status: 201 });
+  return NextResponse.json({ ok: true, consented: parsed.data.consented }, { status: 201 });
 }
