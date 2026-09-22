@@ -85,7 +85,7 @@ export function SmsOptInForm() {
       <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-[#d8dee8] bg-[#f8fafb] p-4">
         <input name="consented" type="checkbox" className="mt-1 h-5 w-5 shrink-0 accent-[#00a878]" />
         <span className="text-[13px] leading-5 text-[#3c4257]">
-          {DISCLOSURE} Mobile information and SMS consent will not be sold or shared with third parties for promotional or marketing purposes. View our{" "}
+          <span className="font-semibold">Optional SMS consent:</span>{" "}{DISCLOSURE} Mobile information and SMS consent will not be sold or shared with third parties for promotional or marketing purposes. View our{" "}
           <Link href="/privacy" target="_blank" className="font-medium text-[#008e67] underline">Privacy Policy</Link>{" "}
           and <Link href="/terms" target="_blank" className="font-medium text-[#008e67] underline">Terms &amp; Conditions</Link>.
         </span>
