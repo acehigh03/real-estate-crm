@@ -30,13 +30,13 @@ export async function POST(request: NextRequest) {
   }
 
   const phone = parsed.data.phone.trim();
-  const phoneNormalized = phone ? normalizeUsPhone(phone) : null;
+  const normalized = phone ? normalizeUsPhone(phone) : null;
 
-  if (phone && !phoneNormalized) {
+  if (phone && !normalized) {
     return NextResponse.json({ error: "Enter a valid 10-digit U.S. mobile number." }, { status: 400 });
   }
 
-  if (parsed.data.consented && !phoneNormalized) {
+  if (parsed.data.consented && !normalized) {
     return NextResponse.json({ error: "Please enter a mobile number to receive SMS messages." }, { status: 400 });
   }
 
@@ -45,13 +45,14 @@ export async function POST(request: NextRequest) {
     .update(`${process.env.SMS_CONSENT_HASH_SALT || "sellingmy.casa"}:${forwardedFor}`)
     .digest("hex");
 
+  // The existing typed DB schema stores phone fields as non-null strings. For a
+  // submission that declines SMS, an empty string records that no number was supplied.
+  // A checked consent box still requires a valid normalized mobile number above.
   const { error } = await getSupabaseAdmin().from("sms_opt_ins").insert({
     full_name: parsed.data.fullName,
-    phone: phone || null,
-    phone_normalized: phoneNormalized,
+    phone,
+    phone_normalized: normalized || "",
     property_address: parsed.data.propertyAddress || null,
-    // Both the phone field and checkbox are optional. Only a checked checkbox plus
-    // a valid mobile number represents permission to send marketing SMS.
     consented: parsed.data.consented,
     consent_text: CONSENT_TEXT,
     consent_version: CONSENT_VERSION,
