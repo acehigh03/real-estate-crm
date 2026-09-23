@@ -10,7 +10,7 @@ const CONSENT_TEXT =
 
 const schema = z.object({
   fullName: z.string().trim().min(2).max(120),
-  phone: z.string().trim().min(10).max(30),
+  phone: z.string().trim().max(30).optional().default(""),
   propertyAddress: z.string().trim().max(240).optional().default(""),
   consented: z.boolean(),
   website: z.string().max(0).optional().default(""),
@@ -26,12 +26,18 @@ function normalizeUsPhone(value: string) {
 export async function POST(request: NextRequest) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "Enter a valid name and mobile number." }, { status: 400 });
+    return NextResponse.json({ error: "Enter a valid name." }, { status: 400 });
   }
 
-  const phoneNormalized = normalizeUsPhone(parsed.data.phone);
-  if (!phoneNormalized) {
+  const phone = parsed.data.phone.trim();
+  const phoneNormalized = phone ? normalizeUsPhone(phone) : null;
+
+  if (phone && !phoneNormalized) {
     return NextResponse.json({ error: "Enter a valid 10-digit U.S. mobile number." }, { status: 400 });
+  }
+
+  if (parsed.data.consented && !phoneNormalized) {
+    return NextResponse.json({ error: "Please enter a mobile number to receive SMS messages." }, { status: 400 });
   }
 
   const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
@@ -41,11 +47,11 @@ export async function POST(request: NextRequest) {
 
   const { error } = await getSupabaseAdmin().from("sms_opt_ins").insert({
     full_name: parsed.data.fullName,
-    phone: parsed.data.phone,
+    phone: phone || null,
     phone_normalized: phoneNormalized,
     property_address: parsed.data.propertyAddress || null,
-    // The checkbox is deliberately optional for carrier compliance. False records the
-    // request but never represents permission to send marketing SMS.
+    // Both the phone field and checkbox are optional. Only a checked checkbox plus
+    // a valid mobile number represents permission to send marketing SMS.
     consented: parsed.data.consented,
     consent_text: CONSENT_TEXT,
     consent_version: CONSENT_VERSION,
