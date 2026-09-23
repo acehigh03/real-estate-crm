@@ -18,14 +18,23 @@ export function SmsOptInForm() {
 
     const form = event.currentTarget;
     const data = new FormData(form);
+    const phone = String(data.get("phone") || "").trim();
+    const consented = data.get("consented") === "on";
+
+    if (consented && !phone) {
+      setError("Please enter a mobile number to receive SMS messages.");
+      setStatus("error");
+      return;
+    }
+
     const response = await fetch("/api/sms-opt-in", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         fullName: data.get("fullName"),
-        phone: data.get("phone"),
+        phone,
         propertyAddress: data.get("propertyAddress"),
-        consented: data.get("consented") === "on",
+        consented,
         website: data.get("website"),
       }),
     });
@@ -66,8 +75,8 @@ export function SmsOptInForm() {
       </div>
 
       <div>
-        <label htmlFor="phone" className="text-sm font-medium text-[#1a1f36]">Mobile phone number</label>
-        <input id="phone" name="phone" type="tel" required autoComplete="tel" inputMode="tel" placeholder="(713) 555-0123" maxLength={30}
+        <label htmlFor="phone" className="text-sm font-medium text-[#1a1f36]">Mobile phone number <span className="font-normal text-[#7b8798]">(optional)</span></label>
+        <input id="phone" name="phone" type="tel" autoComplete="tel" inputMode="tel" placeholder="(713) 555-0123" maxLength={30}
           className="mt-1.5 w-full rounded-lg border border-[#d8dee8] bg-white px-3.5 py-3 text-base text-[#1a1f36] focus:border-[#00a878] focus:ring-2 focus:ring-[#00a878]/15" />
       </div>
 
