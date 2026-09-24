@@ -257,9 +257,11 @@
 .dk .command-thread-context-action { background:#29331f; }
 .dk .command-thread-context-action strong { color:#bef264; }
 .dk .command-suggested-reply { border-color:#51643a !important; border-left-color:#a3e635 !important; background:#20291d !important; }
+.dk .command-suggested-reply button { background:#a3e635 !important; color:#151a11 !important; box-shadow:none; }
 .dk .command-quick-replies button { border-color:#343d38 !important; background:#202622 !important; color:#b7c0ba !important; }
 .dk .command-quick-replies button:hover { border-color:#759833 !important; background:#27301f !important; color:#bef264 !important; }
 .dk .command-composer { border-color:#343d38; background:#202622; box-shadow:none; }
+.dk .command-composer-wrap { border-color:#2c332f !important; background:#181d1a !important; }
 .dk .command-composer:focus-within { border-color:#7da92b; box-shadow:0 0 0 3px rgba(163,230,53,.1); }
 .dk .command-composer input { color:#eff4f0; }
 .dk .command-details-link,.dk .command-link-lead,.dk .command-more-details { color:#bef264; }
@@ -278,6 +280,9 @@
 .dk .command-next-action > span { background:rgba(163,230,53,.13); color:#a3e635; }
 .dk .command-next-action p { color:#94b85a; }
 .dk .command-next-action strong { color:#e7f6d1; }
+.dk .command-thread-header { border-color:#2c332f !important; background:#181d1a !important; color:#eff4f0; }
+.dk .command-thread-call,.dk .command-thread-more { border-color:#46523f; background:#202622; color:#bef264; }
+.dk .command-thread-call:hover,.dk .command-thread-more:hover { border-color:#a3e635; background:#29351f; color:#bef264; }
 
 /* Phone workspace: prioritize the active conversation and remove desktop-only
    stacking that produced a very tall, clipped page on iPhone. */
