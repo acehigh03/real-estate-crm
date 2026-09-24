@@ -51,6 +51,14 @@
 .scraper-table-panel { overflow:hidden; border:1px solid var(--b1); border-radius:0 0 12px 12px; background:var(--s1); box-shadow:var(--sh); }
 .scraper-table [data-slot="table-header"] { position:sticky; z-index:2; top:0; background:var(--s2); }
 .scraper-table tr { border-color:var(--b1); }
+.scraper-priority-table { width:100%; table-layout:fixed; }
+.scraper-priority-table th:nth-child(1),.scraper-priority-table td:nth-child(1) { width:155px; }
+.scraper-priority-table th:nth-child(3),.scraper-priority-table td:nth-child(3),.scraper-priority-table th:nth-child(4),.scraper-priority-table td:nth-child(4) { width:230px; }
+.scraper-priority-table th:nth-child(5),.scraper-priority-table td:nth-child(5) { width:145px; }
+.scraper-priority-table th:nth-child(6),.scraper-priority-table td:nth-child(6) { width:135px; }
+.scraper-priority-table th:nth-child(7),.scraper-priority-table td:nth-child(7) { width:125px; }
+.scraper-priority-table th:nth-child(8),.scraper-priority-table td:nth-child(8) { width:145px; }
+.scraper-priority-table th:nth-child(9),.scraper-priority-table td:nth-child(9) { width:150px; }
 .scraper-table .scraper-owner-col { width:170px; max-width:170px; }
 .scraper-table .scraper-owner-col span { max-width:138px; }
 .scraper-table-head { height:42px; color:var(--t3); letter-spacing:.01em; text-transform:none; }

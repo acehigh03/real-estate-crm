@@ -420,7 +420,7 @@ export function ScraperClient() {
             </div>
           ) : (
             <>
-              <Table className={`scraper-table ${priorityQueue ? "min-w-[1480px]" : "min-w-[1080px]"}`} aria-busy={loading}>
+              <Table className={`scraper-table ${priorityQueue ? "scraper-priority-table min-w-[1480px]" : "min-w-[1080px]"}`} aria-busy={loading}>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     {priorityQueue ? (
@@ -431,7 +431,7 @@ export function ScraperClient() {
                         <TableHead className={HEAD_CLASS}>Mailing address</TableHead>
                         <TableHead className={HEAD_CLASS}>HCAD account</TableHead>
                         <TableHead className={HEAD_CLASS}>Appraised value</TableHead>
-                        <TableHead className={HEAD_CLASS}>Amount owed</TableHead>
+                        <TableHead className={HEAD_CLASS} title="Only populated when a source provides an actual amount due; auction minimum bids are not tax balances">Amount owed</TableHead>
                         <TableHead className={HEAD_CLASS}>Case number</TableHead>
                         <TableHead className={HEAD_CLASS}>Match status</TableHead>
                       </>
