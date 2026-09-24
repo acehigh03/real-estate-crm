@@ -149,12 +149,12 @@ async function countWithFilingDate(db: Db) {
 }
 
 async function countRecentFilings(db: Db, days: number) {
-  const { start, endExclusive } = getFilingDateRange(String(days) as FilingWindow);
+  const { start, end } = getFilingDateRange(String(days) as FilingWindow);
   const { count, error } = await db
     .from(TABLE)
     .select("id", { count: "exact", head: true })
     .gte("filing_date", start)
-    .lt("filing_date", endExclusive);
+    .lte("filing_date", end);
   if (error) throw error;
   return count ?? 0;
 }
@@ -216,8 +216,8 @@ export const GET = withErrorHandling("api/scraper/leads", async (request: Reques
 
     let query = applyFilters(db.from(TABLE).select(COLUMNS, { count: "exact" }), tab, search, hcadFilter);
     if (filedWindow) {
-      const { start, endExclusive } = getFilingDateRange(filedWindow);
-      query = query.gte("filing_date", start).lt("filing_date", endExclusive);
+      const { start, end } = getFilingDateRange(filedWindow);
+      query = query.gte("filing_date", start).lte("filing_date", end);
     }
     if (hcadFilter === "matched") {
       query = query.not("hcad_account", "is", null).neq("hcad_account", "");

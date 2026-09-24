@@ -20,13 +20,13 @@ function shiftISODate(value: string, days: number) {
   return shifted.toISOString().slice(0, 10);
 }
 
-/** Inclusive start and exclusive end for a filing-date window, using Houston calendar days. */
+/** Inclusive date-only boundaries for a filing-date window, using Houston calendar days. */
 export function getFilingDateRange(window: FilingWindow, now = new Date()) {
   const today = getHoustonDateISO(now);
   const days = window === "today" ? 1 : Number(window);
   return {
     start: shiftISODate(today, -(days - 1)),
-    endExclusive: shiftISODate(today, 1),
+    end: today,
   };
 }
 
