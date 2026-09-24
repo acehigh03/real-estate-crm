@@ -91,7 +91,9 @@ export function SmsOptInForm() {
         <input id="website" name="website" tabIndex={-1} autoComplete="off" />
       </div>
 
-      <p className="text-sm text-[#596579]">Phone number and SMS consent are optional. You can submit this form without signing up for text messages.</p>\n\n      <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-[#d8dee8] bg-[#f8fafb] p-4">
+      <p className="text-sm text-[#596579]">Phone number and SMS consent are optional. You can submit this form without signing up for text messages.</p>
+
+      <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-[#d8dee8] bg-[#f8fafb] p-4">
         <input name="consented" type="checkbox" className="mt-1 h-5 w-5 shrink-0 accent-[#00a878]" />
         <span className="text-[13px] leading-5 text-[#3c4257]">
           <span className="font-semibold">Optional SMS consent:</span>{" "}{DISCLOSURE} Mobile information and SMS consent will not be sold or shared with third parties for promotional or marketing purposes. View our{" "}
