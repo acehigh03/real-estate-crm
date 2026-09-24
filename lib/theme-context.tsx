@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 type Theme = "dark" | "light";
-const THEME_STORAGE_KEY = "sellingmy-theme-v3";
+const THEME_STORAGE_KEY = "sellingmy-theme-v4";
 
 interface ThemeContextValue {
   theme: Theme;
@@ -19,7 +19,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
-    // v2 intentionally migrates existing accounts to the approved charcoal/lime
+    // v4 intentionally migrates existing accounts to the approved charcoal/lime
     // experience once. After that first load, the user's toggle choice persists.
     const stored = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
     const initial = stored === "light" ? "light" : "dark";

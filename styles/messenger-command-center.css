@@ -104,6 +104,42 @@
 .command-queue-row.border-\[\#2563eb\] .command-queue-address { color: #416ba9; }
 .command-queue-address { margin-top: 2px; color: #526a93; font-size: 10px; font-weight: 700; }
 
+/* Desktop navigation treatment adapted from the compact, discrete controls in
+   useLayouts. This is deliberately CSS-only so the live CRM keeps its current
+   dependency surface and data behavior. */
+@media (min-width: 768px) {
+  .command-queue-heading { padding:14px 14px 10px !important; }
+  .command-queue-tabs {
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:4px;
+    margin-top:12px;
+    padding:4px;
+    border:1px solid var(--command-line);
+    border-radius:12px;
+    background:rgba(127,145,174,.08);
+  }
+  .command-queue-tabs button {
+    justify-content:center;
+    min-width:0;
+    min-height:36px;
+    padding:0 8px;
+    border-radius:9px;
+    font-size:11px;
+    transition:background 150ms ease,color 150ms ease,box-shadow 150ms ease;
+  }
+  .command-queue-tabs button::after { display:none; }
+  .command-queue-tabs button.is-active {
+    background:#fff;
+    box-shadow:0 2px 8px rgba(30,51,92,.09);
+  }
+  .command-queue-tabs button span { min-width:16px; height:16px; margin-left:0; }
+  .dk .command-queue-tabs { background:#121613; }
+  .dk .command-queue-tabs button.is-active { background:#29351f; box-shadow:none; }
+  .command-center-grid { grid-template-columns:minmax(300px,25%) minmax(0,1fr) minmax(300px,25%) !important; }
+  .command-center-grid > aside,.command-center-grid > section { border-radius:12px; }
+}
+
 .command-thread { min-width: 0; }
 .command-thread > div:first-child { border-bottom-color: var(--command-line); }
 .command-thread-header { min-height: 66px; box-shadow: 0 2px 8px rgba(30, 51, 92, .025); }
