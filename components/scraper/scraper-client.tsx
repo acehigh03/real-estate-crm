@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Database, RefreshCw, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +23,7 @@ import {
   type ScraperStatsResponse,
   type ScraperTabKey,
 } from "@/types/scraper";
+import "@/styles/scraper-workspace.css";
 
 const PAGE_SIZE = 25;
 const SEARCH_DEBOUNCE_MS = 350;
@@ -66,7 +67,18 @@ function formatStatus(value: string) {
   return value.replace(/_/g, " ").replace(/^\w/, (char) => char.toUpperCase());
 }
 
-const HEAD_CLASS = "px-5 py-3 text-[11px] font-medium uppercase tracking-wide";
+function formatMoney(value: number | string | null) {
+  if (value === null || value === "") return "—";
+  const amount = typeof value === "number" ? value : Number.parseFloat(value.replace(/[^0-9.-]/g, ""));
+  if (!Number.isFinite(amount)) return "—";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+const HEAD_CLASS = "scraper-table-head px-4 text-xs font-semibold";
 
 export function ScraperClient() {
   const [tab, setTab] = useState<ScraperTabKey>("all");
@@ -190,7 +202,7 @@ export function ScraperClient() {
         <button
           type="button"
           onClick={() => toggleSort(key)}
-          className="inline-flex items-center gap-1 uppercase tracking-wide"
+          className="inline-flex items-center gap-1"
         >
           {label}
           <Icon size={11} style={{ opacity: active ? 1 : 0.5 }} />
@@ -200,100 +212,89 @@ export function ScraperClient() {
   };
 
   return (
-    <div className="crm-page flex flex-1 flex-col overflow-hidden">
-      <div className="crm-page-header flex shrink-0 flex-wrap items-center justify-between gap-4 px-6 py-4">
-        <div>
-          <h1 className="crm-header-title">Scraper Leads</h1>
-          <p className="crm-header-copy">
-            Every lead collected by the foreclosure scrapers, by category. Read-only.
-          </p>
+    <div className="scraper-workspace flex flex-1 flex-col overflow-hidden">
+      <header className="scraper-header">
+        <div className="scraper-title-group">
+          <span className="scraper-title-icon"><Database size={18} /></span>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1>Scraper Leads</h1>
+              <span className="scraper-live"><i /> Live</span>
+            </div>
+            <p>{counts?.all !== undefined ? `${counts.all.toLocaleString()} collected records` : "Foreclosure lead database"}</p>
+          </div>
         </div>
-        <div className="relative">
-          <Search
-            size={14}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
-            style={{ color: "var(--t3)" }}
-          />
-          <input
-            type="search"
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Search name, address, case #…"
-            aria-label="Search scraper leads"
-            className="crm-input h-9 w-72 pl-9 pr-3"
-          />
+        <div className="scraper-header-actions">
+          <label className="scraper-search">
+            <Search size={16} aria-hidden />
+            <input
+              type="search"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Search owner, address, case #..."
+              aria-label="Search scraper leads"
+            />
+          </label>
+          <button
+            type="button"
+            className="scraper-refresh"
+            onClick={() => setReloadToken((token) => token + 1)}
+            disabled={loading}
+            aria-label="Refresh scraper leads"
+            title="Refresh leads"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
         </div>
-      </div>
+      </header>
 
-      <div className="flex-1 space-y-4 overflow-auto px-6 py-4">
-        {/* Stats bar — one card per category; click to jump to that tab */}
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-          {SCRAPER_TABS.map((entry) => {
-            const isActive = entry.key === tab;
-            const value = counts?.[entry.key];
-            return (
-              <button
-                key={entry.key}
-                type="button"
-                onClick={() => selectTab(entry.key)}
-                className="crm-panel px-4 py-3 text-left transition"
-                style={isActive ? { borderColor: "var(--g)" } : undefined}
-              >
-                <p className="crm-section-kicker">{entry.label}</p>
-                <p
-                  className="mt-1 text-[22px] font-semibold"
-                  style={{ color: "var(--t1)", fontFamily: "var(--font-mono)" }}
-                >
-                  {value !== undefined ? value.toLocaleString() : statsError ? "—" : "…"}
-                </p>
-              </button>
-            );
-          })}
-        </div>
+      <nav className="scraper-tabs" role="tablist" aria-label="Lead category">
+        {SCRAPER_TABS.map((entry) => {
+          const isActive = entry.key === tab;
+          const value = counts?.[entry.key];
+          return (
+            <button
+              key={entry.key}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => selectTab(entry.key)}
+              className={isActive ? "is-active" : ""}
+            >
+              <span>{entry.label}</span>
+              <b>{value !== undefined ? value.toLocaleString() : statsError ? "—" : "…"}</b>
+            </button>
+          );
+        })}
+      </nav>
 
-        {/* Category tabs */}
-        <div role="tablist" aria-label="Lead category" className="flex flex-wrap gap-1.5">
-          {SCRAPER_TABS.map((entry) => {
-            const isActive = entry.key === tab;
-            return (
-              <button
-                key={entry.key}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => selectTab(entry.key)}
-                className="rounded-md px-3 py-1.5 text-[13px] font-medium transition"
-                style={{
-                  background: isActive ? "var(--t1)" : "var(--s1)",
-                  color: isActive ? "var(--bg)" : "var(--t2)",
-                  border: "1px solid var(--b2)",
-                }}
-              >
-                {entry.label}
-              </button>
-            );
-          })}
+      <div className="scraper-content">
+        <div className="scraper-table-toolbar">
+          <div>
+            <strong>{activeTabLabel}</strong>
+            <span>{total.toLocaleString()} {total === 1 ? "record" : "records"}</span>
+          </div>
+          <p>Click any column heading to sort</p>
         </div>
 
-        <div className="crm-panel overflow-hidden p-0">
+        <div className="scraper-table-panel">
           {error ? (
-            <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
-              <p role="alert" className="text-[13px]" style={{ color: "var(--red)" }}>
-                {error}
-              </p>
+            <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+              <p role="alert" className="text-sm" style={{ color: "var(--red)" }}>{error}</p>
               <Button variant="outline" size="sm" onClick={() => setReloadToken((token) => token + 1)}>
                 Try again
               </Button>
             </div>
           ) : (
             <>
-              <Table className="min-w-[960px]" aria-busy={loading}>
-                <TableHeader style={{ background: "var(--s2)" }}>
-                  <TableRow className="hover:bg-transparent" style={{ borderColor: "var(--b1)" }}>
-                    {sortHead("owner", "Owner")}
-                    {sortHead("address", "Property address")}
+              <Table className="scraper-table min-w-[1080px]" aria-busy={loading}>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    {sortHead("owner", "Owner / Case")}
+                    {sortHead("address", "Property")}
                     {sortHead("phone", "Phone")}
                     {sortHead("category", "Category")}
+                    <TableHead className={HEAD_CLASS}>Property / Taxes</TableHead>
                     {sortHead("date", "Date added")}
                     {sortHead("status", "Status")}
                   </TableRow>
@@ -301,13 +302,13 @@ export function ScraperClient() {
                 <TableBody style={{ opacity: loading && rows.length ? 0.55 : 1, transition: "opacity 0.15s" }}>
                   {loading && rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="px-5 py-14 text-center text-[13px]" style={{ color: "var(--t3)" }}>
+                      <TableCell colSpan={7} className="px-5 py-16 text-center text-sm" style={{ color: "var(--t3)" }}>
                         Loading leads…
                       </TableCell>
                     </TableRow>
                   ) : rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="px-5 py-14 text-center text-[13px]" style={{ color: "var(--t3)" }}>
+                      <TableCell colSpan={7} className="px-5 py-16 text-center text-sm" style={{ color: "var(--t3)" }}>
                         {search
                           ? `No ${tab === "all" ? "leads" : `${activeTabLabel} leads`} matching “${search}”.`
                           : `No leads in ${activeTabLabel} yet.`}
@@ -320,53 +321,39 @@ export function ScraperClient() {
                       const status = row.status?.trim() || row.crm_status?.trim() || "";
                       const statusColor = statusColors(status);
                       return (
-                        <TableRow
-                          key={row.id}
-                          className="transition hover:bg-[var(--s2)]"
-                          style={{ borderColor: "var(--b1)" }}
-                        >
-                          <TableCell className="px-5 py-3">
-                            <p className="text-sm font-semibold" style={{ color: "var(--t1)" }}>
-                              {ownerName(row)}
-                            </p>
+                        <TableRow key={row.id} className="scraper-data-row">
+                          <TableCell className="px-4 py-3">
+                            <p className="text-sm font-semibold" style={{ color: "var(--t1)" }}>{ownerName(row)}</p>
                             {row.case_number ? (
-                              <p className="mt-0.5 text-[11px]" style={{ color: "var(--t3)", fontFamily: "var(--font-mono)" }}>
+                              <p className="mt-1 text-xs" style={{ color: "var(--t3)", fontFamily: "var(--font-mono)" }}>
                                 {row.case_number}
                               </p>
                             ) : null}
                           </TableCell>
-                          <TableCell className="max-w-[280px] truncate px-5 py-3 text-sm" style={{ color: "var(--t2)" }}>
-                            {row.address?.trim() || "Address not found"}
+                          <TableCell className="max-w-[300px] px-4 py-3 text-sm" style={{ color: "var(--t2)" }}>
+                            <p className="truncate font-medium">{row.address?.trim() || "Address not found"}</p>
+                            {row.hcad_account ? <p className="mt-1 text-xs" style={{ color: "var(--t3)" }}>HCAD {row.hcad_account}</p> : null}
                           </TableCell>
-                          <TableCell
-                            className="px-5 py-3 text-sm"
-                            style={{ color: "var(--t2)", fontFamily: "var(--font-mono)" }}
-                          >
+                          <TableCell className="px-4 py-3 text-sm" style={{ color: "var(--t2)", fontFamily: "var(--font-mono)" }}>
                             {row.phone ? formatPhoneDisplay(row.phone) : "—"}
                           </TableCell>
-                          <TableCell className="px-5 py-3">
-                            <span
-                              className="crm-badge-neutral"
-                              style={{ background: categoryColor.bg, color: categoryColor.color }}
-                            >
+                          <TableCell className="px-4 py-3">
+                            <span className="scraper-badge" style={{ background: categoryColor.bg, color: categoryColor.color }}>
                               {CATEGORY_LABELS[category]}
                             </span>
                           </TableCell>
-                          <TableCell className="px-5 py-3 text-sm" style={{ color: "var(--t2)" }}>
-                            {formatDate(row.scraped_date)}
+                          <TableCell className="px-4 py-3">
+                            <p className="text-sm font-semibold" style={{ color: "var(--t1)" }}>{formatMoney(row.property_value)}</p>
+                            <p className="mt-1 text-xs" style={{ color: "var(--t3)" }}>Taxes {formatMoney(row.taxes_owed)}</p>
                           </TableCell>
-                          <TableCell className="px-5 py-3">
+                          <TableCell className="px-4 py-3 text-sm" style={{ color: "var(--t2)" }}>{formatDate(row.scraped_date)}</TableCell>
+                          <TableCell className="px-4 py-3">
                             {status ? (
-                              <span
-                                className="crm-badge-neutral"
-                                style={{ background: statusColor.bg, color: statusColor.color }}
-                              >
+                              <span className="scraper-badge" style={{ background: statusColor.bg, color: statusColor.color }}>
                                 {formatStatus(status)}
                               </span>
                             ) : (
-                              <span className="text-sm" style={{ color: "var(--t3)" }}>
-                                —
-                              </span>
+                              <span className="scraper-badge" style={{ background: "var(--s3)", color: "var(--t3)" }}>New</span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -376,19 +363,14 @@ export function ScraperClient() {
                 </TableBody>
               </Table>
 
-              <div
-                className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"
-                style={{ borderTop: "1px solid var(--b1)" }}
-              >
-                <p className="text-[12px]" style={{ color: "var(--t2)" }}>
+              <footer className="scraper-pagination">
+                <p>
                   {total === 0
                     ? "No results"
                     : `Showing ${firstShown.toLocaleString()}–${lastShown.toLocaleString()} of ${total.toLocaleString()}`}
                 </p>
                 <div className="flex items-center gap-2">
-                  <span className="text-[12px]" style={{ color: "var(--t3)" }}>
-                    Page {page.toLocaleString()} of {totalPages.toLocaleString()}
-                  </span>
+                  <span>Page {page.toLocaleString()} of {totalPages.toLocaleString()}</span>
                   <Button
                     variant="outline"
                     size="sm"
@@ -396,8 +378,7 @@ export function ScraperClient() {
                     onClick={() => setPage((current) => Math.max(1, current - 1))}
                     aria-label="Previous page"
                   >
-                    <ChevronLeft size={14} />
-                    Prev
+                    <ChevronLeft size={14} /> Prev
                   </Button>
                   <Button
                     variant="outline"
@@ -406,11 +387,10 @@ export function ScraperClient() {
                     onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
                     aria-label="Next page"
                   >
-                    Next
-                    <ChevronRight size={14} />
+                    Next <ChevronRight size={14} />
                   </Button>
                 </div>
-              </div>
+              </footer>
             </>
           )}
         </div>
