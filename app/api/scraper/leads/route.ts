@@ -124,6 +124,17 @@ async function countForTab(db: Db, tab: ScraperTabKey) {
   return count ?? 0;
 }
 
+async function countPopulated(db: Db, column: "address" | "hcad_account" | "phone" | "property_value") {
+  let query = db
+    .from(TABLE)
+    .select("id", { count: "exact", head: true })
+    .not(column, "is", null);
+  if (column !== "property_value") query = query.neq(column, "");
+  const { count, error } = await query;
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export const GET = withErrorHandling("api/scraper/leads", async (request: Request) => {
   const { user } = await getRouteUser();
   if (!user) {
@@ -136,11 +147,24 @@ export const GET = withErrorHandling("api/scraper/leads", async (request: Reques
 
   try {
     if (params.get("stats") === "1") {
-      const entries = await Promise.all(
-        SCRAPER_TABS.map(async (tab) => [tab.key, await countForTab(db, tab.key)] as const)
-      );
+      const [entries, withAddress, withHcad, withPhone, withValue, latestRows] = await Promise.all([
+        Promise.all(SCRAPER_TABS.map(async (tab) => [tab.key, await countForTab(db, tab.key)] as const)),
+        countPopulated(db, "address"),
+        countPopulated(db, "hcad_account"),
+        countPopulated(db, "phone"),
+        countPopulated(db, "property_value"),
+        db.from(TABLE).select("scraped_date").not("scraped_date", "is", null).order("scraped_date", { ascending: false }).limit(1),
+      ]);
+      if (latestRows.error) throw latestRows.error;
       const body: ScraperStatsResponse = {
         counts: Object.fromEntries(entries) as ScraperStatsResponse["counts"],
+        quality: {
+          withAddress,
+          withHcad,
+          withPhone,
+          withValue,
+          latestScrape: latestRows.data?.[0]?.scraped_date ?? null,
+        },
       };
       return NextResponse.json(body, { headers: noStore });
     }

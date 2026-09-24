@@ -80,4 +80,15 @@ export interface ScraperLeadsResponse {
   limit: number;
 }
 
-export type ScraperStatsResponse = { counts: Record<ScraperTabKey, number> };
+export interface ScraperQualityStats {
+  withAddress: number;
+  withHcad: number;
+  withPhone: number;
+  withValue: number;
+  latestScrape: string | null;
+}
+
+export type ScraperStatsResponse = {
+  counts: Record<ScraperTabKey, number>;
+  quality: ScraperQualityStats;
+};

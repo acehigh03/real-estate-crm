@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Database, RefreshCw, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Database, House, Phone, RefreshCw, Search, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -95,6 +95,7 @@ export function ScraperClient() {
   const [reloadToken, setReloadToken] = useState(0);
 
   const [counts, setCounts] = useState<ScraperStatsResponse["counts"] | null>(null);
+  const [quality, setQuality] = useState<ScraperStatsResponse["quality"] | null>(null);
   const [statsError, setStatsError] = useState(false);
 
   // Debounce typing so we don't query on every keystroke; any new search restarts at page 1.
@@ -119,6 +120,7 @@ export function ScraperClient() {
         const body = (await res.json().catch(() => null)) as ScraperStatsResponse | null;
         if (!res.ok || !body?.counts) throw new Error(`stats request failed (${res.status})`);
         setCounts(body.counts);
+        setQuality(body.quality ?? null);
       } catch (err) {
         if (controller.signal.aborted) return;
         console.error("[scraper] stats failed:", err);
@@ -267,6 +269,24 @@ export function ScraperClient() {
           );
         })}
       </nav>
+
+      <section className="scraper-quality" aria-label="Scraper data quality">
+        <div>
+          <span className="scraper-quality-icon"><ShieldCheck size={16} /></span>
+          <p><b>{quality?.withHcad.toLocaleString() ?? "—"}</b><small>HCAD matched</small></p>
+        </div>
+        <div>
+          <span className="scraper-quality-icon"><House size={16} /></span>
+          <p><b>{quality?.withAddress.toLocaleString() ?? "—"}</b><small>with address</small></p>
+        </div>
+        <div>
+          <span className="scraper-quality-icon"><Phone size={16} /></span>
+          <p><b>{quality?.withPhone.toLocaleString() ?? "—"}</b><small>phone ready</small></p>
+        </div>
+        <div className="scraper-quality-sync">
+          <p><b>{quality?.latestScrape ? formatDate(quality.latestScrape) : "—"}</b><small>last database sync</small></p>
+        </div>
+      </section>
 
       <div className="scraper-content">
         <div className="scraper-table-toolbar">
