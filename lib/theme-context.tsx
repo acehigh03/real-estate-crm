@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 type Theme = "dark" | "light";
-const THEME_STORAGE_KEY = "sellingmy-theme-v2";
+const THEME_STORAGE_KEY = "sellingmy-theme-v3";
 
 interface ThemeContextValue {
   theme: Theme;

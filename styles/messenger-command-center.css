@@ -279,6 +279,102 @@
 .dk .command-next-action p { color:#94b85a; }
 .dk .command-next-action strong { color:#e7f6d1; }
 
+/* Phone workspace: prioritize the active conversation and remove desktop-only
+   stacking that produced a very tall, clipped page on iPhone. */
+@media (max-width: 767px) {
+  .command-center { min-height:100%; overflow-x:hidden; }
+  .command-center-header {
+    min-height:auto;
+    padding:14px 16px 12px;
+    gap:12px;
+  }
+  .command-greeting h1 { font-size:25px; line-height:1.08; }
+  .command-greeting p { margin-top:4px; font-size:12px; }
+  .command-header-actions { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; }
+  .command-global-search { width:100%; min-width:0; height:42px; }
+  .command-global-search input { min-width:0; font-size:14px; text-overflow:ellipsis; }
+  .command-header-actions .crm-button-primary {
+    min-height:42px;
+    padding:0 13px;
+    white-space:nowrap;
+    font-size:12px;
+  }
+  .command-priority-grid {
+    display:flex;
+    grid-template-columns:none;
+    gap:8px;
+    padding:10px 12px 12px;
+    overflow-x:auto;
+    scroll-snap-type:x proximity;
+    scrollbar-width:none;
+  }
+  .command-priority-grid::-webkit-scrollbar { display:none; }
+  .command-priority-grid > div {
+    flex:0 0 158px;
+    min-height:58px;
+    padding:9px 11px;
+    scroll-snap-align:start;
+  }
+  .command-priority-grid strong { font-size:19px; }
+  .priority-icon { width:34px; height:34px; }
+  .command-center-grid {
+    display:flex;
+    flex-direction:column;
+    padding:0 !important;
+    gap:0 !important;
+    overflow:visible;
+    background:var(--bg) !important;
+  }
+  .command-center-grid > aside,.command-center-grid > section {
+    border-right:0 !important;
+    border-left:0 !important;
+    border-radius:0 !important;
+    box-shadow:none !important;
+  }
+  .command-queue { max-height:228px; order:1; }
+  .command-queue-heading { padding:12px 14px 0; }
+  .command-queue-tabs { margin-top:10px; }
+  .command-queue-row { min-height:72px; }
+  .command-queue-row-inner { min-height:52px; }
+  .command-thread { min-height:calc(100svh - 152px); order:2; }
+  .command-thread-header { min-height:62px; padding:11px 14px; }
+  .command-thread-call { width:34px; padding:0; font-size:0; }
+  .command-thread-more { display:none; }
+  .command-message-area { min-height:340px; padding:16px 12px !important; }
+  .command-message-stack { width:100%; }
+  .command-thread-context { margin:0 0 14px; padding:10px; }
+  .command-thread-context-action { max-width:46%; }
+  .command-thread-context p,.command-thread-context strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .command-message-group { max-width:88% !important; }
+  .command-composer-wrap { padding:10px 10px 12px; }
+  .command-suggested-reply { padding:10px; }
+  .command-suggested-reply .flex { align-items:flex-start; }
+  .command-suggested-reply button { flex:0 0 auto; }
+  .command-quick-replies { margin-right:-10px; padding-right:10px; }
+  .command-composer { min-height:50px; }
+  .command-composer input { min-width:0; padding-left:11px; font-size:14px; }
+  .command-composer-icon { display:none; }
+  .command-send-button { min-width:72px; justify-content:center; padding:0 11px; }
+  .command-lead-rail { display:none !important; }
+}
+
+@media (max-width: 390px) {
+  .command-greeting h1 { font-size:22px; }
+  .command-header-actions .crm-button-primary { padding-inline:10px; }
+  .command-priority-grid > div { flex-basis:145px; }
+  .command-send-button { min-width:58px; font-size:0; }
+  .command-send-button svg { margin:0; }
+}
+
+/* Hard-coded legacy utility colors inside Inbox need an explicit dark mapping. */
+.dk .command-center .text-\[\#132044\],
+.dk .command-center .text-\[\#0f1117\],
+.dk .command-center .text-\[\#263552\],
+.dk .command-center .text-\[\#223452\] { color:#eff4f0 !important; }
+.dk .command-center .text-\[\#6b789b\],
+.dk .command-center .text-\[\#66758f\],
+.dk .command-center .text-\[\#8b98ae\] { color:#919c95 !important; }
+
 /* Wow-rebuild: turn the existing live-data workspace into a composed premium surface. */
 .command-center { background: #eff4fa; }
 .command-center-header {
