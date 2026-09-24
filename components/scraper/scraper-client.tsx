@@ -104,7 +104,8 @@ export function ScraperClient() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<ScraperSortKey>("date");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
-  const [filedWindow, setFiledWindow] = useState<"all" | "today" | "3" | "7" | "30">("today");
+  const [filedWindow, setFiledWindow] = useState<"all" | "today" | "3" | "7" | "30">("all");
+  const [addedToday, setAddedToday] = useState(true);
   const [hcadFilter, setHcadFilter] = useState<"all" | "matched" | "needs_research">("all");
 
   const [rows, setRows] = useState<ScraperLeadRow[]>([]);
@@ -167,6 +168,7 @@ export function ScraperClient() {
           dir,
         });
         if (search) params.set("search", search);
+        if (priorityQueue && addedToday) params.set("added", "today");
         if (filedWindow !== "all") params.set("filed", filedWindow);
         if (hcadFilter !== "all") params.set("hcad", hcadFilter);
 
@@ -190,7 +192,7 @@ export function ScraperClient() {
     })();
 
     return () => controller.abort();
-  }, [tab, page, search, sort, dir, filedWindow, hcadFilter, reloadToken]);
+  }, [tab, page, search, sort, dir, filedWindow, addedToday, hcadFilter, reloadToken, priorityQueue]);
 
   const selectTab = useCallback((next: ScraperTabKey) => {
     setTab(next);
@@ -218,7 +220,8 @@ export function ScraperClient() {
   const openPriorityQueue = () => {
     setPriorityQueue(true);
     setTab("all");
-    setFiledWindow("today");
+    setFiledWindow("all");
+    setAddedToday(true);
     setHcadFilter("all");
     setSort("date");
     setDir("desc");
@@ -228,6 +231,7 @@ export function ScraperClient() {
   const openAllLeads = () => {
     setPriorityQueue(false);
     setFiledWindow("all");
+    setAddedToday(false);
     setHcadFilter("all");
     setPage(1);
   };
@@ -365,19 +369,23 @@ export function ScraperClient() {
         <div className="scraper-table-toolbar">
           <div>
             <strong>{priorityQueue ? "New Today Priority Queue" : activeTabLabel}</strong>
+            {priorityQueue ? <span className="scraper-queue-note">{addedToday ? "Cases added today" : filedWindow === "today" ? "Cases filed today" : filedWindow === "3" ? "Cases filed in the last 3 days" : "All filing dates"} · sorted by filing date</span> : null}
             <span>{total.toLocaleString()} {total === 1 ? "filing" : "filings"}</span>
           </div>
           <div className="scraper-toolbar-filters">
             <div className="scraper-filed-filter" aria-label="Filter by filing date">
-              <span>Filed</span>
+              <span>{priorityQueue ? "Added" : "Filed"}</span>
+              {priorityQueue ? (
+                <button type="button" className={addedToday ? "is-active" : ""} onClick={() => { setAddedToday(true); setFiledWindow("all"); setPage(1); }}>Today</button>
+              ) : null}
               {(priorityQueue ? ["today", "3"] as const : ["all", "7", "30"] as const).map((window) => (
                 <button
                   key={window}
                   type="button"
-                  className={filedWindow === window ? "is-active" : ""}
-                  onClick={() => { setFiledWindow(window); setPage(1); }}
+                  className={filedWindow === window && !addedToday ? "is-active" : ""}
+                  onClick={() => { setFiledWindow(window); setAddedToday(false); setPage(1); }}
                 >
-                  {window === "today" ? "Today" : window === "all" ? "All" : `${window} days`}
+                  {window === "today" ? "Filed today" : window === "all" ? "All" : `Last ${window} days`}
                 </button>
               ))}
             </div>
@@ -449,7 +457,7 @@ export function ScraperClient() {
                     <TableRow>
                       <TableCell colSpan={8} className="px-5 py-16 text-center text-sm" style={{ color: "var(--t3)" }}>
                         {priorityQueue && !search
-                          ? `No filings for ${filedWindow === "today" ? "today" : "the last three days"}. Try another filter or view all leads.`
+                          ? `No cases match the selected date filters. Try another date range or view all leads.`
                           : search
                           ? `No ${tab === "all" ? "leads" : `${activeTabLabel} leads`} matching “${search}”.`
                           : `No leads in ${activeTabLabel} yet.`}
@@ -464,6 +472,7 @@ export function ScraperClient() {
                           <TableRow key={row.id} className="scraper-data-row">
                             <TableCell className="px-4 py-3 text-sm" style={{ color: "var(--t2)" }}>
                               <p className="font-medium" style={{ color: "var(--t1)" }}>{formatDate(row.filing_date)}</p>
+                              <span className="scraper-date-added">Added {formatDate(row.scraped_date)}</span>
                               {age ? <span className={`scraper-file-age is-${age.level}`}>{age.label}</span> : <span className="scraper-date-missing">Filing date unavailable</span>}
                             </TableCell>
                             <TableCell className="px-4 py-3 text-sm font-semibold" style={{ color: "var(--t1)" }}>

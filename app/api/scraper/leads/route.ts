@@ -23,7 +23,7 @@ import {
  *
  *   ?tab=all|tax_suit|probate|lgbs|thirty_day|foreclosure   (default all)
  *   &page=1 &limit=25 (max 100) &search=text &sort=owner|address|phone|category|date|status &dir=asc|desc
- *   &filed=today|3|7|30  -> only documents filed in the selected Houston-calendar window
+ *   &filed=today|3|7|30  -> filing date window; &added=today -> imported on the current Houston calendar day
  *   &hcad=matched|needs_research -> filter by the conservative HCAD match result
  *   ?stats=1   -> per-tab lead counts instead of rows
  *
@@ -206,6 +206,7 @@ export const GET = withErrorHandling("api/scraper/leads", async (request: Reques
     const sort: ScraperSortKey = sortParam && SCRAPER_SORT_KEYS.includes(sortParam) ? sortParam : "date";
     const ascending = params.get("dir") === "asc";
     const filedParam = params.get("filed");
+    const addedToday = params.get("added") === "today";
     const filedWindow: FilingWindow | null =
       filedParam === "today" || filedParam === "3" || filedParam === "7" || filedParam === "30"
         ? filedParam
@@ -218,6 +219,10 @@ export const GET = withErrorHandling("api/scraper/leads", async (request: Reques
     if (filedWindow) {
       const { start, end } = getFilingDateRange(filedWindow);
       query = query.gte("filing_date", start).lte("filing_date", end);
+    }
+    if (addedToday) {
+      const { start, end } = getFilingDateRange("today");
+      query = query.gte("scraped_date", start).lte("scraped_date", end);
     }
     if (hcadFilter === "matched") {
       query = query.not("hcad_account", "is", null).neq("hcad_account", "");
