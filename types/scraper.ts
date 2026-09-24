@@ -85,6 +85,8 @@ export interface ScraperQualityStats {
   withHcad: number;
   withPhone: number;
   withValue: number;
+  withFilingDate: number;
+  filedLast7Days: number;
   latestScrape: string | null;
 }
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
-import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronLeft, ChevronRight, Database, House, Phone, RefreshCw, Search, ShieldCheck, UserPlus } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, CalendarClock, Check, ChevronLeft, ChevronRight, Database, House, Phone, RefreshCw, Search, ShieldCheck, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -63,6 +63,20 @@ function formatDate(value: string | null) {
   return Number.isNaN(date.getTime()) ? "—" : format(date, "MMM d, yyyy");
 }
 
+function filingAge(value: string | null) {
+  if (!value) return null;
+  const filed = new Date(`${value.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(filed.getTime())) return null;
+  const now = new Date();
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const days = Math.max(0, Math.floor((today - filed.getTime()) / 86_400_000));
+  if (days === 0) return { label: "Filed today", level: "hot" };
+  if (days === 1) return { label: "1 day old", level: "hot" };
+  if (days <= 7) return { label: `${days} days old`, level: "fresh" };
+  if (days <= 30) return { label: `${days} days old`, level: "recent" };
+  return { label: `${days} days old`, level: "old" };
+}
+
 function formatStatus(value: string) {
   return value.replace(/_/g, " ").replace(/^\w/, (char) => char.toUpperCase());
 }
@@ -87,6 +101,7 @@ export function ScraperClient() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<ScraperSortKey>("date");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
+  const [filedWindow, setFiledWindow] = useState<"all" | "7" | "30">("all");
 
   const [rows, setRows] = useState<ScraperLeadRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -148,6 +163,7 @@ export function ScraperClient() {
           dir,
         });
         if (search) params.set("search", search);
+        if (filedWindow !== "all") params.set("filed", filedWindow);
 
         const res = await fetch(`/api/scraper/leads?${params}`, { signal: controller.signal });
         const body = (await res.json().catch(() => null)) as (ScraperLeadsResponse & { error?: string }) | null;
@@ -169,7 +185,7 @@ export function ScraperClient() {
     })();
 
     return () => controller.abort();
-  }, [tab, page, search, sort, dir, reloadToken]);
+  }, [tab, page, search, sort, dir, filedWindow, reloadToken]);
 
   const selectTab = useCallback((next: ScraperTabKey) => {
     setTab(next);
@@ -294,6 +310,10 @@ export function ScraperClient() {
 
       <section className="scraper-quality" aria-label="Scraper data quality">
         <div>
+          <span className="scraper-quality-icon scraper-quality-icon-hot"><CalendarClock size={16} /></span>
+          <p><b>{quality?.filedLast7Days.toLocaleString() ?? "—"}</b><small>filed last 7 days</small></p>
+        </div>
+        <div>
           <span className="scraper-quality-icon"><ShieldCheck size={16} /></span>
           <p><b>{quality?.withHcad.toLocaleString() ?? "—"}</b><small>HCAD matched</small></p>
         </div>
@@ -316,7 +336,19 @@ export function ScraperClient() {
             <strong>{activeTabLabel}</strong>
             <span>{total.toLocaleString()} {total === 1 ? "record" : "records"}</span>
           </div>
-          <p>Click any column heading to sort</p>
+          <div className="scraper-filed-filter" aria-label="Filter by filing date">
+            <span>Filed</span>
+            {(["7", "30", "all"] as const).map((window) => (
+              <button
+                key={window}
+                type="button"
+                className={filedWindow === window ? "is-active" : ""}
+                onClick={() => { setFiledWindow(window); setPage(1); }}
+              >
+                {window === "all" ? "All" : `${window} days`}
+              </button>
+            ))}
+          </div>
         </div>
         {actionMessage ? <div className="scraper-action-message" role="status">{actionMessage}</div> : null}
 
@@ -338,7 +370,7 @@ export function ScraperClient() {
                     {sortHead("phone", "Phone")}
                     {sortHead("category", "Category")}
                     <TableHead className={HEAD_CLASS}>Property / Taxes</TableHead>
-                    {sortHead("date", "Date added")}
+                    {sortHead("date", "Filed")}
                     {sortHead("status", "Status")}
                     <TableHead className={HEAD_CLASS}>CRM</TableHead>
                   </TableRow>
@@ -364,6 +396,7 @@ export function ScraperClient() {
                       const categoryColor = CATEGORY_COLORS[category];
                       const status = row.status?.trim() || row.crm_status?.trim() || "";
                       const statusColor = statusColors(status);
+                      const age = filingAge(row.filing_date);
                       return (
                         <TableRow key={row.id} className="scraper-data-row">
                           <TableCell className="px-4 py-3">
@@ -390,7 +423,11 @@ export function ScraperClient() {
                             <p className="text-sm font-semibold" style={{ color: "var(--t1)" }}>{formatMoney(row.property_value)}</p>
                             <p className="mt-1 text-xs" style={{ color: "var(--t3)" }}>Taxes {formatMoney(row.taxes_owed)}</p>
                           </TableCell>
-                          <TableCell className="px-4 py-3 text-sm" style={{ color: "var(--t2)" }}>{formatDate(row.scraped_date)}</TableCell>
+                          <TableCell className="px-4 py-3 text-sm" style={{ color: "var(--t2)" }}>
+                            <p className="font-medium" style={{ color: "var(--t1)" }}>{formatDate(row.filing_date)}</p>
+                            {age ? <span className={`scraper-file-age is-${age.level}`}>{age.label}</span> : <span className="scraper-date-missing">Filing date unavailable</span>}
+                            <p className="mt-1 text-[11px]" style={{ color: "var(--t3)" }}>Added {formatDate(row.scraped_date)}</p>
+                          </TableCell>
                           <TableCell className="px-4 py-3">
                             {status ? (
                               <span className="scraper-badge" style={{ background: statusColor.bg, color: statusColor.color }}>

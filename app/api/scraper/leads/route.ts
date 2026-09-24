@@ -22,6 +22,7 @@ import {
  *
  *   ?tab=all|tax_suit|probate|lgbs|thirty_day|foreclosure   (default all)
  *   &page=1 &limit=25 (max 100) &search=text &sort=owner|address|phone|category|date|status &dir=asc|desc
+ *   &filed=7|30  -> only documents filed in the last 7 or 30 days
  *   ?stats=1   -> per-tab lead counts instead of rows
  *
  * The scraper writes every lead to public.foreclosure_leads and tags it in `source`.
@@ -58,7 +59,7 @@ const SORT_COLUMNS: Record<ScraperSortKey, string> = {
   address: "address",
   phone: "phone",
   category: "source",
-  date: "scraped_date",
+  date: "filing_date",
   status: "status",
 };
 
@@ -135,6 +136,31 @@ async function countPopulated(db: Db, column: "address" | "hcad_account" | "phon
   return count ?? 0;
 }
 
+function filingCutoff(days: number) {
+  const date = new Date();
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCDate(date.getUTCDate() - (days - 1));
+  return date.toISOString().slice(0, 10);
+}
+
+async function countWithFilingDate(db: Db) {
+  const { count, error } = await db
+    .from(TABLE)
+    .select("id", { count: "exact", head: true })
+    .not("filing_date", "is", null);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+async function countRecentFilings(db: Db, days: number) {
+  const { count, error } = await db
+    .from(TABLE)
+    .select("id", { count: "exact", head: true })
+    .gte("filing_date", filingCutoff(days));
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export const GET = withErrorHandling("api/scraper/leads", async (request: Request) => {
   const { user } = await getRouteUser();
   if (!user) {
@@ -147,12 +173,14 @@ export const GET = withErrorHandling("api/scraper/leads", async (request: Reques
 
   try {
     if (params.get("stats") === "1") {
-      const [entries, withAddress, withHcad, withPhone, withValue, latestRows] = await Promise.all([
+      const [entries, withAddress, withHcad, withPhone, withValue, withFilingDate, filedLast7Days, latestRows] = await Promise.all([
         Promise.all(SCRAPER_TABS.map(async (tab) => [tab.key, await countForTab(db, tab.key)] as const)),
         countPopulated(db, "address"),
         countPopulated(db, "hcad_account"),
         countPopulated(db, "phone"),
         countPopulated(db, "property_value"),
+        countWithFilingDate(db),
+        countRecentFilings(db, 7),
         db.from(TABLE).select("scraped_date").not("scraped_date", "is", null).order("scraped_date", { ascending: false }).limit(1),
       ]);
       if (latestRows.error) throw latestRows.error;
@@ -163,6 +191,8 @@ export const GET = withErrorHandling("api/scraper/leads", async (request: Reques
           withHcad,
           withPhone,
           withValue,
+          withFilingDate,
+          filedLast7Days,
           latestScrape: latestRows.data?.[0]?.scraped_date ?? null,
         },
       };
@@ -177,13 +207,16 @@ export const GET = withErrorHandling("api/scraper/leads", async (request: Reques
     const sortParam = params.get("sort") as ScraperSortKey | null;
     const sort: ScraperSortKey = sortParam && SCRAPER_SORT_KEYS.includes(sortParam) ? sortParam : "date";
     const ascending = params.get("dir") === "asc";
+    const filedParam = params.get("filed");
+    const filedDays = filedParam === "7" || filedParam === "30" ? Number(filedParam) : null;
 
     const from = (page - 1) * limit;
 
-    const query = applyFilters(db.from(TABLE).select(COLUMNS, { count: "exact" }), tab, search)
-      .order(SORT_COLUMNS[sort], { ascending, nullsFirst: false })
-      .order("id", { ascending: true }) // stable paging when the sort column has ties
-      .range(from, from + limit - 1);
+    let query = applyFilters(db.from(TABLE).select(COLUMNS, { count: "exact" }), tab, search);
+    if (filedDays) query = query.gte("filing_date", filingCutoff(filedDays));
+    query = query.order(SORT_COLUMNS[sort], { ascending, nullsFirst: false });
+    if (sort === "date") query = query.order("scraped_date", { ascending: false, nullsFirst: false });
+    query = query.order("id", { ascending: true }).range(from, from + limit - 1);
 
     const { data, count, error } = await query;
     if (error) throw error;
