@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { ArrowDown, ArrowUp, ArrowUpDown, CalendarClock, Check, ChevronLeft, ChevronRight, Database, House, Phone, RefreshCw, Search, ShieldCheck, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { getHoustonDateISO, parseLocalDate } from "@/lib/foreclosure-dates";
 import {
   Table,
   TableBody,
@@ -59,17 +60,18 @@ function ownerName(row: ScraperLeadRow) {
 
 function formatDate(value: string | null) {
   if (!value) return "—";
-  const date = new Date(value);
+  const date = parseLocalDate(value);
   return Number.isNaN(date.getTime()) ? "—" : format(date, "MMM d, yyyy");
 }
 
 function filingAge(value: string | null) {
   if (!value) return null;
-  const filed = new Date(`${value.slice(0, 10)}T00:00:00Z`);
+  const filed = parseLocalDate(value);
   if (Number.isNaN(filed.getTime())) return null;
-  const now = new Date();
-  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  const days = Math.max(0, Math.floor((today - filed.getTime()) / 86_400_000));
+  const [year, month, day] = getHoustonDateISO().split("-").map(Number);
+  const today = Date.UTC(year, month - 1, day);
+  const filedDay = Date.UTC(filed.getFullYear(), filed.getMonth(), filed.getDate());
+  const days = Math.max(0, Math.floor((today - filedDay) / 86_400_000));
   if (days === 0) return { label: "Filed today", level: "hot" };
   if (days === 1) return { label: "1 day old", level: "hot" };
   if (days <= 7) return { label: `${days} days old`, level: "fresh" };
@@ -95,13 +97,15 @@ function formatMoney(value: number | string | null) {
 const HEAD_CLASS = "scraper-table-head px-4 text-xs font-semibold";
 
 export function ScraperClient() {
+  const [priorityQueue, setPriorityQueue] = useState(true);
   const [tab, setTab] = useState<ScraperTabKey>("all");
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<ScraperSortKey>("date");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
-  const [filedWindow, setFiledWindow] = useState<"all" | "7" | "30">("all");
+  const [filedWindow, setFiledWindow] = useState<"all" | "today" | "3" | "7" | "30">("today");
+  const [hcadFilter, setHcadFilter] = useState<"all" | "matched" | "needs_research">("all");
 
   const [rows, setRows] = useState<ScraperLeadRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -164,6 +168,7 @@ export function ScraperClient() {
         });
         if (search) params.set("search", search);
         if (filedWindow !== "all") params.set("filed", filedWindow);
+        if (hcadFilter !== "all") params.set("hcad", hcadFilter);
 
         const res = await fetch(`/api/scraper/leads?${params}`, { signal: controller.signal });
         const body = (await res.json().catch(() => null)) as (ScraperLeadsResponse & { error?: string }) | null;
@@ -185,7 +190,7 @@ export function ScraperClient() {
     })();
 
     return () => controller.abort();
-  }, [tab, page, search, sort, dir, filedWindow, reloadToken]);
+  }, [tab, page, search, sort, dir, filedWindow, hcadFilter, reloadToken]);
 
   const selectTab = useCallback((next: ScraperTabKey) => {
     setTab(next);
@@ -209,6 +214,23 @@ export function ScraperClient() {
   const firstShown = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const lastShown = Math.min(page * PAGE_SIZE, total);
   const activeTabLabel = SCRAPER_TABS.find((entry) => entry.key === tab)?.label ?? "All Leads";
+
+  const openPriorityQueue = () => {
+    setPriorityQueue(true);
+    setTab("all");
+    setFiledWindow("today");
+    setHcadFilter("all");
+    setSort("date");
+    setDir("desc");
+    setPage(1);
+  };
+
+  const openAllLeads = () => {
+    setPriorityQueue(false);
+    setFiledWindow("all");
+    setHcadFilter("all");
+    setPage(1);
+  };
 
   const importLead = useCallback(async (row: ScraperLeadRow) => {
     setImportingId(row.id);
@@ -288,6 +310,15 @@ export function ScraperClient() {
         </div>
       </header>
 
+      <nav className="scraper-view-switch" aria-label="Scraper view">
+        <button type="button" className={priorityQueue ? "is-active" : ""} onClick={openPriorityQueue}>
+          <CalendarClock size={14} /> New Today
+        </button>
+        <button type="button" className={!priorityQueue ? "is-active" : ""} onClick={openAllLeads}>
+          All Leads
+        </button>
+      </nav>
+
       <nav className="scraper-tabs" role="tablist" aria-label="Lead category">
         {SCRAPER_TABS.map((entry) => {
           const isActive = entry.key === tab;
@@ -333,21 +364,38 @@ export function ScraperClient() {
       <div className="scraper-content">
         <div className="scraper-table-toolbar">
           <div>
-            <strong>{activeTabLabel}</strong>
-            <span>{total.toLocaleString()} {total === 1 ? "record" : "records"}</span>
+            <strong>{priorityQueue ? "New Today Priority Queue" : activeTabLabel}</strong>
+            <span>{total.toLocaleString()} {total === 1 ? "filing" : "filings"}</span>
           </div>
-          <div className="scraper-filed-filter" aria-label="Filter by filing date">
-            <span>Filed</span>
-            {(["7", "30", "all"] as const).map((window) => (
-              <button
-                key={window}
-                type="button"
-                className={filedWindow === window ? "is-active" : ""}
-                onClick={() => { setFiledWindow(window); setPage(1); }}
-              >
-                {window === "all" ? "All" : `${window} days`}
-              </button>
-            ))}
+          <div className="scraper-toolbar-filters">
+            <div className="scraper-filed-filter" aria-label="Filter by filing date">
+              <span>Filed</span>
+              {(priorityQueue ? ["today", "3"] as const : ["all", "7", "30"] as const).map((window) => (
+                <button
+                  key={window}
+                  type="button"
+                  className={filedWindow === window ? "is-active" : ""}
+                  onClick={() => { setFiledWindow(window); setPage(1); }}
+                >
+                  {window === "today" ? "Today" : window === "all" ? "All" : `${window} days`}
+                </button>
+              ))}
+            </div>
+            {priorityQueue ? (
+              <div className="scraper-filed-filter" aria-label="Filter by HCAD match status">
+                <span>HCAD</span>
+                {(["all", "matched", "needs_research"] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    className={hcadFilter === filter ? "is-active" : ""}
+                    onClick={() => { setHcadFilter(filter); setPage(1); }}
+                  >
+                    {filter === "all" ? "All" : filter === "matched" ? "Matched" : "Needs research"}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
         {actionMessage ? <div className="scraper-action-message" role="status">{actionMessage}</div> : null}
@@ -362,36 +410,89 @@ export function ScraperClient() {
             </div>
           ) : (
             <>
-              <Table className="scraper-table min-w-[1080px]" aria-busy={loading}>
+              <Table className={`scraper-table ${priorityQueue ? "min-w-[1320px]" : "min-w-[1080px]"}`} aria-busy={loading}>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    {sortHead("owner", "Owner / Case")}
-                    {sortHead("address", "Property")}
-                    {sortHead("phone", "Phone")}
-                    {sortHead("category", "Category")}
-                    <TableHead className={HEAD_CLASS}>Property / Taxes</TableHead>
-                    {sortHead("date", "Filed")}
-                    {sortHead("status", "Status")}
-                    <TableHead className={HEAD_CLASS}>CRM</TableHead>
+                    {priorityQueue ? (
+                      <>
+                        {sortHead("date", "Filing date / age")}
+                        <TableHead className={HEAD_CLASS}>Owner / Defendant</TableHead>
+                        <TableHead className={HEAD_CLASS}>Property address</TableHead>
+                        <TableHead className={HEAD_CLASS}>Mailing address</TableHead>
+                        <TableHead className={HEAD_CLASS}>HCAD account</TableHead>
+                        <TableHead className={HEAD_CLASS}>Appraised value</TableHead>
+                        <TableHead className={HEAD_CLASS}>Case number</TableHead>
+                        <TableHead className={HEAD_CLASS}>Match status</TableHead>
+                      </>
+                    ) : (
+                      <>
+                        {sortHead("owner", "Owner / Case")}
+                        {sortHead("address", "Property")}
+                        {sortHead("phone", "Phone")}
+                        {sortHead("category", "Category")}
+                        <TableHead className={HEAD_CLASS}>Property / Taxes</TableHead>
+                        {sortHead("date", "Filed")}
+                        {sortHead("status", "Status")}
+                        <TableHead className={HEAD_CLASS}>CRM</TableHead>
+                      </>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody style={{ opacity: loading && rows.length ? 0.55 : 1, transition: "opacity 0.15s" }}>
                   {loading && rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="px-5 py-16 text-center text-sm" style={{ color: "var(--t3)" }}>
+                      <TableCell colSpan={priorityQueue ? 8 : 8} className="px-5 py-16 text-center text-sm" style={{ color: "var(--t3)" }}>
                         Loading leads…
                       </TableCell>
                     </TableRow>
                   ) : rows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="px-5 py-16 text-center text-sm" style={{ color: "var(--t3)" }}>
-                        {search
+                        {priorityQueue && !search
+                          ? `No filings for ${filedWindow === "today" ? "today" : "the last three days"}. Try another filter or view all leads.`
+                          : search
                           ? `No ${tab === "all" ? "leads" : `${activeTabLabel} leads`} matching “${search}”.`
                           : `No leads in ${activeTabLabel} yet.`}
                       </TableCell>
                     </TableRow>
                   ) : (
                     rows.map((row) => {
+                      if (priorityQueue) {
+                        const matched = Boolean(row.hcad_account?.trim());
+                        const age = filingAge(row.filing_date);
+                        return (
+                          <TableRow key={row.id} className="scraper-data-row">
+                            <TableCell className="px-4 py-3 text-sm" style={{ color: "var(--t2)" }}>
+                              <p className="font-medium" style={{ color: "var(--t1)" }}>{formatDate(row.filing_date)}</p>
+                              {age ? <span className={`scraper-file-age is-${age.level}`}>{age.label}</span> : <span className="scraper-date-missing">Filing date unavailable</span>}
+                            </TableCell>
+                            <TableCell className="px-4 py-3 text-sm font-semibold" style={{ color: "var(--t1)" }}>
+                              {ownerName(row)}
+                            </TableCell>
+                            <TableCell className="max-w-[240px] px-4 py-3 text-sm" style={{ color: "var(--t2)" }}>
+                              <p className="truncate">{row.address?.trim() || "—"}</p>
+                            </TableCell>
+                            <TableCell className="max-w-[240px] px-4 py-3 text-sm" style={{ color: "var(--t2)" }}>
+                              <p className="truncate">{row.mailing_address?.trim() || "—"}</p>
+                            </TableCell>
+                            <TableCell className="px-4 py-3 text-sm font-mono" style={{ color: "var(--t2)" }}>
+                              {row.hcad_account?.trim() || "—"}
+                            </TableCell>
+                            <TableCell className="px-4 py-3 text-sm font-semibold" style={{ color: "var(--t1)" }}>
+                              {formatMoney(row.property_value)}
+                            </TableCell>
+                            <TableCell className="px-4 py-3 text-xs font-mono" style={{ color: "var(--t2)" }}>
+                              {row.case_number?.trim() || "—"}
+                            </TableCell>
+                            <TableCell className="px-4 py-3">
+                              <span className={`scraper-badge ${matched ? "scraper-match-verified" : "scraper-match-research"}`}>
+                                {matched ? "HCAD Matched" : "Needs Research"}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
+
                       const category = categoryForSource(row.source);
                       const categoryColor = CATEGORY_COLORS[category];
                       const status = row.status?.trim() || row.crm_status?.trim() || "";

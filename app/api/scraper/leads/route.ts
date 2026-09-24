@@ -5,6 +5,7 @@ import { withErrorHandling } from "@/lib/api";
 import { logError, userFacingError } from "@/lib/errors";
 import { getRouteUser } from "@/lib/route-user";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getFilingDateRange, type FilingWindow } from "@/lib/foreclosure-dates";
 import {
   SCRAPER_SORT_KEYS,
   SCRAPER_SOURCES,
@@ -22,7 +23,8 @@ import {
  *
  *   ?tab=all|tax_suit|probate|lgbs|thirty_day|foreclosure   (default all)
  *   &page=1 &limit=25 (max 100) &search=text &sort=owner|address|phone|category|date|status &dir=asc|desc
- *   &filed=7|30  -> only documents filed in the last 7 or 30 days
+ *   &filed=today|3|7|30  -> only documents filed in the selected Houston-calendar window
+ *   &hcad=matched|needs_research -> filter by the conservative HCAD match result
  *   ?stats=1   -> per-tab lead counts instead of rows
  *
  * The scraper writes every lead to public.foreclosure_leads and tags it in `source`.
@@ -99,7 +101,7 @@ function searchClauses(search: string) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Builder = any;
 
-function applyFilters(query: Builder, tab: ScraperTabKey, search: string): Builder {
+function applyFilters(query: Builder, tab: ScraperTabKey, search: string, hcadFilter?: string | null): Builder {
   if (tab !== "all" && tab !== "foreclosure") {
     query = query.eq("source", SCRAPER_SOURCES[tab]);
   }
@@ -107,6 +109,7 @@ function applyFilters(query: Builder, tab: ScraperTabKey, search: string): Build
   const orClauses: string[] = [];
   if (tab === "foreclosure") orClauses.push(FORECLOSURE_CLAUSE);
   if (search) orClauses.push(...searchClauses(search));
+  if (hcadFilter === "needs_research") orClauses.push('hcad_account.is.null,hcad_account.eq.""');
 
   if (orClauses.length === 1) {
     query = query.or(orClauses[0]);
@@ -136,13 +139,6 @@ async function countPopulated(db: Db, column: "address" | "hcad_account" | "phon
   return count ?? 0;
 }
 
-function filingCutoff(days: number) {
-  const date = new Date();
-  date.setUTCHours(0, 0, 0, 0);
-  date.setUTCDate(date.getUTCDate() - (days - 1));
-  return date.toISOString().slice(0, 10);
-}
-
 async function countWithFilingDate(db: Db) {
   const { count, error } = await db
     .from(TABLE)
@@ -153,10 +149,12 @@ async function countWithFilingDate(db: Db) {
 }
 
 async function countRecentFilings(db: Db, days: number) {
+  const { start, endExclusive } = getFilingDateRange(String(days) as FilingWindow);
   const { count, error } = await db
     .from(TABLE)
     .select("id", { count: "exact", head: true })
-    .gte("filing_date", filingCutoff(days));
+    .gte("filing_date", start)
+    .lt("filing_date", endExclusive);
   if (error) throw error;
   return count ?? 0;
 }
@@ -208,12 +206,22 @@ export const GET = withErrorHandling("api/scraper/leads", async (request: Reques
     const sort: ScraperSortKey = sortParam && SCRAPER_SORT_KEYS.includes(sortParam) ? sortParam : "date";
     const ascending = params.get("dir") === "asc";
     const filedParam = params.get("filed");
-    const filedDays = filedParam === "7" || filedParam === "30" ? Number(filedParam) : null;
+    const filedWindow: FilingWindow | null =
+      filedParam === "today" || filedParam === "3" || filedParam === "7" || filedParam === "30"
+        ? filedParam
+        : null;
+    const hcadFilter = params.get("hcad");
 
     const from = (page - 1) * limit;
 
-    let query = applyFilters(db.from(TABLE).select(COLUMNS, { count: "exact" }), tab, search);
-    if (filedDays) query = query.gte("filing_date", filingCutoff(filedDays));
+    let query = applyFilters(db.from(TABLE).select(COLUMNS, { count: "exact" }), tab, search, hcadFilter);
+    if (filedWindow) {
+      const { start, endExclusive } = getFilingDateRange(filedWindow);
+      query = query.gte("filing_date", start).lt("filing_date", endExclusive);
+    }
+    if (hcadFilter === "matched") {
+      query = query.not("hcad_account", "is", null).neq("hcad_account", "");
+    }
     query = query.order(SORT_COLUMNS[sort], { ascending, nullsFirst: false });
     if (sort === "date") query = query.order("scraped_date", { ascending: false, nullsFirst: false });
     query = query.order("id", { ascending: true }).range(from, from + limit - 1);
