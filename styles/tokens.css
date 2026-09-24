@@ -39,20 +39,20 @@
   --c-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 36px -14px rgba(0, 0, 0, 0.65);
   /* subtle neon-lime lift on hover */
   --c-shadow-hover: 0 0 0 1px rgba(163, 255, 18, 0.28), 0 2px 4px rgba(0, 0, 0, 0.45), 0 18px 40px -16px rgba(163, 255, 18, 0.24);
-  --c-lime: #a3ff12;
-  --c-lime-soft: rgba(163, 255, 18, 0.12);
+  --c-lime: #a3e635;
+  --c-lime-soft: rgba(163, 230, 53, 0.12);
   --c-lime-ink: #10140a;
-  --c-page: #20242b;
-  --c-surface: #2a2f38;
-  --c-surface-2: #242931;
-  --c-border: #3a414d;
-  --c-text: #f4f6f8;
-  --c-text-2: #b2bac7;
-  --c-muted: #949caa;
-  --c-accent: var(--indigo-500);
-  --c-accent-strong: #a5b4fc;
-  --c-accent-soft: #6366f126;
-  --c-accent-border: #6366f14d;
+  --c-page: #101311;
+  --c-surface: #181d1a;
+  --c-surface-2: #202622;
+  --c-border: #2c332f;
+  --c-text: #eff4f0;
+  --c-text-2: #b7c0ba;
+  --c-muted: #919c95;
+  --c-accent: #a3e635;
+  --c-accent-strong: #bef264;
+  --c-accent-soft: rgba(163, 230, 53, 0.12);
+  --c-accent-border: rgba(163, 230, 53, 0.28);
   --c-amber-soft: #f59e0b26;
   --c-amber-text: #fbbf24;
   --c-rose-soft: #f43f5e26;
@@ -115,14 +115,14 @@ button[class*="bg-[var(--c-accent)]"]:disabled { box-shadow: none; }
    Indigo stays as the secondary/info colour. Everything here is scoped to .dk, so light mode is untouched. */
 
 /* Sidebar sits a step darker than the page and cards */
-.dk .app-sidebar aside { background: #1b1f25 !important; }
-.dk .app-mobile-bar { background: #1b1f25; }
+.dk .app-sidebar aside { background: #171b1a !important; }
+.dk .app-mobile-bar { background: #171b1a; }
 
 /* Primary buttons and links: lime fill, dark ink, soft lime glow */
 .dk button[class*="bg-[var(--c-accent)]"],
 .dk a[class*="bg-[var(--c-accent)]"] {
   background-color: var(--c-lime);
-  background-image: linear-gradient(180deg, #b8ff47 0%, #a3ff12 100%);
+  background-image: linear-gradient(180deg, #bef264 0%, #a3e635 100%);
   color: var(--c-lime-ink);
   box-shadow: 0 8px 22px -8px rgba(163, 255, 18, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
@@ -133,8 +133,7 @@ button[class*="bg-[var(--c-accent)]"]:disabled { box-shadow: none; }
 .dk button[class*="bg-[var(--c-accent)]"]:disabled { box-shadow: none; }
 
 /* Active navigation item (the active link is the one rendered at font-weight 600) */
-.dk .app-sidebar a.nav-item[style*="font-weight:600"],
-.dk .app-sidebar a.nav-item[style*="font-weight: 600"] {
+.dk .app-sidebar a.nav-item[data-active="true"] {
   color: var(--c-lime) !important;
   background: var(--c-lime-soft) !important;
 }

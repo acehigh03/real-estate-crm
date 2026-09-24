@@ -201,6 +201,84 @@
   .command-rail-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 22px; }
 }
 
+/* Approved charcoal + lime system. Scoped to dark mode so the optional light
+   theme remains available, while every part of the live inbox reads as one
+   intentional workspace instead of mixing light-only surfaces. */
+.dk .command-center {
+  --command-navy: #eff4f0;
+  --command-cobalt: #a3e635;
+  --command-line: #2c332f;
+  background: #101311;
+  color: #eff4f0;
+}
+.dk .command-status-strip { border-color:#2c332f; background:#151916; color:#919c95; }
+.dk .command-status-strip span { border-color:#2c332f; }
+.dk .command-status-strip strong { color:#eff4f0; }
+.dk .command-status-strip span:nth-child(1) svg,
+.dk .command-status-strip span:nth-child(3) svg,
+.dk .command-status-strip span:nth-child(4) svg { color:#a3e635; }
+.dk .command-center-header { border-color:#2c332f; background:linear-gradient(108deg,#181d1a,#151916); box-shadow:none; }
+.dk .command-greeting h1 { color:#eff4f0; }
+.dk .command-greeting p,.dk .command-center-kicker { color:#919c95; }
+.dk .command-global-search { border-color:#343d38; background:#202622; color:#919c95; }
+.dk .command-global-search input { color:#eff4f0; }
+.dk .command-global-search:focus-within { border-color:#7da92b; box-shadow:0 0 0 3px rgba(163,230,53,.11); }
+.dk .command-priority-grid { border-color:#2c332f; background:#101311; }
+.dk .command-priority-grid > div { border-color:#2c332f; background:#181d1a; box-shadow:none; }
+.dk .command-priority-grid > div::before,
+.dk .command-priority-grid > div:nth-child(3)::before,
+.dk .command-priority-grid > div:nth-child(4)::before { background:#a3e635; }
+.dk .command-priority-grid p,.dk .command-priority-card > b { color:#919c95; }
+.dk .command-priority-grid strong { color:#eff4f0; }
+.dk .priority-icon.replies,.dk .priority-icon.activity,.dk .priority-icon.value { background:rgba(163,230,53,.1); color:#a3e635; }
+.dk .command-center .crm-button-primary,.dk .command-queue-compose,.dk .command-send-button { background:#a3e635 !important; color:#151a11 !important; box-shadow:0 8px 20px rgba(163,230,53,.12); }
+.dk .command-center .crm-button-primary:hover,.dk .command-queue-compose:hover,.dk .command-send-button:not(:disabled):hover { background:#b5ee55 !important; }
+.dk .command-center-grid { background:#101311; }
+.dk .command-center-grid > aside,.dk .command-center-grid > section { border-color:#2c332f !important; box-shadow:none; }
+.dk .command-queue,.dk .command-thread,.dk .command-lead-rail { background:#181d1a !important; color:#eff4f0; }
+.dk .command-queue-heading,.dk .command-thread > div:first-child { border-color:#2c332f; }
+.dk .command-queue-tabs button { color:#919c95; }
+.dk .command-queue-tabs button span { background:#272e2a; color:#b7c0ba; }
+.dk .command-queue-tabs button.is-active { color:#bef264; }
+.dk .command-queue-tabs button.is-active::after,.dk .command-queue-tabs button.is-active span { background:#a3e635; color:#151a11; }
+.dk .command-queue-row { border-color:#252b27 !important; }
+.dk .command-queue-row:hover { background:#202622 !important; }
+.dk .command-queue-row.border-\[\#2563eb\] { background:rgba(163,230,53,.08) !important; box-shadow:inset 3px 0 #a3e635; }
+.dk .command-queue-row-preview > p,.dk .command-queue-address,.dk .command-thread-subline { color:#919c95 !important; }
+.dk .command-message-area { background:radial-gradient(circle at 82% 10%,rgba(163,230,53,.045),transparent 28%),#151916 !important; }
+.dk .command-conversation-divider { color:#717c75; }
+.dk .command-conversation-divider::before,.dk .command-conversation-divider::after { background:#2c332f; }
+.dk .command-thread .crm-chat-bubble-inbound { border-color:#343d38; background:#202622; color:#eff4f0; }
+.dk .command-thread .crm-chat-bubble-outbound { background:#a3e635; color:#151a11; }
+.dk .command-message-meta { color:#7f8a83 !important; }
+.dk .command-thread-context { border-color:#343d38; background:rgba(32,38,34,.92); box-shadow:none; }
+.dk .command-thread-context span,.dk .command-thread-context p { color:#919c95; }
+.dk .command-thread-context strong { color:#eff4f0; }
+.dk .command-thread-context-action { background:#29331f; }
+.dk .command-thread-context-action strong { color:#bef264; }
+.dk .command-suggested-reply { border-color:#51643a !important; border-left-color:#a3e635 !important; background:#20291d !important; }
+.dk .command-quick-replies button { border-color:#343d38 !important; background:#202622 !important; color:#b7c0ba !important; }
+.dk .command-quick-replies button:hover { border-color:#759833 !important; background:#27301f !important; color:#bef264 !important; }
+.dk .command-composer { border-color:#343d38; background:#202622; box-shadow:none; }
+.dk .command-composer:focus-within { border-color:#7da92b; box-shadow:0 0 0 3px rgba(163,230,53,.1); }
+.dk .command-composer input { color:#eff4f0; }
+.dk .command-details-link,.dk .command-link-lead,.dk .command-more-details { color:#bef264; }
+.dk .command-source-badge { border-color:#343d38; background:#202622; color:#b7c0ba; }
+.dk .command-rail-tabs,.dk .command-rail-fields { border-color:#2c332f; }
+.dk .command-rail-tabs span { color:#919c95; }
+.dk .command-rail-tabs span.is-active { background:rgba(163,230,53,.1); color:#bef264; }
+.dk .command-rail-fields { background:#181d1a; }
+.dk .command-rail-fields div { border-color:#2c332f; }
+.dk .command-rail-fields dt,.dk .command-rail-fields dd small { color:#919c95; }
+.dk .command-rail-fields dd { color:#eff4f0; }
+.dk .command-rail-section:hover { background:#202622; }
+.dk .command-call-link { border-color:#688a30; background:#20291d; color:#bef264; }
+.dk .command-call-link:hover { border-color:#a3e635; background:#29351f; }
+.dk .command-next-action { border-color:#51643a; background:linear-gradient(135deg,#20291d,#26331d); box-shadow:none; }
+.dk .command-next-action > span { background:rgba(163,230,53,.13); color:#a3e635; }
+.dk .command-next-action p { color:#94b85a; }
+.dk .command-next-action strong { color:#e7f6d1; }
+
 /* Wow-rebuild: turn the existing live-data workspace into a composed premium surface. */
 .command-center { background: #eff4fa; }
 .command-center-header {

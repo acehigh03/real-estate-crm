@@ -27,7 +27,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`lk ${manrope.variable} ${dmMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`dk ${manrope.variable} ${dmMono.variable}`} suppressHydrationWarning>
       <body>
         <ThemeProvider>
           <TooltipProvider>{children}</TooltipProvider>

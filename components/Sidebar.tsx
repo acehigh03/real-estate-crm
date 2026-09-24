@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
   LayoutDashboard,
+  MessageSquare,
   Users,
   Calendar,
   Clock,
@@ -33,7 +34,7 @@ interface SidebarProps {
 
 const WORKSPACE = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { label: "Inbox", icon: LayoutDashboard, href: "/inbox" },
+  { label: "Inbox", icon: MessageSquare, href: "/inbox" },
   { label: "Contacts", icon: Users, href: "/contacts" },
   { label: "Calendar", icon: Calendar, href: "/calendar" },
   { label: "Scheduled", icon: Clock, href: "/scheduled" },
@@ -100,6 +101,7 @@ function NavItem({
         transition: "background 0.1s, color 0.1s",
       }}
       className="nav-item group"
+      data-active={isActive ? "true" : "false"}
     >
       <Icon
         size={16}
@@ -218,7 +220,7 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {/* Logo mark: indigo square with a house */}
+          {/* Logo mark */}
           <div
             aria-hidden
             className="sidebar-logo"
@@ -226,15 +228,15 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
               width: 28,
               height: 28,
               borderRadius: 8,
-              background: "var(--indigo-600)",
-              boxShadow: "0 6px 16px rgba(79,70,229,.30)",
+              background: "var(--g)",
+              boxShadow: "0 6px 16px rgba(163,230,53,.18)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
             }}
           >
-            <Home size={15} strokeWidth={2.2} color="#ffffff" />
+            <Home size={15} strokeWidth={2.2} color="var(--on-g)" />
           </div>
           <span
             className="sidebar-wordmark"
@@ -375,8 +377,8 @@ export function Sidebar({ activeItem, inboxBadge = 0, userEmail = "" }: SidebarP
             width: 28,
             height: 28,
             borderRadius: 7,
-            background: "var(--c-accent)",
-            color: "#ffffff",
+            background: "var(--g)",
+            color: "var(--on-g)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
