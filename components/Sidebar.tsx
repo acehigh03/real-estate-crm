@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
-  LayoutDashboard,
   MessageSquare,
   Users,
   Calendar,
@@ -33,7 +32,6 @@ interface SidebarProps {
 }
 
 const WORKSPACE = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { label: "Inbox", icon: MessageSquare, href: "/inbox" },
   { label: "Contacts", icon: Users, href: "/contacts" },
   { label: "Calendar", icon: Calendar, href: "/calendar" },
@@ -135,7 +133,7 @@ function NavItem({
 }
 
 const HREF_TO_LABEL: Record<string, string> = {
-  "/dashboard":      "Dashboard",
+  "/dashboard":      "Inbox",
   "/inbox":          "Inbox",
   "/messenger":      "Inbox",
   "/contacts":       "Contacts",
