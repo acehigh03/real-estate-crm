@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Database, House, Phone, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronLeft, ChevronRight, Database, House, Phone, RefreshCw, Search, ShieldCheck, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -93,6 +93,8 @@ export function ScraperClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [importingId, setImportingId] = useState<string | number | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const [counts, setCounts] = useState<ScraperStatsResponse["counts"] | null>(null);
   const [quality, setQuality] = useState<ScraperStatsResponse["quality"] | null>(null);
@@ -191,6 +193,26 @@ export function ScraperClient() {
   const firstShown = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const lastShown = Math.min(page * PAGE_SIZE, total);
   const activeTabLabel = SCRAPER_TABS.find((entry) => entry.key === tab)?.label ?? "All Leads";
+
+  const importLead = useCallback(async (row: ScraperLeadRow) => {
+    setImportingId(row.id);
+    setActionMessage(null);
+    try {
+      const response = await fetch("/api/scraper/leads/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: row.id }),
+      });
+      const body = await response.json().catch(() => null) as { error?: string; created?: boolean } | null;
+      if (!response.ok) throw new Error(body?.error ?? "Couldn't add this lead to the CRM.");
+      setRows((current) => current.map((lead) => lead.id === row.id ? { ...lead, crm_status: "imported" } : lead));
+      setActionMessage(body?.created ? "Lead added to CRM." : "Lead was already in CRM.");
+    } catch (err) {
+      setActionMessage(err instanceof Error ? err.message : "Couldn't add this lead to the CRM.");
+    } finally {
+      setImportingId(null);
+    }
+  }, []);
 
   const sortHead = (key: ScraperSortKey, label: string) => {
     const active = sort === key;
@@ -296,6 +318,7 @@ export function ScraperClient() {
           </div>
           <p>Click any column heading to sort</p>
         </div>
+        {actionMessage ? <div className="scraper-action-message" role="status">{actionMessage}</div> : null}
 
         <div className="scraper-table-panel">
           {error ? (
@@ -317,18 +340,19 @@ export function ScraperClient() {
                     <TableHead className={HEAD_CLASS}>Property / Taxes</TableHead>
                     {sortHead("date", "Date added")}
                     {sortHead("status", "Status")}
+                    <TableHead className={HEAD_CLASS}>CRM</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody style={{ opacity: loading && rows.length ? 0.55 : 1, transition: "opacity 0.15s" }}>
                   {loading && rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="px-5 py-16 text-center text-sm" style={{ color: "var(--t3)" }}>
+                      <TableCell colSpan={8} className="px-5 py-16 text-center text-sm" style={{ color: "var(--t3)" }}>
                         Loading leads…
                       </TableCell>
                     </TableRow>
                   ) : rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="px-5 py-16 text-center text-sm" style={{ color: "var(--t3)" }}>
+                      <TableCell colSpan={8} className="px-5 py-16 text-center text-sm" style={{ color: "var(--t3)" }}>
                         {search
                           ? `No ${tab === "all" ? "leads" : `${activeTabLabel} leads`} matching “${search}”.`
                           : `No leads in ${activeTabLabel} yet.`}
@@ -374,6 +398,21 @@ export function ScraperClient() {
                               </span>
                             ) : (
                               <span className="scraper-badge" style={{ background: "var(--s3)", color: "var(--t3)" }}>New</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="px-4 py-3">
+                            {row.crm_status === "imported" ? (
+                              <span className="scraper-imported"><Check size={13} /> Added</span>
+                            ) : (
+                              <button
+                                type="button"
+                                className="scraper-import"
+                                disabled={!row.phone || importingId === row.id}
+                                title={row.phone ? "Add to CRM" : "A phone number is required"}
+                                onClick={() => importLead(row)}
+                              >
+                                <UserPlus size={13} /> {importingId === row.id ? "Adding…" : row.phone ? "Add" : "Needs phone"}
+                              </button>
                             )}
                           </TableCell>
                         </TableRow>
