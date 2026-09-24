@@ -418,17 +418,18 @@ export function ScraperClient() {
             </div>
           ) : (
             <>
-              <Table className={`scraper-table ${priorityQueue ? "min-w-[1320px]" : "min-w-[1080px]"}`} aria-busy={loading}>
+              <Table className={`scraper-table ${priorityQueue ? "min-w-[1480px]" : "min-w-[1080px]"}`} aria-busy={loading}>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     {priorityQueue ? (
                       <>
                         {sortHead("date", "Filing date / age")}
-                        <TableHead className={HEAD_CLASS}>Owner / Defendant</TableHead>
+                        <TableHead className={`${HEAD_CLASS} scraper-owner-col`}>Owner / Defendant</TableHead>
                         <TableHead className={HEAD_CLASS}>Property address</TableHead>
                         <TableHead className={HEAD_CLASS}>Mailing address</TableHead>
                         <TableHead className={HEAD_CLASS}>HCAD account</TableHead>
                         <TableHead className={HEAD_CLASS}>Appraised value</TableHead>
+                        <TableHead className={HEAD_CLASS}>Amount owed</TableHead>
                         <TableHead className={HEAD_CLASS}>Case number</TableHead>
                         <TableHead className={HEAD_CLASS}>Match status</TableHead>
                       </>
@@ -449,7 +450,7 @@ export function ScraperClient() {
                 <TableBody style={{ opacity: loading && rows.length ? 0.55 : 1, transition: "opacity 0.15s" }}>
                   {loading && rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={priorityQueue ? 8 : 8} className="px-5 py-16 text-center text-sm" style={{ color: "var(--t3)" }}>
+                      <TableCell colSpan={priorityQueue ? 9 : 8} className="px-5 py-16 text-center text-sm" style={{ color: "var(--t3)" }}>
                         Loading leads…
                       </TableCell>
                     </TableRow>
@@ -475,8 +476,8 @@ export function ScraperClient() {
                               <span className="scraper-date-added">Added {formatDate(row.scraped_date)}</span>
                               {age ? <span className={`scraper-file-age is-${age.level}`}>{age.label}</span> : <span className="scraper-date-missing">Filing date unavailable</span>}
                             </TableCell>
-                            <TableCell className="px-4 py-3 text-sm font-semibold" style={{ color: "var(--t1)" }}>
-                              {ownerName(row)}
+                            <TableCell className="scraper-owner-col px-4 py-3 text-sm font-semibold" style={{ color: "var(--t1)" }}>
+                              <span className="block truncate" title={ownerName(row)}>{ownerName(row)}</span>
                             </TableCell>
                             <TableCell className="max-w-[240px] px-4 py-3 text-sm" style={{ color: "var(--t2)" }}>
                               <p className="truncate">{row.address?.trim() || "—"}</p>
@@ -489,6 +490,9 @@ export function ScraperClient() {
                             </TableCell>
                             <TableCell className="px-4 py-3 text-sm font-semibold" style={{ color: "var(--t1)" }}>
                               {formatMoney(row.property_value)}
+                            </TableCell>
+                            <TableCell className="px-4 py-3 text-sm" style={{ color: "var(--t2)" }}>
+                              {formatMoney(row.taxes_owed)}
                             </TableCell>
                             <TableCell className="px-4 py-3 text-xs font-mono" style={{ color: "var(--t2)" }}>
                               {row.case_number?.trim() || "—"}

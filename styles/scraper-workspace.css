@@ -51,6 +51,8 @@
 .scraper-table-panel { overflow:hidden; border:1px solid var(--b1); border-radius:0 0 12px 12px; background:var(--s1); box-shadow:var(--sh); }
 .scraper-table [data-slot="table-header"] { position:sticky; z-index:2; top:0; background:var(--s2); }
 .scraper-table tr { border-color:var(--b1); }
+.scraper-table .scraper-owner-col { width:170px; max-width:170px; }
+.scraper-table .scraper-owner-col span { max-width:138px; }
 .scraper-table-head { height:42px; color:var(--t3); letter-spacing:.01em; text-transform:none; }
 .scraper-table-head button { text-transform:none; letter-spacing:.01em; }
 .scraper-data-row { height:62px; transition:background 120ms ease; }
