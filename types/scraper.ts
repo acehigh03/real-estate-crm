@@ -71,6 +71,9 @@ export interface ScraperLeadRow {
   source: string | null;
   status: string | null;
   crm_status: string | null;
+  /** Combined sources and conflict marker are added by the priority queue API. */
+  source_labels?: string[];
+  hcad_conflict?: boolean;
 }
 
 export interface ScraperLeadsResponse {

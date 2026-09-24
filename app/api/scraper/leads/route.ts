@@ -6,6 +6,7 @@ import { logError, userFacingError } from "@/lib/errors";
 import { getRouteUser } from "@/lib/route-user";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getFilingDateRange, getHoustonDateISO, type FilingWindow } from "@/lib/foreclosure-dates";
+import { dedupeScraperCases, hasHcadMatch } from "@/lib/scraper-case-dedupe";
 import {
   SCRAPER_SORT_KEYS,
   SCRAPER_SOURCES,
@@ -212,26 +213,57 @@ export const GET = withErrorHandling("api/scraper/leads", async (request: Reques
         ? filedParam
         : null;
     const hcadFilter = params.get("hcad");
+    const queueMode = params.get("queue") === "1";
 
     const from = (page - 1) * limit;
 
-    let query = applyFilters(db.from(TABLE).select(COLUMNS, { count: "exact" }), tab, search, hcadFilter);
-    if (filedWindow) {
-      const { start, end } = getFilingDateRange(filedWindow);
-      query = query.gte("filing_date", start).lte("filing_date", end);
+    const buildQuery = (withCount = false) => {
+      const selected = db.from(TABLE).select(COLUMNS, withCount ? { count: "exact" } : undefined);
+      let nextQuery = applyFilters(selected, tab, search, queueMode ? null : hcadFilter);
+      if (filedWindow) {
+        const { start, end } = getFilingDateRange(filedWindow);
+        nextQuery = nextQuery.gte("filing_date", start).lte("filing_date", end);
+      }
+      if (addedToday) {
+        const start = getHoustonDateISO();
+        const nextDay = new Date(`${start}T00:00:00Z`);
+        nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+        nextQuery = nextQuery.gte("scraped_date", `${start}T00:00:00`).lt("scraped_date", nextDay.toISOString());
+      }
+      if (!queueMode && hcadFilter === "matched") {
+        nextQuery = nextQuery.not("hcad_account", "is", null).neq("hcad_account", "");
+      }
+      nextQuery = nextQuery.order(SORT_COLUMNS[sort], { ascending, nullsFirst: false });
+      if (sort === "date") nextQuery = nextQuery.order("scraped_date", { ascending: false, nullsFirst: false });
+      return nextQuery.order("id", { ascending: true });
+    };
+
+    if (queueMode) {
+      // Queue windows are small, but fetch in bounded pages so records are deduped
+      // before filtering and pagination even if a future date window gets larger.
+      const allRows: ScraperLeadRow[] = [];
+      const batchSize = 1000;
+      for (let offset = 0; ; offset += batchSize) {
+        const { data, error } = await buildQuery().range(offset, offset + batchSize - 1);
+        if (error) throw error;
+        const batch = (data ?? []) as ScraperLeadRow[];
+        allRows.push(...batch);
+        if (batch.length < batchSize) break;
+      }
+
+      let cases = dedupeScraperCases(allRows);
+      if (hcadFilter === "matched") cases = cases.filter(hasHcadMatch);
+      if (hcadFilter === "needs_research") cases = cases.filter((row) => !hasHcadMatch(row));
+      const body: ScraperLeadsResponse = {
+        rows: cases.slice(from, from + limit),
+        total: cases.length,
+        page,
+        limit,
+      };
+      return NextResponse.json(body, { headers: noStore });
     }
-    if (addedToday) {
-      const start = getHoustonDateISO();
-      const nextDay = new Date(`${start}T00:00:00Z`);
-      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
-      query = query.gte("scraped_date", `${start}T00:00:00`).lt("scraped_date", nextDay.toISOString());
-    }
-    if (hcadFilter === "matched") {
-      query = query.not("hcad_account", "is", null).neq("hcad_account", "");
-    }
-    query = query.order(SORT_COLUMNS[sort], { ascending, nullsFirst: false });
-    if (sort === "date") query = query.order("scraped_date", { ascending: false, nullsFirst: false });
-    query = query.order("id", { ascending: true }).range(from, from + limit - 1);
+
+    const query = buildQuery(true).range(from, from + limit - 1);
 
     const { data, count, error } = await query;
     if (error) throw error;

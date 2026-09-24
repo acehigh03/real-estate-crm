@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatPhoneDisplay } from "@/lib/utils";
+import { hasHcadMatch } from "@/lib/scraper-case-dedupe";
 import {
   SCRAPER_TABS,
   categoryForSource,
@@ -168,6 +169,7 @@ export function ScraperClient() {
           dir,
         });
         if (search) params.set("search", search);
+        if (priorityQueue) params.set("queue", "1");
         if (priorityQueue && addedToday) params.set("added", "today");
         if (filedWindow !== "all") params.set("filed", filedWindow);
         if (hcadFilter !== "all") params.set("hcad", hcadFilter);
@@ -370,7 +372,7 @@ export function ScraperClient() {
           <div>
             <strong>{priorityQueue ? "New Today Priority Queue" : activeTabLabel}</strong>
             {priorityQueue ? <span className="scraper-queue-note">{addedToday ? "Cases added today" : filedWindow === "today" ? "Cases filed today" : filedWindow === "3" ? "Cases filed in the last 3 days" : "All filing dates"} · sorted by filing date</span> : null}
-            <span>{total.toLocaleString()} {total === 1 ? "filing" : "filings"}</span>
+            <span>{total.toLocaleString()} {priorityQueue ? (total === 1 ? "case" : "cases") : (total === 1 ? "filing" : "filings")}</span>
           </div>
           <div className="scraper-toolbar-filters">
             <div className="scraper-filed-filter" aria-label="Filter by filing date">
@@ -467,8 +469,10 @@ export function ScraperClient() {
                   ) : (
                     rows.map((row) => {
                       if (priorityQueue) {
-                        const matched = Boolean(row.hcad_account?.trim());
+                        const matched = hasHcadMatch(row);
                         const age = filingAge(row.filing_date);
+                        const sourceLabels = (row.source_labels ?? [row.source].filter((source): source is string => Boolean(source)))
+                          .map((source) => CATEGORY_LABELS[categoryForSource(source)]);
                         return (
                           <TableRow key={row.id} className="scraper-data-row">
                             <TableCell className="px-4 py-3 text-sm" style={{ color: "var(--t2)" }}>
@@ -492,13 +496,16 @@ export function ScraperClient() {
                               {formatMoney(row.property_value)}
                             </TableCell>
                             <TableCell className="px-4 py-3 text-sm" style={{ color: "var(--t2)" }}>
-                              {formatMoney(row.taxes_owed)}
+                              {row.taxes_owed === null || row.taxes_owed === ""
+                                ? <span title="This court filing source does not provide a tax balance">—</span>
+                                : formatMoney(row.taxes_owed)}
                             </TableCell>
                             <TableCell className="px-4 py-3 text-xs font-mono" style={{ color: "var(--t2)" }}>
                               {row.case_number?.trim() || "—"}
+                              {sourceLabels.length ? <span className="mt-1 block font-sans text-[10px]" style={{ color: "var(--t3)" }} title="Source categories">{sourceLabels.join(" · ")}</span> : null}
                             </TableCell>
                             <TableCell className="px-4 py-3">
-                              <span className={`scraper-badge ${matched ? "scraper-match-verified" : "scraper-match-research"}`}>
+                              <span className={`scraper-badge ${matched ? "scraper-match-verified" : "scraper-match-research"}`} title={row.hcad_conflict ? "This case has conflicting HCAD accounts across source rows. Verify manually." : undefined}>
                                 {matched ? "HCAD Matched" : "Needs Research"}
                               </span>
                             </TableCell>
