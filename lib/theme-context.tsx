@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 type Theme = "dark" | "light";
+const THEME_STORAGE_KEY = "sellingmy-theme-v2";
 
 interface ThemeContextValue {
   theme: Theme;
@@ -18,9 +19,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
-    const stored = localStorage.getItem("theme") as Theme | null;
+    // v2 intentionally migrates existing accounts to the approved charcoal/lime
+    // experience once. After that first load, the user's toggle choice persists.
+    const stored = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
     const initial = stored === "light" ? "light" : "dark";
     setTheme(initial);
+    localStorage.setItem(THEME_STORAGE_KEY, initial);
     document.documentElement.classList.remove("dk", "lk");
     document.documentElement.classList.add(initial === "dark" ? "dk" : "lk");
   }, []);
@@ -28,7 +32,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   function toggleTheme() {
     setTheme((prev) => {
       const next = prev === "dark" ? "light" : "dark";
-      localStorage.setItem("theme", next);
+      localStorage.setItem(THEME_STORAGE_KEY, next);
       document.documentElement.classList.remove("dk", "lk");
       document.documentElement.classList.add(next === "dark" ? "dk" : "lk");
       return next;
