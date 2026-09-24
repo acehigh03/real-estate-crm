@@ -5,7 +5,7 @@ import { withErrorHandling } from "@/lib/api";
 import { logError, userFacingError } from "@/lib/errors";
 import { getRouteUser } from "@/lib/route-user";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { getFilingDateRange, type FilingWindow } from "@/lib/foreclosure-dates";
+import { getFilingDateRange, getHoustonDateISO, type FilingWindow } from "@/lib/foreclosure-dates";
 import {
   SCRAPER_SORT_KEYS,
   SCRAPER_SOURCES,
@@ -221,8 +221,10 @@ export const GET = withErrorHandling("api/scraper/leads", async (request: Reques
       query = query.gte("filing_date", start).lte("filing_date", end);
     }
     if (addedToday) {
-      const { start, end } = getFilingDateRange("today");
-      query = query.gte("scraped_date", start).lte("scraped_date", end);
+      const start = getHoustonDateISO();
+      const nextDay = new Date(`${start}T00:00:00Z`);
+      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+      query = query.gte("scraped_date", `${start}T00:00:00`).lt("scraped_date", nextDay.toISOString());
     }
     if (hcadFilter === "matched") {
       query = query.not("hcad_account", "is", null).neq("hcad_account", "");
