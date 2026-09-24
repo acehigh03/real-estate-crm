@@ -1,8 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { CalendarClock, Kanban, Menu, MessageSquare, MoreHorizontal, Users, X } from "lucide-react";
+
+const MOBILE_NAV = [
+  { label: "Inbox", href: "/inbox", icon: MessageSquare },
+  { label: "Today", href: "/scheduled", icon: CalendarClock },
+  { label: "Pipeline", href: "/pipeline", icon: Kanban },
+  { label: "Contacts", href: "/contacts", icon: Users },
+] as const;
 
 // Desktop: sidebar + content side by side. Phones: content full-width with a slide-in menu.
 export function AppShell({
@@ -14,6 +22,11 @@ export function AppShell({
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+
+  const isActive = (href: string) =>
+    pathname === href ||
+    (href === "/inbox" && ["/", "/dashboard", "/messenger"].includes(pathname)) ||
+    (href === "/contacts" && pathname.startsWith("/leads"));
 
   // Belt and braces: if anything ever scrolls the shell or sidebar sideways, snap it back so
   // the sidebar's first letters are never cut off.
@@ -75,6 +88,36 @@ export function AppShell({
       {open ? <button type="button" className="app-scrim" aria-label="Close menu" onClick={() => setOpen(false)} /> : null}
 
       <main className="app-main">{children}</main>
+
+      <nav className="app-mobile-nav" aria-label="Primary navigation">
+        <div className="app-mobile-nav__rail">
+          {MOBILE_NAV.map(({ label, href, icon: Icon }) => {
+            const active = isActive(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`app-mobile-nav__item${active ? " is-active" : ""}`}
+              >
+                <Icon size={19} strokeWidth={active ? 2.4 : 1.9} aria-hidden />
+                <span>{label}</span>
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            className={`app-mobile-nav__item${open ? " is-active" : ""}`}
+            aria-label={open ? "Close more navigation" : "Open more navigation"}
+            aria-expanded={open}
+            aria-controls="app-sidebar"
+            onClick={() => setOpen((value) => !value)}
+          >
+            <MoreHorizontal size={20} strokeWidth={2} aria-hidden />
+            <span>More</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }

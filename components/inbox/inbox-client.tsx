@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
-import { CalendarClock, ClipboardList, DollarSign, ExternalLink, FileText, Home, MessageSquare, MoreHorizontal, Paperclip, PhoneCall, Plus, Search, Send, Tag, Users } from "lucide-react";
+import { CalendarClock, ClipboardList, DollarSign, ExternalLink, FileText, Home, ListFilter, MessageSquare, MoreHorizontal, Paperclip, PhoneCall, Plus, Search, Send, Tag, Users } from "lucide-react";
 
 import { generateInboxDraftReply, getClassificationLabel } from "@/lib/ai/classify-lead";
 import { messageSentiment, SentimentBadge } from "@/components/automation/sentiment-badge";
@@ -784,10 +784,10 @@ export function InboxClient({
           </div>
           <div className="command-queue-tabs" role="tablist" aria-label="Inbox filters">
             {([
-              ["needs", "Needs reply", queueCounts.needs],
-              ["all", "All", queueCounts.all],
-              ["scheduled", "Scheduled", queueCounts.scheduled],
-            ] as const).map(([tab, label, count]) => (
+              ["needs", "Needs reply", queueCounts.needs, MessageSquare],
+              ["all", "All", queueCounts.all, ListFilter],
+              ["scheduled", "Scheduled", queueCounts.scheduled, CalendarClock],
+            ] as const).map(([tab, label, count, Icon]) => (
               <button
                 key={tab}
                 type="button"
@@ -796,7 +796,9 @@ export function InboxClient({
                 onClick={() => setQueueTab(tab)}
                 className={effectiveQueueTab === tab ? "is-active" : ""}
               >
-                {label}{tab !== "all" ? <span>{count}</span> : null}
+                <Icon size={14} aria-hidden />
+                <b>{label}</b>
+                {tab !== "all" ? <span>{count}</span> : null}
               </button>
             ))}
           </div>
