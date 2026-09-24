@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 
 const DISCLOSURE =
-  "I agree to receive recurring marketing text messages from SSB Management regarding real estate and property services at the number provided. Message frequency varies. Message and data rates may apply. Reply STOP to opt out or HELP for help. Consent is not a condition of purchase.";
+  "I agree to receive recurring marketing and promotional SMS text messages from SSB Management regarding real estate and property services at the mobile number provided. Message frequency may vary. Message and data rates may apply. Reply STOP to opt out. Reply HELP for help. Consent is not a condition of purchase.";
 
 export function SmsOptInForm() {
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
